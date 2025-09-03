@@ -1,0 +1,261 @@
+erDiagram
+    users {
+        int id PK
+        varchar username UK
+        varchar email UK
+        varchar full_name
+        enum role "purchasing, accounting, approver, admin"
+        varchar department
+        boolean is_active
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    vendors {
+        int id PK
+        varchar vendor_name
+        varchar email
+        varchar phone
+        text address
+        enum category "SAP, Manual"
+        varchar payment_terms
+        enum vendor_type "supplier, contractor, service_provider, other"
+        boolean is_active
+        int created_by FK
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    projects {
+        int id PK
+        varchar project_title
+        varchar cer_number
+        decimal total_project_cost
+        decimal total_contract_cost
+        enum project_status "active, on_hold, completed, cancelled"
+        text description
+        int created_by FK
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    purchase_orders {
+        int id PK
+        varchar po_number UK
+        int project_id FK
+        int vendor_id FK
+        decimal po_amount
+        enum po_status "draft, pending_approval, approved, sent, acknowledged, invoiced, completed, cancelled"
+        varchar terms_of_payment
+        date po_date
+        date expected_delivery_date
+        text description
+        int created_by FK
+        int approved_by FK
+        timestamp approved_at
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    po_line_items {
+        int id PK
+        int po_id FK
+        varchar item_description
+        decimal quantity
+        decimal unit_price
+        decimal total_amount "GENERATED"
+        varchar unit_of_measure
+        timestamp created_at
+    }
+
+    invoices {
+        int id PK
+        int po_id FK
+        varchar si_number
+        varchar si_date
+        varchar si_received_at
+        date received_date
+        enum payment_type "cash, check, bank_transfer, credit_card, other"
+        decimal invoice_amount
+        decimal tax_amount
+        decimal discount_amount
+        decimal net_amount "GENERATED"
+        enum invoice_status "received, under_review, approved, rejected, paid, overdue"
+        date due_date
+        text notes
+        date submitted_at
+        string submitted_to
+        int created_by FK
+        timestamp created_at
+        timestamp updated_at
+    }
+
+
+    check_requisitions {
+        int id PK
+        varchar requisition_number UK
+        int invoice_id FK
+        enum requisition_status "draft, pending_approval, approved, rejected, processed, paid"
+
+        decimal php_amount
+        date request_date
+        varchar payee_name
+        text purpose
+        text payment_for
+        varchar po_number
+        varchar cer_number
+        varchar si_number
+        varchar account_charge
+        varchar budget_code
+        varchar service_line_dist
+        text amount_in_words
+
+        varchar requested_by
+        varchar reviewed_by
+        varchar approved_by
+
+        enum payment_method "check, bank_transfer, cash, other"
+        int generated_by FK
+        timestamp approved_at
+        int processed_by FK
+        timestamp processed_at
+        timestamp created_at
+        timestamp updated_at
+    }
+
+%% REMARKS TABLES - Separate for each entity
+    vendor_remarks {
+        int id PK
+        int vendor_id FK
+        enum remark_type "note, issue, reminder, contact_log, payment_issue, other"
+        text remark_text
+        enum priority "low, medium, high, urgent"
+        boolean is_internal
+        int created_by FK
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    project_remarks {
+        int id PK
+        int project_id FK
+        enum remark_type "milestone, issue, budget_concern, delay, completion, other"
+        text remark_text
+        enum priority "low, medium, high, urgent"
+        boolean is_internal
+        int created_by FK
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    po_remarks {
+        int id PK
+        int po_id FK
+        enum remark_type "approval_comment, vendor_communication, delivery_issue, quality_concern, other"
+        text remark_text
+        enum priority "low, medium, high, urgent"
+        boolean is_internal
+        int created_by FK
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    invoice_remarks {
+        int id PK
+        int invoice_id FK
+        enum remark_type "discrepancy, approval_note, payment_instruction, dispute, other"
+        text remark_text
+        enum priority "low, medium, high, urgent"
+        boolean is_internal
+        int created_by FK
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    requisition_remarks {
+        int id PK
+        int requisition_id FK
+        enum remark_type "approval_comment, payment_instruction, rejection_reason, processing_note, other"
+        text remark_text
+        enum priority "low, medium, high, urgent"
+        boolean is_internal
+        int created_by FK
+        timestamp created_at
+        timestamp updated_at
+    }
+
+
+
+    audit_trail {
+        int id PK
+        varchar table_name
+        int record_id
+        enum action "create, update, delete"
+        json old_values
+        json new_values
+        int changed_by FK
+        timestamp changed_at
+        varchar ip_address
+        text user_agent
+    }
+
+    system_settings {
+        int id PK
+        varchar setting_key UK
+        text setting_value
+        text setting_description
+        int updated_by FK
+        timestamp updated_at
+    }
+
+    files {
+        int id PK
+        varchar fileable_type
+        bigint fileable_id
+        varchar file_name
+        varchar file_path
+        varchar file_type
+        varchar file_category
+        varchar file_purpose
+        bigint file_size
+        varchar disk
+        text description
+        boolean is_active
+        bigint uploaded_by FK
+        timestamp created_at
+        timestamp updated_at
+    }
+
+
+
+
+%% Core Entity Relationships
+    users ||--o{ vendors : creates
+    users ||--o{ projects : creates
+    users ||--o{ purchase_orders : creates
+    users ||--o{ purchase_orders : approves
+    users ||--o{ invoices : creates
+    users ||--o{ check_requisitions : generates
+    users ||--o{ check_requisitions : approves
+    users ||--o{ check_requisitions : processes
+    users ||--o{ audit_trail : changes
+    users ||--o{ system_settings : updates
+
+    vendors ||--o{ purchase_orders : "has POs"
+    projects ||--o{ purchase_orders : "contains POs"
+    purchase_orders ||--o{ po_line_items : "has line items"
+    purchase_orders ||--o{ invoices : "receives invoices"
+    invoices ||--o{ check_requisitions : "generates requisitions"
+
+%% Remarks Relationships
+    vendors ||--o{ vendor_remarks : "has remarks"
+    projects ||--o{ project_remarks : "has remarks"
+    purchase_orders ||--o{ po_remarks : "has remarks"
+    invoices ||--o{ invoice_remarks : "has remarks"
+    check_requisitions ||--o{ requisition_remarks : "has remarks"
+
+    users ||--o{ vendor_remarks : creates
+    users ||--o{ project_remarks : creates
+    users ||--o{ po_remarks : creates
+    users ||--o{ invoice_remarks : creates
+    users ||--o{ requisition_remarks : creates
