@@ -14,4 +14,8 @@ class Invoice extends Model
     public function purchaseOrder(){
         return $this->belongsTo(PurchaseOrder::class);
     }
+
+    public function files(){
+        return $this->morphMany(File::class, 'fileable');
+    }
 }

@@ -39,13 +39,13 @@ class InvoiceController extends Controller
             'purchase_order_id' => 'required|exists:purchase_orders,id',
             'si_number' => 'required|string|max:255|unique:invoices',
             'si_date' => 'required|date',
-            'received_date' => 'required|date',
-            'payment_type' => ['required', Rule::in(['cash', 'check', 'bank_transfer', 'credit_card', 'other'])],
+            'received_date' => 'nullable|date',
+//            'payment_type' => ['required', Rule::in(['cash', 'check', 'bank_transfer', 'credit_card', 'other'])],
             'invoice_amount' => 'required|numeric|min:0',
             'tax_amount' => 'nullable|numeric|min:0',
             'discount_amount' => 'nullable|numeric|min:0',
-            'net_amount' => 'required|numeric|min:0',
-            'invoice_status' => ['required', Rule::in(['received', 'under_review', 'approved', 'rejected', 'paid', 'overdue'])],
+//            'net_amount' => 'required|numeric|min:0',
+//            'invoice_status' => ['required', Rule::in(['received', 'under_review', 'approved', 'rejected', 'paid', 'overdue'])],
             'due_date' => 'nullable|date',
             'notes' => 'nullable|string',
             'submitted_at' => 'nullable|date',
@@ -54,6 +54,8 @@ class InvoiceController extends Controller
         ]);
 
         unset($validated['files']);
+
+        $validated['net_amount'] = $validated['invoice_amount'];
 
         // Create invoice
         $invoice = Invoice::create([
