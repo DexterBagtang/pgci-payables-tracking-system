@@ -11,33 +11,37 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator.js';
 import { Textarea } from '@/components/ui/textarea.js';
 import { cn } from '@/lib/utils.js';
-import { Head, Link, useForm } from '@inertiajs/react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
 import { format } from 'date-fns';
-import { ArrowLeft, Calendar as CalendarIcon, Check, ChevronsUpDown, FileText, Save, Send } from 'lucide-react';
-import { useState } from 'react';
+import { ArrowLeft, Calendar as CalendarIcon, Check, ChevronsUpDown, FileText, Save, Download, File } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
+import { getFileIcon } from '@/components/custom/helpers.jsx';
 
-export default function CreatePOForm({ vendors, projects }) {
-    const [isDraft, setIsDraft] = useState(false);
+export default function EditPOForm({ purchaseOrder, vendors, projects, onCancel, onSuccess }) {
+    const [isDraft, setIsDraft] = useState(purchaseOrder.po_status === 'draft');
     const [projectOpen, setProjectOpen] = useState(false);
     const [vendorOpen, setVendorOpen] = useState(false);
     const [files, setFiles] = useState([]);
 
-
     const { data, setData, post, processing, errors, reset } = useForm({
-        po_number: '',
-        project_id: '',
-        vendor_id: '',
-        po_amount: '',
-        payment_term: '',
-        po_date: '',
-        expected_delivery_date: '',
-        description: '',
-        po_status: 'open',
+        po_number: purchaseOrder.po_number || '',
+        project_id: purchaseOrder.project_id?.toString() || '',
+        vendor_id: purchaseOrder.vendor_id?.toString() || '',
+        po_amount: purchaseOrder.po_amount || '',
+        payment_term: purchaseOrder.payment_term || '',
+        po_date: purchaseOrder.po_date || '',
+        expected_delivery_date: purchaseOrder.expected_delivery_date || '',
+        description: purchaseOrder.description || '',
+        po_status: purchaseOrder.po_status || 'open',
         line_items: [],
-        files: [], // Add this line
-
+        files: [], // Add files to form data
     });
+
+    // Update isDraft when po_status changes
+    useEffect(() => {
+        setIsDraft(data.po_status === 'draft');
+    }, [data.po_status]);
 
     const handleFileChange = (e) => {
         const selectedFiles = Array.from(e.target.files);
@@ -48,15 +52,21 @@ export default function CreatePOForm({ vendors, projects }) {
     const handleSubmit = (e) => {
         e.preventDefault();
 
+        // console.log(data); return;
 
-        post('/purchase-orders', {
-            forceFormData: true,
+        post(`/purchase-orders/${purchaseOrder.id}`,{
+            _method:'patch',
+            forceFormData: true, // Enable file uploads
             onSuccess: () => {
-                toast.success('PO added successfully.');
+                toast.success('Purchase Order updated successfully.');
                 reset();
                 setFiles([]);
-
+                onSuccess?.();
             },
+            onError: (errors) => {
+                console.log('Update errors:', errors);
+                toast.error('Failed to update Purchase Order.');
+            }
         });
     };
 
@@ -83,25 +93,32 @@ export default function CreatePOForm({ vendors, projects }) {
         setData('po_amount', amount);
     };
 
+    // Function to download existing files
+    const downloadFile = (file) => {
+        const downloadUrl = `/storage/${file.file_path}`;
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.download = file.file_name;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
     return (
         <>
-            <Head title="Create Purchase Order" />
+            <Head title={`Edit Purchase Order - ${purchaseOrder.po_number}`} />
 
             <div className="py-6">
                 <div className="mx-auto max-w-4xl sm:px-6 lg:px-8">
                     {/* Header */}
                     <div className="mb-6">
-                        <div className="mb-4 flex items-center gap-4">
-                            <Button variant="outline" asChild>
-                                <Link href="/purchase-orders">
-                                    <ArrowLeft className="mr-2 h-4 w-4" />
-                                    Back to Purchase Orders
-                                </Link>
-                            </Button>
-                        </div>
                         <div>
-                            <h1 className="text-2xl font-semibold text-gray-900">Create New Purchase Order</h1>
-                            <p className="mt-2 text-sm text-gray-600">Fill out the form below to create a new purchase order</p>
+                            <h1 className="text-2xl font-semibold text-gray-900">
+                                Edit Purchase Order - {purchaseOrder.po_number}
+                            </h1>
+                            <p className="mt-2 text-sm text-gray-600">
+                                Update the purchase order details below
+                            </p>
                         </div>
                     </div>
 
@@ -113,7 +130,7 @@ export default function CreatePOForm({ vendors, projects }) {
                                     <FileText className="h-5 w-5" />
                                     Purchase Order Details
                                 </CardTitle>
-                                <CardDescription>Enter all the details for the purchase order</CardDescription>
+                                <CardDescription>Update the details for the purchase order</CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-6">
                                 {/* Top Section: PO Number, Date, Amount */}
@@ -171,7 +188,6 @@ export default function CreatePOForm({ vendors, projects }) {
                                                 onChange={(e) => setData('po_amount', e.target.value)}
                                                 className="pl-8"
                                                 placeholder="0.00"
-                                                // readOnly={lineItems.length > 0}
                                             />
                                         </div>
                                         {errors.po_amount && (
@@ -204,8 +220,7 @@ export default function CreatePOForm({ vendors, projects }) {
                                     </div>
                                 </div>
 
-
-                                    {/* Middle Section: Description */}
+                                {/* Middle Section: Description */}
                                 <div className="space-y-2">
                                     <Label htmlFor="description">Description</Label>
                                     <Textarea
@@ -380,6 +395,67 @@ export default function CreatePOForm({ vendors, projects }) {
                                     </div>
                                 </div>
 
+                                {/* Attachments Section */}
+
+                                <div className="space-y-4">
+                                        {/* Existing Files Display */}
+                                        {purchaseOrder.files && purchaseOrder.files.length > 0 && (
+                                            <div className="space-y-2">
+                                                <Label>Attachments</Label>
+                                                <div className="grid gap-1">
+                                                    {purchaseOrder.files.map((file) => (
+                                                        <div
+                                                            key={file.id}
+                                                            className="flex items-center justify-between p-2 border rounded-lg bg-muted/20"
+                                                        >
+                                                            <div className="flex items-center gap-3">
+                                                                {getFileIcon(file.file_type)}
+                                                                <div className="flex flex-col">
+                                                                    <span className="text-sm font-medium">{file.file_name}</span>
+                                                                    <span className="text-xs text-muted-foreground">
+                                                                        {(file.file_size / 1024 / 1024).toFixed(2)} MB . {format(file.created_at,'yyyy-MM-dd hh:mm a')}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                            <Button
+                                                                type="button"
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                onClick={() => downloadFile(file)}
+                                                            >
+                                                                <Download className="h-4 w-4" />
+                                                            </Button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* New File Upload */}
+                                        <div className="space-y-2">
+                                            <Label htmlFor="files">Upload Additional Files</Label>
+                                            <Input
+                                                id="files"
+                                                type="file"
+                                                multiple
+                                                onChange={handleFileChange}
+                                                className="cursor-pointer"
+                                            />
+                                            <p className="text-sm text-muted-foreground">
+                                                Maximum file size: 10MB per file. New files will be added to existing attachments.
+                                            </p>
+                                            {errors.files && <p className="text-sm text-red-600">{errors.files}</p>}
+
+                                            {files.length > 0 && (
+                                                <p className="text-sm text-green-600">
+                                                    {files.length} new file(s) selected for upload
+                                                </p>
+                                            )}
+                                        </div>
+                                    </div>
+
+
+
                                 {/* Bottom Section: Save as Draft Checkbox */}
                                 <div className="flex items-center space-x-2 border-t pt-4">
                                     <Checkbox id="is_draft" checked={isDraft} onCheckedChange={(checked) => handleDraft(checked)} />
@@ -401,57 +477,23 @@ export default function CreatePOForm({ vendors, projects }) {
                                         </Badge>
                                     )}
                                 </div>
-
                             </CardContent>
                         </Card>
 
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Attachments</CardTitle>
-                                <CardDescription>Upload supporting documents for this purchase order</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="space-y-2">
-                                    <Label htmlFor="files">Upload Files</Label>
-                                    <Input
-                                        id="files"
-                                        type="file"
-                                        multiple
-                                        onChange={handleFileChange}
-                                        // accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
-                                        className="cursor-pointer"
-                                    />
-                                    <p className="text-sm text-muted-foreground">
-                                        Maximum file size: 10MB per file
-                                    </p>
-                                    {errors.files && <p className="text-sm text-red-600">{errors.files}</p>}
-
-                                    {files.length > 0 && (
-                                        <p className="text-sm text-green-600">
-                                            {files.length} file(s) selected
-                                        </p>
-                                    )}
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                        {/* Line Items Section */}
-                        {/*<LineItemsManager*/}
-                        {/*    lineItems={lineItems}*/}
-                        {/*    setLineItems={setLineItems}*/}
-                        {/*    poAmount={data.po_amount}*/}
-                        {/*    setPoAmount={setPoAmount}*/}
-                        {/*/>*/}
 
                         {/* Action Buttons */}
                         <div className="flex items-center justify-between pt-6">
-                            <Button variant="outline" type="button" asChild>
-                                <Link href="/purchase-orders">Back</Link>
+                            <Button
+                                variant="outline"
+                                type="button"
+                                onClick={() => (onCancel ?? (() => router.get('/purchase-orders')))()}
+                            >
+                                Cancel
                             </Button>
 
                             <Button type="submit" disabled={processing}>
                                 <Save className="mr-2 h-4 w-4" />
-                                {isDraft ? 'Save as Draft' : 'Create'}
+                                {processing ? 'Updating...' : 'Update Purchase Order'}
                             </Button>
                         </div>
                     </form>

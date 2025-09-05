@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\PoLineItem;
 use App\Models\Project;
 use App\Models\PurchaseOrder;
 use App\Models\Vendor;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class PurchaseOrderController extends Controller
 {
@@ -111,38 +113,9 @@ class PurchaseOrderController extends Controller
         ]);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-//    public function store(Request $request)
-//    {
-//        $validated = $request->validate([
-//            'po_number' => 'required|string|unique:purchase_orders',
-//            'project_id' => 'required|exists:projects,id',
-//            'vendor_id' => 'required|exists:vendors,id',
-//            'po_amount' => 'required|numeric|min:0',
-//            'payment_term' => 'nullable|string',
-//            'po_date' => 'required|date',
-//            'expected_delivery_date' => 'nullable|date|after:po_date',
-//            'description' => 'nullable|string',
-//        ]);
-//
-//        // Determine status based on the presence of is_draft in the request
-//        $isDraft = $request->has('is_draft') && $request->input('is_draft') === true;
-//        $status = $isDraft ? 'draft' : 'open';
-//
-//        $validated['po_status'] = $status;
-//        $validated['created_by'] = auth()->id();
-//
-//        PurchaseOrder::create($validated);
-//
-//        return redirect()->route('purchase-orders.index')
-//            ->with('success', 'Purchase order created successfully.');
-//    }
 
     public function store(Request $request)
     {
-//        dd($request->all());
         $validated = $request->validate([
             'po_number' => $request->po_status === 'draft' ? 'nullable|string|unique:purchase_orders' : 'required|string|unique:purchase_orders',
             'project_id' => $request->po_status === 'draft' ? 'nullable|exists:projects,id' : 'required|exists:projects,id',
@@ -152,16 +125,43 @@ class PurchaseOrderController extends Controller
             'po_date' => $request->po_status === 'draft' ? 'nullable|date' : 'required|date',
             'expected_delivery_date' => 'nullable|date|after:po_date',
             'description' => 'nullable|string',
+            'files' => 'nullable|array',
+            'files.*' => 'file|max:10240', // 10MB max per file
         ]);
 
-        $validated['po_status'] = $request->po_status; // already set by frontend
+        $validated['po_status'] = $request->po_status;
         $validated['created_by'] = auth()->id();
 
-        PurchaseOrder::create($validated);
+        unset($validated['files']);
 
-        return redirect()->route('purchase-orders.index')
-            ->with('success', 'Purchase order created successfully.');
+        // Create the purchase order
+        $purchaseOrder = PurchaseOrder::create($validated);
+
+        // Handle file uploads
+        if ($request->hasFile('files')) {
+            foreach ($request->file('files') as $file) {
+                $originalName = $file->getClientOriginalName();
+                $fileName = time() . '_' . $originalName;
+                $filePath = $file->store('purchase-orders/files', 'public');
+
+                $purchaseOrder->files()->create([
+                    'file_name' => $originalName,
+                    'file_path' => $filePath,
+                    'file_type' => $file->getClientMimeType(),
+                    'file_category' => 'purchase_order',
+                    'file_purpose' => 'documentation',
+                    'file_size' => $file->getSize(),
+                    'disk' => 'public',
+                    'uploaded_by' => auth()->id(),
+                    'is_active' => true,
+                ]);
+            }
+        }
+
+        return back()->with('message', 'Purchase Order created.');
     }
+
+
 
 
 
@@ -170,25 +170,89 @@ class PurchaseOrderController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
+    public function show(PurchaseOrder $purchaseOrder)
     {
-        //
+        $purchaseOrder->load([
+            'project:id,project_title,cer_number,total_project_cost,total_contract_cost,project_status,description,project_type,smpo_number,philcom_category',
+            'vendor:id,name,category',
+            'creator:id,name',
+            'files'
+        ]);
+
+        // Get vendors and projects for edit mode
+        $vendors = Vendor::select('id', 'name', 'category')->where('is_active', true)->orderBy('name')->get();
+        $projects = Project::select('id', 'project_title', 'cer_number', 'project_type', 'smpo_number', 'philcom_category')->orderBy('project_title')->get();
+
+        return inertia('purchase-orders/show', [
+            'purchaseOrder' => $purchaseOrder,
+            'vendors' => $vendors,
+            'projects' => $projects,
+        ]);
     }
 
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(string $id)
+    public function edit(PurchaseOrder $purchaseOrder)
     {
-        //
+        $purchaseOrder->load(['files']);
+        $vendors = Vendor::where('is_active', true)->orderBy('name')->get();
+        $projects = Project::all();
+
+        return inertia('purchase-orders/edit', [
+            'purchaseOrder' => $purchaseOrder,
+            'vendors' => $vendors,
+            'projects' => $projects,
+        ]);
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(Request $request, PurchaseOrder $purchaseOrder)
     {
-        //
+        $validated = $request->validate([
+            'po_number' => [
+                $request->po_status === 'draft' ? 'nullable' : 'required',
+                'string',
+                'unique:purchase_orders,po_number,' . $purchaseOrder->id
+            ],
+            'project_id' => $request->po_status === 'draft' ? 'nullable|exists:projects,id' : 'required|exists:projects,id',
+            'vendor_id' => $request->po_status === 'draft' ? 'nullable|exists:vendors,id' : 'required|exists:vendors,id',
+            'po_amount' => $request->po_status === 'draft' ? 'nullable|numeric|min:0' : 'required|numeric|min:0',
+            'payment_term' => 'nullable|string',
+            'po_date' => $request->po_status === 'draft' ? 'nullable|date' : 'required|date',
+            'expected_delivery_date' => 'nullable|date|after:po_date',
+            'description' => 'nullable|string',
+            'po_status' => 'required|in:draft,open,approved,completed,cancelled',
+        ]);
+
+//        $validated['updated_by'] = auth()->id();
+
+        $purchaseOrder->update($validated);
+
+        // In your update method, add file handling
+        if ($request->hasFile('files')) {
+            foreach ($request->file('files') as $file) {
+                $originalName = $file->getClientOriginalName();
+                $fileName = time() . '_' . $originalName;
+                $filePath = $file->store('purchase-orders/files', 'public');
+
+                $purchaseOrder->files()->create([
+                    'file_name' => $originalName,
+                    'file_path' => $filePath,
+                    'file_type' => $file->getClientMimeType(),
+                    'file_category' => 'purchase_order',
+                    'file_purpose' => 'documentation',
+                    'file_size' => $file->getSize(),
+                    'disk' => 'public',
+                    'uploaded_by' => auth()->id(),
+                    'is_active' => true,
+                ]);
+            }
+        }
+
+        return back()->with('message', 'Purchase Order updated successfully.');
     }
 
     /**

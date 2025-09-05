@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\PurchaseOrderController;
 use App\Http\Controllers\VendorController;
@@ -17,7 +18,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::resource('vendors', VendorController::class);
     Route::resource('projects', ProjectController::class);
-    Route::resource('purchase-orders', PurchaseOrderController::class);
+    Route::resource('purchase-orders', PurchaseOrderController::class)->except(['update']);
+    Route::post('purchase-orders/{purchase_order}', [PurchaseOrderController::class, 'update'])
+        ->name('purchase-orders.update');
+
+    Route::resource('invoices', InvoiceController::class);
+
+
 
 
 

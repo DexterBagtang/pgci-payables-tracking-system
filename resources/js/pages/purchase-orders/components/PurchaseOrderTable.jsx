@@ -29,6 +29,7 @@ import { Badge } from "@/components/ui/badge.js";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card.js";
 import { MoreHorizontal, Search, ArrowUpDown, Plus } from 'lucide-react';
 import PaginationServerSide from '@/components/custom/Pagination.jsx';
+import { toast } from 'sonner';
 
 
 export default function PurchaseOrderTable({ purchaseOrders, filters, filterOptions }) {
@@ -46,6 +47,7 @@ export default function PurchaseOrderTable({ purchaseOrders, filters, filterOpti
 
     const [sortField, setSortField] = useState(filters.sort_field || 'po_date');
     const [sortDirection, setSortDirection] = useState(filters.sort_direction || 'desc');
+
 
     const handleFilterChange = (key, value) => {
         const newFilters = { ...localFilters, [key]: value };
@@ -203,7 +205,7 @@ export default function PurchaseOrderTable({ purchaseOrders, filters, filterOpti
                                 <CardDescription>Manage and review all purchase orders</CardDescription>
                             </div>
                             <Button asChild>
-                                <Link href='/purchase-orders/create'>
+                                <Link href='/purchase-orders/create' prefetch>
                                     <Plus className="mr-2 h-4 w-4" />
                                     Create New PO
                                 </Link>
@@ -395,7 +397,7 @@ export default function PurchaseOrderTable({ purchaseOrders, filters, filterOpti
                                         </TableRow>
                                     ) : (
                                         data.map((po) => (
-                                            <TableRow key={po.id}>
+                                            <TableRow key={po.id} onClick={()=> router.get(`/purchase-orders/${po.id}`)} className="cursor-pointer">
                                                 <TableCell className="font-medium">
                                                     <div className="flex flex-col">
                                                         <span className="font-semibold">{po.po_number}</span>
@@ -436,7 +438,7 @@ export default function PurchaseOrderTable({ purchaseOrders, filters, filterOpti
                                                         <div>{formatDate(po.created_at)}</div>
                                                     </div>
                                                 </TableCell>
-                                                <TableCell className="text-right">
+                                                <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                                                     <DropdownMenu>
                                                         <DropdownMenuTrigger asChild>
                                                             <Button variant="ghost" className="h-8 w-8 p-0">
@@ -446,14 +448,13 @@ export default function PurchaseOrderTable({ purchaseOrders, filters, filterOpti
                                                         </DropdownMenuTrigger>
                                                         <DropdownMenuContent align="end">
                                                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                                            <DropdownMenuItem asChild>
-                                                                {/*<Link href={route('purchase-orders.show', po.id)}>View details</Link>*/}
-                                                            </DropdownMenuItem>
-                                                            <DropdownMenuItem asChild>
-                                                                {/*<Link href={route('purchase-orders.edit', po.id)}>Edit PO</Link>*/}
-                                                            </DropdownMenuItem>
                                                             <DropdownMenuSeparator />
-                                                            <DropdownMenuItem>Download PDF</DropdownMenuItem>
+                                                            <DropdownMenuItem asChild>
+                                                                <Link href={`/purchase-orders/${po.id}`}>View details</Link>
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuItem asChild>
+                                                                <Link href={`/purchase-orders/${po.id}/edit`}>Edit PO</Link>
+                                                            </DropdownMenuItem>
                                                         </DropdownMenuContent>
                                                     </DropdownMenu>
                                                 </TableCell>

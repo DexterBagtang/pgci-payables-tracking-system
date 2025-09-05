@@ -25,4 +25,9 @@ class PurchaseOrder extends Model
     public function lineItems(){
         return $this->hasMany(PoLineItem::class);
     }
+
+    public function files()
+    {
+        return $this->morphMany(File::class, 'fileable');
+    }
 }

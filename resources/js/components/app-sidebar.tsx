@@ -29,6 +29,11 @@ const mainNavItems: NavItem[] = [
         href: '/purchase-orders',
         icon: Files,
     },
+    {
+        title: 'Invoices',
+        href: '/invoices',
+        icon: Receipt,
+    },
 ];
 
 const footerNavItems: NavItem[] = [
