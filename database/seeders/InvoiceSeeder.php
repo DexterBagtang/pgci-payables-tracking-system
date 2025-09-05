@@ -2,17 +2,17 @@
 
 namespace Database\Seeders;
 
-use App\Models\PurchaseOrder;
+use App\Models\Invoice;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
-class PurchaseOrderSeeder extends Seeder
+class InvoiceSeeder extends Seeder
 {
     /**
      * Run the database seeds.
      */
     public function run(): void
     {
-        PurchaseOrder::factory()->count(3)->create();
+        Invoice::factory()->count(10)->create();
     }
 }

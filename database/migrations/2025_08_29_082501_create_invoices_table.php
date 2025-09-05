@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('invoices', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('po_id')->constrained('purchase_orders')->onDelete('cascade');
+            $table->foreignId('purchase_order_id')->constrained('purchase_orders')->onDelete('cascade');
             $table->string('si_number')->nullable();
             $table->date('si_date')->nullable();
             $table->date('si_received_at')->nullable();
@@ -22,7 +22,7 @@ return new class extends Migration
             $table->decimal('invoice_amount', 15, 2);
             $table->decimal('tax_amount', 15, 2)->default(0);
             $table->decimal('discount_amount', 15, 2)->default(0);
-            $table->decimal('net_amount', 15, 2)->virtualAs('invoice_amount + tax_amount - discount_amount');
+            $table->decimal('net_amount', 15, 2);
             $table->enum('invoice_status', ['received', 'under_review', 'approved', 'rejected', 'paid', 'overdue'])->default('received');
             $table->date('due_date')->nullable();
             $table->text('notes')->nullable();
