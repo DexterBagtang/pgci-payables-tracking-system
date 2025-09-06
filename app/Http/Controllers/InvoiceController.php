@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Invoice;
+use App\Models\Project;
 use App\Models\PurchaseOrder;
+use App\Models\Vendor;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -37,6 +39,18 @@ class InvoiceController extends Controller
             });
         }
 
+        if ($request->has('vendor') && $request->vendor !== 'all') {
+            $query->whereHas('purchaseOrder.vendor', function ($q) use ($request) {
+                $q->where('vendor_id', $request->vendor);
+            });
+        }
+
+        if ($request->has('project') && $request->project !== 'all') {
+            $query->whereHas('purchaseOrder.project', function ($q) use ($request) {
+                $q->where('project_id', $request->project);
+            });
+        }
+
         $sortField = $request->get('sort_field','created_at');
         $sortDirection = $request->get('sort_direction','desc');
 
@@ -56,15 +70,24 @@ class InvoiceController extends Controller
 
         $invoices = $query->paginate($request->get($perPage));
 
-        $invoices->appends($request->all());
+        $invoices->appends($request->query());
+
+        $vendors = Vendor::where('is_active', true)->orderBy('name')->get(['id', 'name']);
+        $projects = Project::all(['id', 'project_title']);
 
         return inertia('invoices/index', [
             'invoices' => $invoices,
             'filters' => [
                 'search' => $request->get('search', ''),
                 'sort_field' => $request->get('sort_field', 'po_date'),
+                'vendor' => $request->vendor !== 'all' ? (int) $request->vendor : 'all',
+                'project' => $request->project !== 'all' ? (int) $request->project : 'all',
                 'sort_direction' => $request->get('sort_direction', 'desc'),
                 'per_page' => $request->get('per_page', 10),
+            ],
+            'filterOptions' => [
+                'vendors' => $vendors,
+                'projects' => $projects,
             ],
         ]);
     }
