@@ -22,8 +22,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('purchase-orders/{purchase_order}', [PurchaseOrderController::class, 'update'])
         ->name('purchase-orders.update');
 
-    Route::resource('invoices', InvoiceController::class);
-
+    Route::resource('invoices', InvoiceController::class)->except(['update']);
+    Route::post('invoices/{invoice}', [InvoiceController::class, 'update'])->name('invoices.update');
 
 
 

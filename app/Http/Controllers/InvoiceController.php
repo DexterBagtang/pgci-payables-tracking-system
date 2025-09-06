@@ -13,10 +13,59 @@ class InvoiceController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
+        $query = Invoice::with(['purchaseOrder.project', 'purchaseOrder.vendor'])
+            ->select('invoices.*')
+            ->leftJoin('purchase_orders', 'purchase_orders.id', '=', 'invoices.purchase_order_id')
+        ;
+
+        if($request->has('search')){
+            $query->where(function ($query) use ($request) {
+                $query->where('si_number', 'like', '%' . $request->search . '%')
+                    ->orWhereHas('purchaseOrder.project', function ($q) use ($request) {
+                        $q->where('project_title', 'like', '%' . $request->search . '%')
+                            ->orWhere('cer_number', 'like', '%' . $request->search . '%');
+                    })
+                    ->orWhereHas('purchaseOrder.vendor', function ($q) use ($request) {
+                        $q->where('name', 'like', '%' . $request->search . '%');
+                    })
+                    ->orWhereHas('purchaseOrder', function ($q) use ($request) {
+                        $q->where('po_number', 'like', '%' . $request->search . '%');
+                    })
+                ;
+            });
+        }
+
+        $sortField = $request->get('sort_field','created_at');
+        $sortDirection = $request->get('sort_direction','desc');
+
+        $sortMapping = [
+            'si_number' => 'si_number',
+            'created_at' => 'invoices.created_at',
+        ];
+
+        if (array_key_exists($sortField, $sortMapping)) {
+            $query->orderBy($sortMapping[$sortField], $sortDirection);
+        }else {
+            $query->orderBy('updated_at', 'desc');
+        }
+
+        $perPage = $request->get('per_page', 10);
+        $perPage = in_array($perPage, [10, 15, 25, 50]) ? $perPage : 10;
+
+        $invoices = $query->paginate($request->get($perPage));
+
+        $invoices->appends($request->all());
+
         return inertia('invoices/index', [
-            'invoices' => Invoice::with(['purchaseOrder.project', 'purchaseOrder.vendor'])->get(),
+            'invoices' => $invoices,
+            'filters' => [
+                'search' => $request->get('search', ''),
+                'sort_field' => $request->get('sort_field', 'po_date'),
+                'sort_direction' => $request->get('sort_direction', 'desc'),
+                'per_page' => $request->get('per_page', 10),
+            ],
         ]);
     }
 
@@ -40,13 +89,10 @@ class InvoiceController extends Controller
             'si_number' => 'required|string|max:255|unique:invoices',
             'si_date' => 'required|date',
             'received_date' => 'nullable|date',
-//            'payment_type' => ['required', Rule::in(['cash', 'check', 'bank_transfer', 'credit_card', 'other'])],
             'invoice_amount' => 'required|numeric|min:0',
             'tax_amount' => 'nullable|numeric|min:0',
             'discount_amount' => 'nullable|numeric|min:0',
-//            'net_amount' => 'required|numeric|min:0',
-//            'invoice_status' => ['required', Rule::in(['received', 'under_review', 'approved', 'rejected', 'paid', 'overdue'])],
-            'due_date' => 'nullable|date',
+            'due_date' => 'required|date',
             'notes' => 'nullable|string',
             'submitted_at' => 'nullable|date',
             'submitted_to' => 'nullable|string|max:255',
@@ -100,17 +146,64 @@ class InvoiceController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(string $id)
+    public function edit(Invoice $invoice)
     {
-        //
+        $invoice->load('purchaseOrder.project', 'purchaseOrder.vendor');
+        return inertia('invoices/edit', [
+            'invoice' => $invoice,
+            'purchaseOrders' => PurchaseOrder::with(['project', 'vendor'])->get(),
+        ]);
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(Request $request, Invoice $invoice)
     {
-        //
+        $validated = $request->validate([
+            'purchase_order_id' => 'required|exists:purchase_orders,id',
+            'si_number' => 'required|string|max:255|unique:invoices,si_number,' . $invoice->id,
+            'si_date' => 'required|date',
+            'si_received_at' => 'nullable|date',
+            'invoice_amount' => 'required|numeric|min:0',
+            'due_date' => 'nullable|date',
+            'notes' => 'nullable|string',
+            'submitted_at' => 'nullable|date',
+            'submitted_to' => 'nullable|string|max:255',
+            'files.*' => 'file|max:10240|mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png',
+        ]);
+
+        // Remove files array from validated data for mass assignment
+        $fileData = $validated['files'] ?? [];
+        unset($validated['files']);
+
+        $validated['net_amount'] = $validated['invoice_amount'];
+
+        // Update invoice
+        $invoice->update($validated);
+
+        // Handle new file uploads only (no deletion)
+        if (!empty($fileData)) {
+            foreach ($fileData as $file) {
+                $filePath = $file->store('invoices/files', 'public');
+
+                $invoice->files()->create([
+                    'file_name' => $file->getClientOriginalName(),
+                    'file_path' => $filePath,
+                    'file_type' => $file->getClientMimeType(),
+                    'file_category' => 'invoice',
+                    'file_purpose' => 'documentation',
+                    'file_size' => $file->getSize(),
+                    'disk' => 'public',
+                    'uploaded_by' => auth()->id(),
+                    'is_active' => true,
+                ]);
+            }
+        }
+
+        return redirect()
+            ->route('invoices.show', $invoice)
+            ->with('success', 'Invoice updated successfully!');
     }
 
     /**

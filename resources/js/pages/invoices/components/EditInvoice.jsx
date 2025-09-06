@@ -1,5 +1,5 @@
 import { router, useForm } from '@inertiajs/react';
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import {
     Card,
     CardContent,
@@ -38,33 +38,54 @@ import {
     ChevronsUpDown,
     X,
     Upload,
-    Eye, ArrowLeft
+    Eye,
+    ArrowLeft,
+    Download,
+    Trash2
 } from 'lucide-react';
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge.js';
-import {Link} from '@inertiajs/react'
-import {toast} from "sonner";
+import { Link } from '@inertiajs/react'
+import { toast } from "sonner";
 
-
-const CreateInvoice = ({ purchaseOrders = [] }) => {
+const EditInvoice = ({ invoice, purchaseOrders }) => {
     const [poComboboxOpen, setPoComboboxOpen] = useState(false);
     const [selectedFiles, setSelectedFiles] = useState([]);
     const [showConfirmation, setShowConfirmation] = useState(false);
+    const [filesToDelete, setFilesToDelete] = useState([]);
 
     const { data, setData, post, processing, errors, reset } = useForm({
-        purchase_order_id: '',
-        si_number: '',
-        si_date: '',
-        si_received_at: '',
-        invoice_amount: '',
-        due_date: '',
-        notes: '',
-        submitted_at: '',
-        submitted_to: '',
+        purchase_order_id: invoice.purchase_order_id?.toString() || '',
+        si_number: invoice.si_number || '',
+        si_date: invoice.si_date || '',
+        si_received_at: invoice.si_received_at || '',
+        invoice_amount: invoice.invoice_amount || '',
+        due_date: invoice.due_date || '',
+        notes: invoice.notes || '',
+        submitted_at: invoice.submitted_at || '',
+        submitted_to: invoice.submitted_to || '',
         files: [],
+        delete_files: [],
     });
+
+    // Initialize form with invoice data on mount
+    useEffect(() => {
+        setData({
+            purchase_order_id: invoice.purchase_order_id?.toString() || '',
+            si_number: invoice.si_number || '',
+            si_date: invoice.si_date || '',
+            si_received_at: invoice.si_received_at || '',
+            invoice_amount: invoice.invoice_amount || '',
+            due_date: invoice.due_date || '',
+            notes: invoice.notes || '',
+            submitted_at: invoice.submitted_at || '',
+            submitted_to: invoice.submitted_to || '',
+            files: [],
+            delete_files: [],
+        });
+    }, [invoice]);
 
     // Memoized purchase order options for better performance
     const poOptions = useMemo(() =>
@@ -103,18 +124,32 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
             alert('Some files were too large (max 10MB per file) and were not selected.');
         }
 
-        setSelectedFiles(validFiles);
+        setSelectedFiles(prev => [...prev, ...validFiles]);
         e.target.value = '';
 
-        setData('files', validFiles);
-    }, [setData]);
+        setData('files', [...selectedFiles, ...validFiles]);
+    }, [selectedFiles, setData]);
 
-    // Remove selected file
-    const removeFile = useCallback((index) => {
+    // Remove selected new file
+    const removeNewFile = useCallback((index) => {
         const updatedFiles = selectedFiles.filter((_, i) => i !== index);
         setSelectedFiles(updatedFiles);
         setData('files', updatedFiles);
     }, [selectedFiles, setData]);
+
+    // Handle existing file deletion
+    const handleDeleteExistingFile = useCallback((fileId) => {
+        const updatedFilesToDelete = [...filesToDelete, fileId];
+        setFilesToDelete(updatedFilesToDelete);
+        setData('delete_files', updatedFilesToDelete);
+    }, [filesToDelete, setData]);
+
+    // Restore deleted file
+    const restoreFile = useCallback((fileId) => {
+        const updatedFilesToDelete = filesToDelete.filter(id => id !== fileId);
+        setFilesToDelete(updatedFilesToDelete);
+        setData('delete_files', updatedFilesToDelete);
+    }, [filesToDelete, setData]);
 
     const handlePreview = (e) => {
         e.preventDefault();
@@ -123,17 +158,24 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
 
     const handleSubmitConfirmed = () => {
         setShowConfirmation(false);
-        post('/invoices', {
+
+
+        post(`/invoices/${invoice.id}`,{
+            _method:'patch',
             onSuccess: () => {
-                reset();
-                setSelectedFiles([]);
-                toast.success('Invoice created successfully.');
+                toast.success('Invoice updated successfully.');
             },
+            onError: () => {
+                toast.error('Failed to update invoice. Please check the form and try again.');
+            }
         });
     };
 
     // Error summary for better UX
     const errorCount = Object.keys(errors).length;
+
+    // Existing files that are not marked for deletion
+    const existingFiles = invoice.files?.filter(file => !filesToDelete.includes(file.id)) || [];
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
@@ -141,19 +183,29 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
                 {/* Header */}
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
                     <div className="space-y-1">
-                        <h1 className="text-3xl font-bold text-slate-900">Create Invoice</h1>
-                        <p className="text-slate-600">Add a new supplier invoice to the system</p>
+                        <h1 className="text-3xl font-bold text-slate-900">Edit Invoice</h1>
+                        <p className="text-slate-600">Update invoice details and information</p>
                     </div>
-                    <Link href='/invoices' prefetch>
-                        <Button
-                            variant="outline"
-                            className="w-fit"
-                        >
-                            <ArrowLeft />
-                            Back
-                        </Button>
-                    </Link>
-
+                    <div className="flex gap-2">
+                        <Link href={`/invoices/${invoice.id}`} prefetch>
+                            <Button
+                                variant="outline"
+                                className="w-fit"
+                            >
+                                <Eye className="w-4 h-4 mr-2" />
+                                View
+                            </Button>
+                        </Link>
+                        <Link href='/invoices' prefetch>
+                            <Button
+                                variant="outline"
+                                className="w-fit"
+                            >
+                                <ArrowLeft className="w-4 h-4 mr-2" />
+                                Back
+                            </Button>
+                        </Link>
+                    </div>
                 </div>
 
                 <form onSubmit={handlePreview}>
@@ -269,7 +321,7 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
                                         Invoice Information
                                     </CardTitle>
                                     <CardDescription className="text-slate-600">
-                                        Enter the basic invoice details and amount
+                                        Update the basic invoice details and amount
                                     </CardDescription>
                                 </CardHeader>
                                 <CardContent className="space-y-6">
@@ -388,7 +440,7 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
                                         Processing Information
                                     </CardTitle>
                                     <CardDescription className="text-slate-600">
-                                        Track when and to whom the invoice was submitted
+                                        Update when and to whom the invoice was submitted
                                     </CardDescription>
                                 </CardHeader>
                                 <CardContent className="space-y-4">
@@ -477,11 +529,93 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
                                         Attachments
                                     </CardTitle>
                                     <CardDescription className="text-slate-600">
-                                        Upload supporting documents for this invoice
+                                        Manage supporting documents for this invoice
                                     </CardDescription>
                                 </CardHeader>
                                 <CardContent>
                                     <div className="space-y-4">
+                                        {/* Existing Files */}
+                                        {existingFiles.length > 0 && (
+                                            <div className="space-y-2">
+                                                <Label className="text-sm font-medium text-slate-700">
+                                                    Current Files ({existingFiles.length})
+                                                </Label>
+                                                <div className="space-y-2">
+                                                    {existingFiles.map((file) => (
+                                                        <div
+                                                            key={file.id}
+                                                            className="flex items-center justify-between p-2 bg-blue-50 border border-blue-200 rounded"
+                                                        >
+                                                            <div className="flex-1 min-w-0">
+                                                                <p className="text-sm font-medium text-slate-900 truncate">
+                                                                    {file.file_name}
+                                                                </p>
+                                                                <p className="text-xs text-slate-500">
+                                                                    {(file.file_size / 1024 / 1024).toFixed(2)} MB
+                                                                </p>
+                                                            </div>
+                                                            <div className="flex gap-1">
+                                                                <Button
+                                                                    type="button"
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    onClick={() => window.open(`/storage/${file.file_path}`, '_blank')}
+                                                                    className="text-blue-600 hover:text-blue-800 hover:bg-blue-100"
+                                                                >
+                                                                    <Download className="h-4 w-4" />
+                                                                </Button>
+                                                                <Button
+                                                                    type="button"
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    onClick={() => handleDeleteExistingFile(file.id)}
+                                                                    className="text-red-600 hover:text-red-800 hover:bg-red-50"
+                                                                >
+                                                                    <Trash2 className="h-4 w-4" />
+                                                                </Button>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Files marked for deletion */}
+                                        {filesToDelete.length > 0 && (
+                                            <div className="space-y-2">
+                                                <Label className="text-sm font-medium text-slate-700 text-red-600">
+                                                    Files to be deleted ({filesToDelete.length})
+                                                </Label>
+                                                <div className="space-y-2">
+                                                    {invoice.files?.filter(file => filesToDelete.includes(file.id)).map((file) => (
+                                                        <div
+                                                            key={file.id}
+                                                            className="flex items-center justify-between p-2 bg-red-50 border border-red-200 rounded opacity-75"
+                                                        >
+                                                            <div className="flex-1 min-w-0">
+                                                                <p className="text-sm font-medium text-slate-900 truncate line-through">
+                                                                    {file.file_name}
+                                                                </p>
+                                                                <p className="text-xs text-slate-500">
+                                                                    Will be deleted
+                                                                </p>
+                                                            </div>
+                                                            <Button
+                                                                type="button"
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                onClick={() => restoreFile(file.id)}
+                                                                className="text-green-600 hover:text-green-800 hover:bg-green-50"
+                                                            >
+                                                                Restore
+                                                            </Button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Add new files */}
                                         <div>
                                             <div>
                                                 <label
@@ -489,7 +623,7 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
                                                     className="inline-block cursor-pointer px-6 py-2 rounded bg-blue-50 text-blue-700 hover:bg-blue-100"
                                                 >
                                                     <div className="flex items-center gap-2">
-                                                        <Upload className={"w-4 h-4"}/> <span>Upload Files</span>
+                                                        <Upload className={"w-4 h-4"}/> <span>Add More Files</span>
                                                     </div>
                                                 </label>
                                                 <input
@@ -502,7 +636,6 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
                                                 />
                                             </div>
 
-
                                             <p className="text-sm text-slate-500 mt-1">
                                                 Supported formats: PDF, DOC, DOCX, XLS, XLSX, JPG, PNG (Max: 10MB per file)
                                             </p>
@@ -511,16 +644,17 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
                                             )}
                                         </div>
 
+                                        {/* New files to upload */}
                                         {selectedFiles.length > 0 && (
                                             <div className="space-y-2">
                                                 <Label className="text-sm font-medium text-slate-700">
-                                                    Selected Files ({selectedFiles.length})
+                                                    New Files to Upload ({selectedFiles.length})
                                                 </Label>
                                                 <div className="space-y-2">
                                                     {selectedFiles.map((file, index) => (
                                                         <div
                                                             key={index}
-                                                            className="flex items-center justify-between p-2 bg-slate-50 rounded border"
+                                                            className="flex items-center justify-between p-2 bg-green-50 border border-green-200 rounded"
                                                         >
                                                             <div className="flex-1 min-w-0">
                                                                 <p className="text-sm font-medium text-slate-900 truncate">
@@ -534,7 +668,7 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
                                                                 type="button"
                                                                 variant="ghost"
                                                                 size="sm"
-                                                                onClick={() => removeFile(index)}
+                                                                onClick={() => removeNewFile(index)}
                                                                 className="text-red-600 hover:text-red-800 hover:bg-red-50"
                                                             >
                                                                 <X className="h-4 w-4" />
@@ -596,6 +730,33 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
                                             </div>
                                         </div>
                                     )}
+
+                                    {/* File Changes Summary */}
+                                    {(selectedFiles.length > 0 || filesToDelete.length > 0) && (
+                                        <div className="p-4 bg-amber-50 border border-amber-200 rounded-md">
+                                            <h4 className="text-sm font-medium text-amber-800 mb-2">File Changes</h4>
+                                            <div className="text-sm text-amber-700 space-y-1">
+                                                {selectedFiles.length > 0 && (
+                                                    <div className="flex justify-between">
+                                                        <span>New files:</span>
+                                                        <span className="font-medium">{selectedFiles.length}</span>
+                                                    </div>
+                                                )}
+                                                {filesToDelete.length > 0 && (
+                                                    <div className="flex justify-between">
+                                                        <span>Files to delete:</span>
+                                                        <span className="font-medium">{filesToDelete.length}</span>
+                                                    </div>
+                                                )}
+                                                <div className="flex justify-between border-t border-amber-300 pt-1">
+                                                    <span>Total files after update:</span>
+                                                    <span className="font-medium">
+                                                        {existingFiles.length + selectedFiles.length}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
                                 </CardContent>
                             </Card>
 
@@ -610,7 +771,7 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
                                             size="lg"
                                         >
                                             <Eye className="w-4 h-4 mr-2" />
-                                            Preview & Submit
+                                            Preview & Update
                                         </Button>
 
                                         {errorCount > 0 && (
@@ -619,7 +780,7 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
                                                     <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 mr-3 flex-shrink-0" />
                                                     <div className="flex-1">
                                                         <h3 className="text-sm font-medium text-red-800 mb-2">
-                                                            Please fix {errorCount} error{errorCount > 1 ? 's' : ''} before submitting:
+                                                            Please fix {errorCount} error{errorCount > 1 ? 's' : ''} before updating:
                                                         </h3>
                                                         <ul className="text-sm text-red-700 space-y-1">
                                                             {Object.entries(errors).map(([field, error]) => (
@@ -648,10 +809,10 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
                         <DialogHeader className="pb-3">
                             <DialogTitle className="flex items-center text-lg">
                                 <Eye className="w-5 h-5 mr-2 text-blue-600" />
-                                Review Invoice
+                                Review Invoice Changes
                             </DialogTitle>
                             <DialogDescription className="text-xs text-slate-600">
-                                Verify before submission.
+                                Verify all changes before updating the invoice.
                             </DialogDescription>
                         </DialogHeader>
 
@@ -729,28 +890,25 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
                                 </div>
                             </div>
 
-                            {/* Notes */}
-                            {(data.notes || selectedFiles.length > 0) && (
-                                <div className="space-y-3">
-                                    {data.notes && (
-                                        <div className="border border-purple-200 rounded-lg p-3 bg-purple-50">
-                                            <h3 className="font-semibold text-slate-800 text-xs uppercase tracking-wide mb-2">Note</h3>
-                                            <p className="text-slate-700 text-xs leading-tight">{data.notes}</p>
-                                        </div>
-                                    )}
+                            {/* File Changes */}
+                            {selectedFiles.length > 0 && (
+                                <div className="border border-purple-200 rounded-lg p-3 bg-purple-50">
+                                    <h3 className="font-semibold text-slate-800 text-xs uppercase tracking-wide mb-2">New Files to Upload ({selectedFiles.length})</h3>
+                                    <ul className="text-xs text-slate-700 space-y-1">
+                                        {selectedFiles.map((file, i) => (
+                                            <li key={i} className="truncate">
+                                                📄 {file.name} ({(file.size / 1024 / 1024).toFixed(2)} MB)
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
 
-                                    {selectedFiles.length > 0 && (
-                                        <div className="border border-rose-200 rounded-lg p-3 bg-rose-50">
-                                            <h3 className="font-semibold text-slate-800 text-xs uppercase tracking-wide mb-2">Files ({selectedFiles.length})</h3>
-                                            <ul className="text-xs text-slate-700 space-y-1">
-                                                {selectedFiles.map((file, i) => (
-                                                    <li key={i} className="truncate">
-                                                        📄 {file.name} ({(file.size / 1024 / 1024).toFixed(2)} MB)
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        </div>
-                                    )}
+                            {/* Notes */}
+                            {data.notes && (
+                                <div className="border border-rose-200 rounded-lg p-3 bg-rose-50">
+                                    <h3 className="font-semibold text-slate-800 text-xs uppercase tracking-wide mb-2">Note</h3>
+                                    <p className="text-slate-700 text-xs leading-tight">{data.notes}</p>
                                 </div>
                             )}
                         </div>
@@ -763,7 +921,7 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
                                     onClick={() => setShowConfirmation(false)}
                                     className="text-xs py-1 px-3 border-slate-300 hover:bg-slate-50"
                                 >
-                                    Edit
+                                    Edit More
                                 </Button>
                                 <Button
                                     type="button"
@@ -774,12 +932,12 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
                                     {processing ? (
                                         <>
                                             <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1.5"></div>
-                                            Submitting...
+                                            Updating...
                                         </>
                                     ) : (
                                         <>
-                                            <Eye className="w-3 h-3 mr-1.5" />
-                                            Confirm & Submit
+                                            <Check className="w-3 h-3 mr-1.5" />
+                                            Confirm & Update
                                         </>
                                     )}
                                 </Button>
@@ -792,4 +950,4 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
     );
 };
 
-export default CreateInvoice;
+export default EditInvoice;

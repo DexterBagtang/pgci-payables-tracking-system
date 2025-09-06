@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useEffect, useState} from 'react';
 import {
     Table,
     TableBody,
@@ -22,7 +22,7 @@ import {
     Edit,
     ChevronDown,
     ChevronUp,
-    Filter
+    Filter, ArrowUpDown, ArrowUp, ArrowDown, Plus
 } from 'lucide-react';
 import {
     DropdownMenu,
@@ -31,10 +31,14 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import {Link} from '@inertiajs/react'
+import {Link, router} from '@inertiajs/react'
+import {differenceInDays, formatDate as formatDateTime} from "date-fns";
+import PaginationServerSide from "@/components/custom/Pagination.jsx";
 
-const InvoicesTable = ({invoices}) => {
-
+const InvoicesTable = ({invoices,filters}) => {
+    const [searchValue, setSearchValue] = useState('');
+    const [sortField, setSortField] = useState(filters.sort_field);
+    const [sortDirection, setSortDirection] = useState(filters.sort_direction);
     const getStatusColor = (status) => {
         switch (status) {
             case 'pending':
@@ -87,6 +91,54 @@ const InvoicesTable = ({invoices}) => {
         return due < today && status !== 'approved';
     };
 
+
+    useEffect(() => {
+        const timer = setTimeout(()=>{
+            if (searchValue !== filters.search){
+                handleFilterChange({search: searchValue,page:1});
+            }
+        },500);
+
+        return () => clearTimeout(timer);
+    }, [searchValue]);
+
+    const handleFilterChange = (newFilters) => {
+        const updatedFilters = {
+            ...filters,
+            ...newFilters
+        }
+
+        // Remove empty filters
+        Object.keys(updatedFilters).forEach(key => {
+            if (!updatedFilters[key]) {
+                delete updatedFilters[key];
+            }
+        });
+
+        router.get('/invoices',updatedFilters,{
+            preserveState: true,
+            preserveScroll: true,
+        })
+    }
+
+    const handleSort = (field) => {
+        const newDirection = sortField === field && sortDirection === 'asc' ? 'desc' : 'asc';
+
+        setSortField(field);
+        setSortDirection(newDirection);
+
+        handleFilterChange({
+            sort_field:field,
+            sort_direction:newDirection,
+            page:1
+        });
+    }
+
+    const getSortIcon = (field) => {
+        if (sortField !== field) return <ArrowUpDown className="h-4 w-4" />;
+        return sortDirection === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />;
+    };
+
     return (
         <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
             <div className="flex justify-between items-center">
@@ -97,7 +149,7 @@ const InvoicesTable = ({invoices}) => {
                 <div className="flex items-center space-x-3">
                     <Link href="/invoices/create" prefetch>
                         <Button size="sm">
-                            <DollarSign className="w-4 h-4 mr-2" />
+                            <Plus className="w-4 h-4 mr-2" />
                             New Invoice
                         </Button>
                     </Link>
@@ -106,54 +158,67 @@ const InvoicesTable = ({invoices}) => {
             </div>
 
             <Card>
-                <CardHeader className="pb-3">
-                    <div className="flex justify-between items-center">
+                <CardHeader className="pb-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                         <CardTitle className="text-lg">All Invoices</CardTitle>
-                        <div className="flex space-x-2">
-                            <Input placeholder="Search invoices..." className="max-w-sm" />
+
+                        <div className="flex flex-1 items-center gap-2">
+                            <Input
+                                placeholder="Search by project title, CER, vendor name, PO number, SI number..."
+                                value={searchValue}
+                                onChange={e => setSearchValue(e.target.value)}
+                                className="flex-1"
+                            />
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                    <Button variant="outline" size="sm">
+                                    <Button variant="outline" size="sm" className="shrink-0">
                                         <Filter className="w-4 h-4 mr-2" />
                                         Filter
                                     </Button>
                                 </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
+                                <DropdownMenuContent align="end" className="w-40">
                                     <DropdownMenuCheckboxItem checked>
                                         All Status
                                     </DropdownMenuCheckboxItem>
-                                    <DropdownMenuCheckboxItem>
-                                        Pending
-                                    </DropdownMenuCheckboxItem>
-                                    <DropdownMenuCheckboxItem>
-                                        Approved
-                                    </DropdownMenuCheckboxItem>
-                                    <DropdownMenuCheckboxItem>
-                                        Processing
-                                    </DropdownMenuCheckboxItem>
-                                    <DropdownMenuCheckboxItem>
-                                        Rejected
-                                    </DropdownMenuCheckboxItem>
+                                    <DropdownMenuCheckboxItem>Pending</DropdownMenuCheckboxItem>
+                                    <DropdownMenuCheckboxItem>Approved</DropdownMenuCheckboxItem>
+                                    <DropdownMenuCheckboxItem>Processing</DropdownMenuCheckboxItem>
+                                    <DropdownMenuCheckboxItem>Rejected</DropdownMenuCheckboxItem>
                                 </DropdownMenuContent>
                             </DropdownMenu>
                         </div>
                     </div>
                 </CardHeader>
+
                 <CardContent>
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead className="w-[180px]">Invoice & PO</TableHead>
+                                <TableHead>
+                                    <Button
+                                        variant="ghost"
+                                        onClick={()=> handleSort('si_number')}
+                                    >
+                                        Invoice & PO {getSortIcon('si_number')}
+
+                                    </Button>
+                                </TableHead>
                                 <TableHead className="w-[260px]">Vendor & Project</TableHead>
                                 <TableHead>Dates</TableHead>
                                 <TableHead>Amounts</TableHead>
                                 <TableHead>Payment & Submission</TableHead>
                                 <TableHead>Status</TableHead>
+                                <TableHead>
+                                    <Button variant="ghost" onClick={()=>handleSort('created_at')}>
+                                        Date Created {getSortIcon('created_at')}
+                                    </Button>
+                                </TableHead>
+
                                 <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {invoices.map((invoice) => (
+                            {invoices.data.map((invoice) => (
                                 <TableRow key={invoice.id}>
                                     <TableCell className="font-medium">
                                         <div className="flex flex-col">
@@ -179,47 +244,25 @@ const InvoicesTable = ({invoices}) => {
                                         </div>
                                     </TableCell>
                                     <TableCell>
-                                        <div className="flex flex-col space-y-1 text-sm">
-                                            <div>
-                                                <div className="text-gray-500">Invoice:</div>
-                                                <div>{formatDate(invoice.si_date)}</div>
-                                            </div>
-                                            <div>
-                                                <div className="text-gray-500">Received:</div>
-                                                <div>{formatDate(invoice.received_date)}</div>
-                                            </div>
-                                            <div>
-                                                <div className="text-gray-500">Due:</div>
-                                                <div className={isOverdue(invoice.due_date, invoice.invoice_status) ? 'text-red-600 font-medium' : ''}>
-                                                    {formatDate(invoice.due_date)}
-                                                    {isOverdue(invoice.due_date, invoice.invoice_status) && (
-                                                        <AlertCircle className="w-3 h-3 inline ml-1" />
-                                                    )}
-                                                </div>
-                                            </div>
+                                        <div className="grid text-sm gap-x-2 gap-y-1" style={{ gridTemplateColumns: "auto 1fr" }}>
+                                            <span className="text-gray-500">Invoice:</span>
+                                            <span>{formatDate(invoice.si_date)}</span>
+
+                                            <span className="text-gray-500">Received:</span>
+                                            <span>{formatDate(invoice.received_date)}</span>
+
+                                            <span className="text-gray-500">Due:</span>
+                                            <span className={isOverdue(invoice.due_date, invoice.invoice_status) ? "text-red-600 font-medium" : ""}>
+      {formatDate(invoice.due_date)}
+                                                {isOverdue(invoice.due_date, invoice.invoice_status) && (
+                                                    <AlertCircle className="w-3 h-3 inline ml-1" />
+                                                )}
+    </span>
                                         </div>
                                     </TableCell>
+
                                     <TableCell>
-                                        <div className="flex flex-col space-y-1 text-sm">
-                                            <div className="flex justify-between">
-                                                <span className="text-gray-500">Amount:</span>
-                                                <span>{formatCurrency(invoice.invoice_amount)}</span>
-                                            </div>
-                                            <div className="flex justify-between">
-                                                <span className="text-gray-500">Tax:</span>
-                                                <span>{formatCurrency(invoice.tax_amount)}</span>
-                                            </div>
-                                            {invoice.discount_amount > 0 && (
-                                                <div className="flex justify-between">
-                                                    <span className="text-gray-500">Discount:</span>
-                                                    <span className="text-green-600">-{formatCurrency(invoice.discount_amount)}</span>
-                                                </div>
-                                            )}
-                                            <div className="flex justify-between border-t pt-1 mt-1 font-medium">
-                                                <span>Net:</span>
-                                                <span>{formatCurrency(invoice.net_amount)}</span>
-                                            </div>
-                                        </div>
+                                        <span>{formatCurrency(invoice.invoice_amount)}</span>
                                     </TableCell>
                                     <TableCell>
                                         <div className="flex flex-col space-y-1 text-sm">
@@ -242,17 +285,25 @@ const InvoicesTable = ({invoices}) => {
                                             {isOverdue(invoice.due_date, invoice.invoice_status) && (
                                                 <Badge variant="destructive" className="mt-1 text-xs justify-center">
                                                     <AlertCircle className="w-3 h-3 mr-1" />
-                                                    Overdue
+                                                    {differenceInDays(new Date(),invoice.due_date)}d Overdue
                                                 </Badge>
                                             )}
                                         </div>
+                                    </TableCell>
+                                    <TableCell>
+                                        <div>{formatDateTime(invoice.created_at,'yyyy-MM-dd')}</div>
+                                        <div>{formatDateTime(invoice.created_at,'hh:mm a')}</div>
                                     </TableCell>
                                     <TableCell className="text-right">
                                         <div className="flex justify-end space-x-2">
                                             <Button variant="ghost" size="icon">
                                                 <Eye className="w-4 h-4" />
                                             </Button>
-                                            <Button variant="ghost" size="icon">
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={()=> router.get(`/invoices/${invoice.id}/edit`)}
+                                            >
                                                 <Edit className="w-4 h-4" />
                                             </Button>
                                         </div>
@@ -261,22 +312,9 @@ const InvoicesTable = ({invoices}) => {
                             ))}
                         </TableBody>
                     </Table>
+                    <PaginationServerSide items={invoices} onChange={handleFilterChange} />
                 </CardContent>
             </Card>
-
-            <div className="flex justify-between items-center pt-4">
-                <div className="text-sm text-gray-500">
-                    Showing {invoices.length} invoices
-                </div>
-                <div className="flex space-x-2">
-                    <Button variant="outline" size="sm" disabled>
-                        Previous
-                    </Button>
-                    <Button variant="outline" size="sm">
-                        Next
-                    </Button>
-                </div>
-            </div>
         </div>
     );
 };
