@@ -24,7 +24,6 @@ return new class extends Migration
             $table->enum('po_status', [
                 'draft',     // Created but not yet finalized
                 'open',      // Active, waiting for goods/invoice
-                'payable',   // Invoice received, awaiting payment
                 'closed',    // Fully paid/settled
                 'cancelled', // Cancelled by user
             ])->default('draft');

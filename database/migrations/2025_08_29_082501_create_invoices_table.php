@@ -23,7 +23,7 @@ return new class extends Migration
             $table->decimal('tax_amount', 15, 2)->default(0);
             $table->decimal('discount_amount', 15, 2)->default(0);
             $table->decimal('net_amount', 15, 2);
-            $table->enum('invoice_status', ['received', 'under_review', 'approved', 'rejected', 'paid', 'overdue'])->default('received');
+            $table->enum('invoice_status', ['received', 'in_progress', 'approved', 'rejected', 'paid', 'overdue'])->default('received');
             $table->date('due_date')->nullable();
             $table->text('notes')->nullable();
             $table->date('submitted_at')->nullable();

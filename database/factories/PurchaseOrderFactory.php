@@ -14,7 +14,7 @@ class PurchaseOrderFactory extends Factory
     public function definition(): array
     {
         // Random status for seeding
-        $status = $this->faker->randomElement(['draft', 'open', 'payable', 'closed']);
+        $status = $this->faker->randomElement(['draft', 'open', 'closed']);
 
         // Finalized fields should only be filled if status is not draft
         $finalizedBy = null;

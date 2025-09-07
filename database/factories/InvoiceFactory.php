@@ -31,7 +31,7 @@ class InvoiceFactory extends Factory
 
         $paymentTypes = ['cash', 'check', 'bank_transfer', 'credit_card', 'other'];
         $submittedTos = ['Accounting Department', 'Finance Manager', 'CFO Office', 'Procurement Department'];
-        $statuses = ['received', 'under_review', 'approved', 'rejected', 'paid', 'overdue'];
+        $statuses = ['received', 'in_progress', 'approved', 'rejected', 'paid', 'overdue'];
 
         return [
             'si_number' => 'SI-' . now()->year . '-' . str_pad($this->faker->unique()->numberBetween(1, 999), 3, '0', STR_PAD_LEFT),
