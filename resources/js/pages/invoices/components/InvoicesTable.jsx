@@ -22,7 +22,7 @@ import {
     Edit,
     ChevronDown,
     ChevronUp,
-    Filter, ArrowUpDown, ArrowUp, ArrowDown, Plus, Search
+    Filter, ArrowUpDown, ArrowUp, ArrowDown, Plus, Search, FoldersIcon
 } from 'lucide-react';
 import {
     DropdownMenu,
@@ -36,14 +36,17 @@ import {differenceInDays, formatDate as formatDateTime} from "date-fns";
 import PaginationServerSide from "@/components/custom/Pagination.jsx";
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select.js";
 
-const InvoicesTable = ({invoices, filters,filterOptions}) => {
+const InvoicesTable = ({invoices, filters, filterOptions}) => {
     const [searchValue, setSearchValue] = useState('');
     const [sortField, setSortField] = useState(filters.sort_field);
     const [sortDirection, setSortDirection] = useState(filters.sort_direction);
-    const [vendor,setVendor] = useState(filters.vendor || 'all');
-    const [project,setProject] = useState(filters.project || 'all');
-    const [projectSearch, setProjectSearch] = useState('')
-    const [vendorSearch, setVendorSearch] = useState('')
+    const [vendor, setVendor] = useState(filters.vendor || 'all');
+    const [project, setProject] = useState(filters.project || 'all');
+    const [projectSearch, setProjectSearch] = useState('');
+    const [vendorSearch, setVendorSearch] = useState('');
+    const [statusFilter,setStatusFilter] = useState('')
+
+    const invoiceStatuses = ['all','received', 'under_review', 'approved', 'rejected', 'paid', 'overdue']
 
     const getStatusColor = (status) => {
         switch (status) {
@@ -156,6 +159,10 @@ const InvoicesTable = ({invoices, filters,filterOptions}) => {
         setProjectSearch('');
         handleFilterChange({project: value});
     };
+    const handleStatusChange = (status) => {
+        setStatusFilter(status)
+        handleFilterChange({status: status});
+    };
     return (
         <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
             <div className="flex justify-between items-center">
@@ -182,8 +189,9 @@ const InvoicesTable = ({invoices, filters,filterOptions}) => {
                         <div className="flex flex-col gap-3 md:flex-row md:items-center">
                             {/* Search Input */}
                             <div className="relative md:col-span-2">
-                                <Search className="absolute top-2.5 left-2.5 h-4 w-4 text-muted-foreground" />
+                                <Search className="absolute top-2.5 left-2.5 h-4 w-4 text-muted-foreground"/>
                                 <Input
+                                    type="search"
                                     placeholder="Search by project title, CER, vendor name, PO number, SI number..."
                                     value={searchValue}
                                     onChange={e => setSearchValue(e.target.value)}
@@ -194,13 +202,14 @@ const InvoicesTable = ({invoices, filters,filterOptions}) => {
                             {/* Vendor Select */}
                             <Select value={vendor} onValueChange={handleVendorChange}>
                                 <SelectTrigger className="w-full md:w-44">
-                                    <SelectValue placeholder="Vendor" />
+                                    <SelectValue placeholder="Vendor"/>
                                 </SelectTrigger>
                                 <SelectContent>
                                     {/* Search inside dropdown */}
                                     <div className="p-2 border-b">
                                         <div className="relative">
-                                            <Search className="absolute left-2 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground" />
+                                            <Search
+                                                className="absolute left-2 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground"/>
                                             <input
                                                 type="text"
                                                 placeholder="Search vendor..."
@@ -228,13 +237,14 @@ const InvoicesTable = ({invoices, filters,filterOptions}) => {
                             {/* Project Select */}
                             <Select value={project} onValueChange={handleProjectChange}>
                                 <SelectTrigger className="w-full md:w-44 truncate">
-                                    <SelectValue placeholder="Project" />
+                                    <SelectValue placeholder="Project"/>
                                 </SelectTrigger>
                                 <SelectContent>
                                     {/* Search inside dropdown */}
                                     <div className="p-2 border-b">
                                         <div className="relative">
-                                            <Search className="absolute left-2 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground" />
+                                            <Search
+                                                className="absolute left-2 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground"/>
                                             <input
                                                 type="text"
                                                 placeholder="Search project..."
@@ -263,22 +273,26 @@ const InvoicesTable = ({invoices, filters,filterOptions}) => {
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                     <Button variant="outline" size="sm" className="shrink-0">
-                                        <Filter className="w-4 h-4 mr-2" />
+                                        <Filter className="w-4 h-4 mr-2"/>
                                         Filter
                                     </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end" className="w-40">
-                                    <DropdownMenuCheckboxItem checked>All Status</DropdownMenuCheckboxItem>
-                                    <DropdownMenuCheckboxItem>Pending</DropdownMenuCheckboxItem>
-                                    <DropdownMenuCheckboxItem>Approved</DropdownMenuCheckboxItem>
-                                    <DropdownMenuCheckboxItem>Processing</DropdownMenuCheckboxItem>
-                                    <DropdownMenuCheckboxItem>Rejected</DropdownMenuCheckboxItem>
+                                    {invoiceStatuses.map((status) =>
+                                        <DropdownMenuCheckboxItem
+                                            key={status}
+                                            checked={status === statusFilter}
+                                            onClick={() => handleStatusChange(status)}
+                                            className="capitalize"
+                                        >
+                                            {status.replace('_',' ')}
+                                        </DropdownMenuCheckboxItem>
+                                    )}
                                 </DropdownMenuContent>
                             </DropdownMenu>
                         </div>
                     </div>
                 </CardHeader>
-
 
 
                 <CardContent>
@@ -310,110 +324,115 @@ const InvoicesTable = ({invoices, filters,filterOptions}) => {
                         </TableHeader>
                         <TableBody>
                             {invoices.data.length > 0 ? (
-                                    invoices.data.map((invoice) => (
-                                            <TableRow key={invoice.id}>
-                                                <TableCell className="font-medium">
-                                                    <div className="flex flex-col">
-                                                        <span className="font-semibold">{invoice.si_number}</span>
-                                                        <span className="text-sm text-gray-500 mt-1">
+                                invoices.data.map((invoice) => (
+                                    <TableRow key={invoice.id}>
+                                        <TableCell className="font-medium">
+                                            <div className="flex flex-col">
+                                                <span className="font-semibold">{invoice.si_number}</span>
+                                                <span className="text-sm text-gray-500 mt-1">
                                                 PO: {invoice.purchase_order.po_number}
                                               </span>
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <div className="flex flex-col">
-                                                        <div className="flex items-center">
-                                                            <Building2 className="w-4 h-4 mr-1 text-gray-500"/>
-                                                            <span
-                                                                className="font-medium">{invoice.purchase_order.vendor.name}</span>
-                                                            <Badge variant="outline" className="ml-2 text-xs">
-                                                                {invoice.purchase_order.vendor.category}
-                                                            </Badge>
-                                                        </div>
-                                                        <div className="mt-1 text-sm">
-                                                            <div>{invoice.purchase_order.project.project_title}</div>
-                                                            <div
-                                                                className="text-gray-500">CER: {invoice.purchase_order.project.cer_number}</div>
-                                                        </div>
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <div className="grid text-sm gap-x-2 gap-y-1"
-                                                         style={{gridTemplateColumns: "auto 1fr"}}>
-                                                        <span className="text-gray-500">Invoice:</span>
-                                                        <span>{formatDate(invoice.si_date)}</span>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="flex flex-col">
+                                                <div className="flex items-center">
+                                                    <Building2 className="w-4 h-4 mr-1 text-gray-500"/>
+                                                    <span
+                                                        className="font-medium">{invoice.purchase_order.vendor.name}</span>
+                                                    <Badge variant="outline" className="ml-2 text-xs">
+                                                        {invoice.purchase_order.vendor.category}
+                                                    </Badge>
+                                                </div>
+                                                <div className="mt-1 text-sm">
+                                                    <div>{invoice.purchase_order.project.project_title}</div>
+                                                    <div
+                                                        className="text-gray-500">CER: {invoice.purchase_order.project.cer_number}</div>
+                                                </div>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="w-[254px]">
+                                            <div className="grid text-sm gap-x-2 gap-y-1"
+                                                 style={{gridTemplateColumns: "auto 1fr"}}>
+                                                <span className="text-gray-500">Invoice:</span>
+                                                <span>{formatDate(invoice.si_date)}</span>
 
-                                                        <span className="text-gray-500">Received:</span>
-                                                        <span>{formatDate(invoice.received_date)}</span>
+                                                <span className="text-gray-500">Received:</span>
+                                                <span>{formatDate(invoice.received_date)}</span>
 
-                                                        <span className="text-gray-500">Due:</span>
-                                                        <span
-                                                            className={isOverdue(invoice.due_date, invoice.invoice_status) ? "text-red-600 font-medium" : ""}>
+                                                <span className="text-gray-500">Due:</span>
+                                                <span
+                                                    className={isOverdue(invoice.due_date, invoice.invoice_status) ? "text-red-600 font-medium" : ""}>
                                                 {formatDate(invoice.due_date)}
-                                                            {isOverdue(invoice.due_date, invoice.invoice_status) && (
-                                                                <AlertCircle className="w-3 h-3 inline ml-1"/>
-                                                            )}
+                                                    {isOverdue(invoice.due_date, invoice.invoice_status) && (
+                                                        <AlertCircle className="w-3 h-3 inline ml-1"/>
+                                                    )}
                                             </span>
-                                                    </div>
-                                                </TableCell>
-
-                                                <TableCell>
-                                                    <span>{formatCurrency(invoice.invoice_amount)}</span>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <div className="flex flex-col space-y-1 text-sm">
-                                                        <div>
-                                                            <div className="text-gray-500">Date Submitted:</div>
-                                                            <div>{invoice.submitted_at}</div>
-                                                        </div>
-                                                        <div>
-                                                            <div className="text-gray-500">Submitted To:</div>
-                                                            <div>{invoice.submitted_to}</div>
-                                                        </div>
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <div className="flex flex-col">
-                                                        <Badge
-                                                            className={`${getStatusColor(invoice.invoice_status)} capitalize justify-center`}>
-                                                            {getStatusIcon(invoice.invoice_status)}
-                                                            {invoice.invoice_status}
-                                                        </Badge>
-                                                        {isOverdue(invoice.due_date, invoice.invoice_status) && (
-                                                            <Badge variant="destructive" className="mt-1 text-xs justify-center">
-                                                                <AlertCircle className="w-3 h-3 mr-1"/>
-                                                                {differenceInDays(new Date(), invoice.due_date)}d Overdue
-                                                            </Badge>
-                                                        )}
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <div>{formatDateTime(invoice.created_at, 'yyyy-MM-dd')}</div>
-                                                    <div>{formatDateTime(invoice.created_at, 'hh:mm a')}</div>
-                                                </TableCell>
-                                                <TableCell className="text-right">
-                                                    <div className="flex justify-end space-x-2">
-                                                        <Button variant="ghost" size="icon">
-                                                            <Eye className="w-4 h-4"/>
-                                                        </Button>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            onClick={() => router.get(`/invoices/${invoice.id}/edit`)}
-                                                        >
-                                                            <Edit className="w-4 h-4"/>
-                                                        </Button>
-                                                    </div>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))
-                                ) : (
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <span>{formatCurrency(invoice.invoice_amount)}</span>
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="flex flex-col space-y-1 text-sm">
+                                                <div>
+                                                    <div className="text-gray-500">Date Submitted:</div>
+                                                    <div>{invoice.submitted_at}</div>
+                                                </div>
+                                                <div>
+                                                    <div className="text-gray-500">Submitted To:</div>
+                                                    <div>{invoice.submitted_to}</div>
+                                                </div>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="flex flex-col">
+                                                <Badge
+                                                    className={`${getStatusColor(invoice.invoice_status)} capitalize justify-center`}>
+                                                    {getStatusIcon(invoice.invoice_status)}
+                                                    {invoice.invoice_status}
+                                                </Badge>
+                                                {isOverdue(invoice.due_date, invoice.invoice_status) && (
+                                                    <Badge variant="destructive"
+                                                           className="mt-1 text-xs justify-center">
+                                                        <AlertCircle className="w-3 h-3 mr-1"/>
+                                                        {differenceInDays(new Date(), invoice.due_date)}d Overdue
+                                                    </Badge>
+                                                )}
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <div>{formatDateTime(invoice.created_at, 'yyyy-MM-dd')}</div>
+                                            <div>{formatDateTime(invoice.created_at, 'hh:mm a')}</div>
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                            <div className="flex justify-end space-x-2">
+                                                <Button
+                                                    variant="ghost"
+                                                    onClick={() => router.get(`invoices/${invoice.id}`)}
+                                                    size="icon">
+                                                    <Eye className="w-4 h-4"/>
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() => router.get(`/invoices/${invoice.id}/edit`)}
+                                                >
+                                                    <Edit className="w-4 h-4"/>
+                                                </Button>
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                ))
+                            ) : (
                                 <TableRow>
                                     <TableCell colSpan={8} className="text-center py-6 text-gray-500">
-                                        No invoices found.
+                                        <div className="flex items-center justify-center gap-2">
+                                            <FoldersIcon/> No invoices found.
+                                        </div>
                                     </TableCell>
                                 </TableRow>
-                                )
+                            )
                             }
                         </TableBody>
                     </Table>
