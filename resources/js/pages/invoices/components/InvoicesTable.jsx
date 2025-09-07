@@ -195,7 +195,7 @@ const InvoicesTable = ({invoices, filters, filterOptions}) => {
                                     placeholder="Search by project title, CER, vendor name, PO number, SI number..."
                                     value={searchValue}
                                     onChange={e => setSearchValue(e.target.value)}
-                                    className="pl-8 w-full md:w-96"
+                                    className="pl-8 w-full"
                                 />
                             </div>
 
