@@ -51,6 +51,10 @@ class InvoiceController extends Controller
             });
         }
 
+        if ($request->has('status') && $request->status !== 'all') {
+            $query->where('invoice_status', $request->status);
+        }
+
         $sortField = $request->get('sort_field','created_at');
         $sortDirection = $request->get('sort_direction','desc');
 
@@ -82,6 +86,7 @@ class InvoiceController extends Controller
                 'sort_field' => $request->get('sort_field', 'po_date'),
                 'vendor' => $request->vendor !== 'all' ? (int) $request->vendor : 'all',
                 'project' => $request->project !== 'all' ? (int) $request->project : 'all',
+                'status' => $request->status !== 'all' ? $request->status : 'all',
                 'sort_direction' => $request->get('sort_direction', 'desc'),
                 'per_page' => $request->get('per_page', 10),
             ],
@@ -161,9 +166,14 @@ class InvoiceController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
+    public function show(Invoice $invoice)
     {
-        //
+        $invoice->load('purchaseOrder.project', 'purchaseOrder.vendor','files');
+        return inertia('invoices/show', [
+            'invoice' => $invoice,
+            'purchaseOrders' => PurchaseOrder::with(['project', 'vendor'])->get(),
+        ]);
+
     }
 
     /**
