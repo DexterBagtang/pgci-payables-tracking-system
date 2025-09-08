@@ -196,7 +196,7 @@ export default function PurchaseOrderTable({ purchaseOrders, filters, filterOpti
 
     return (
         <div className="py-6">
-            <div className="mx-auto max-w-7xl sm:px-6 lg:px-8">
+            <div className="mx-auto sm:px-6 lg:px-8">
                 <Card>
                     <CardHeader>
                         <div className="flex items-center justify-between">
