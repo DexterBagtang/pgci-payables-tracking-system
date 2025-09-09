@@ -24,6 +24,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::resource('invoices', InvoiceController::class)->except(['update']);
     Route::post('invoices/{invoice}', [InvoiceController::class, 'update'])->name('invoices.update');
+    Route::post('invoices/{invoice}/review', [InvoiceController::class, 'review'])->name('invoices.review');
 
 
 

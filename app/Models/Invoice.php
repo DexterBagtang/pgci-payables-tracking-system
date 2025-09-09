@@ -18,4 +18,14 @@ class Invoice extends Model
     public function files(){
         return $this->morphMany(File::class, 'fileable');
     }
+
+    public function statusHistories()
+    {
+        return $this->morphMany(StatusHistory::class, 'statusable');
+    }
+
+
+//    public function reviews(){
+//        return $this->morphMany(Review::class, 'reviewable');
+//    }
 }

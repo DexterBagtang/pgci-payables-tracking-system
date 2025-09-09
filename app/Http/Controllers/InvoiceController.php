@@ -19,10 +19,9 @@ class InvoiceController extends Controller
     {
         $query = Invoice::with(['purchaseOrder.project', 'purchaseOrder.vendor'])
             ->select('invoices.*')
-            ->leftJoin('purchase_orders', 'purchase_orders.id', '=', 'invoices.purchase_order_id')
-        ;
+            ->leftJoin('purchase_orders', 'purchase_orders.id', '=', 'invoices.purchase_order_id');
 
-        if($request->has('search')){
+        if ($request->has('search')) {
             $query->where(function ($query) use ($request) {
                 $query->where('si_number', 'like', '%' . $request->search . '%')
                     ->orWhereHas('purchaseOrder.project', function ($q) use ($request) {
@@ -34,8 +33,7 @@ class InvoiceController extends Controller
                     })
                     ->orWhereHas('purchaseOrder', function ($q) use ($request) {
                         $q->where('po_number', 'like', '%' . $request->search . '%');
-                    })
-                ;
+                    });
             });
         }
 
@@ -55,8 +53,8 @@ class InvoiceController extends Controller
             $query->where('invoice_status', $request->status);
         }
 
-        $sortField = $request->get('sort_field','created_at');
-        $sortDirection = $request->get('sort_direction','desc');
+        $sortField = $request->get('sort_field', 'created_at');
+        $sortDirection = $request->get('sort_direction', 'desc');
 
         $sortMapping = [
             'si_number' => 'si_number',
@@ -65,7 +63,7 @@ class InvoiceController extends Controller
 
         if (array_key_exists($sortField, $sortMapping)) {
             $query->orderBy($sortMapping[$sortField], $sortDirection);
-        }else {
+        } else {
             $query->orderBy('updated_at', 'desc');
         }
 
@@ -84,8 +82,8 @@ class InvoiceController extends Controller
             'filters' => [
                 'search' => $request->get('search', ''),
                 'sort_field' => $request->get('sort_field', 'po_date'),
-                'vendor' => $request->vendor !== 'all' ? (int) $request->vendor : 'all',
-                'project' => $request->project !== 'all' ? (int) $request->project : 'all',
+                'vendor' => $request->vendor !== 'all' ? (int)$request->vendor : 'all',
+                'project' => $request->project !== 'all' ? (int)$request->project : 'all',
                 'status' => $request->status !== 'all' ? $request->status : 'all',
                 'sort_direction' => $request->get('sort_direction', 'desc'),
                 'per_page' => $request->get('per_page', 10),
@@ -138,6 +136,12 @@ class InvoiceController extends Controller
             'created_by' => auth()->id(),
         ]);
 
+        $invoice->statusHistories()->create([
+           'status' => 'created',
+           'changed_by' => auth()->id(),
+            'notes' => $validated['notes'],
+        ]);
+
         // Handle file uploads
         if ($request->hasFile('files')) {
             foreach ($request->file('files') as $file) {
@@ -168,7 +172,7 @@ class InvoiceController extends Controller
      */
     public function show(Invoice $invoice)
     {
-        $invoice->load('purchaseOrder.project', 'purchaseOrder.vendor','files');
+        $invoice->load('purchaseOrder.project', 'purchaseOrder.vendor', 'files','statusHistories','reviews');
         return inertia('invoices/show', [
             'invoice' => $invoice,
             'purchaseOrders' => PurchaseOrder::with(['project', 'vendor'])->get(),
@@ -215,6 +219,12 @@ class InvoiceController extends Controller
         // Update invoice
         $invoice->update($validated);
 
+        $invoice->statusHistories()->create([
+            'status' => 'updated',
+            'changed_by' => auth()->id(),
+            'notes' => $validated['notes'],
+        ]);
+
         // Handle new file uploads only (no deletion)
         if (!empty($fileData)) {
             foreach ($fileData as $file) {
@@ -245,5 +255,26 @@ class InvoiceController extends Controller
     public function destroy(string $id)
     {
         //
+    }
+
+    public function review(Invoice $invoice, Request $request)
+    {
+        $invoice->update([
+            'invoice_status' => $request->approvalStatus,
+        ]);
+
+        $invoice->statusHistories()->create([
+            'status' => $request->approvalStatus,
+            'changed_by' => auth()->id(),
+        ]);
+
+        $invoice->statusHistories()->reviews()->create([
+            'reviewer_id' => auth()->id(),
+            'status' => $request->approvalStatus,
+            'comments' => $request->remarks,
+            'reviewed_at' => now(),
+        ]);
+
+        return back()->with('success', 'Invoice reviewed successfully!');
     }
 }

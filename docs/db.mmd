@@ -215,6 +215,19 @@ erDiagram
         datetime updated_at
     }
 
+    reviews {
+        int id PK
+        varchar reviewable_type
+        int reviewable_id
+        int reviewer_id FK
+        varchar status
+        text comments
+        datetime reviewed_at
+        datetime created_at
+        datetime updated_at
+    }
+
+
 %% Core Entity Relationships
     users ||--o{ vendors : "created_by"
     users ||--o{ projects : "created_by"
@@ -252,3 +265,9 @@ erDiagram
     files }o--o{ purchase_orders : "fileable"
     files }o--o{ invoices : "fileable"
     files }o--o{ check_requisitions : "fileable"
+
+    users ||--o{ reviews : "reviewer_id"
+
+    invoices ||--o{ reviews : "reviewable"
+
+    check_requisitions ||--o{ reviews : "reviewable"

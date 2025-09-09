@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, usePage } from '@inertiajs/react';
+import { Link, useForm, usePage } from '@inertiajs/react';
 import {
     Card,
     CardContent,
@@ -58,17 +58,9 @@ import { Checkbox } from '@/components/ui/checkbox.js';
 import { Label } from '@/components/ui/label.js';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select.js';
 import { Textarea } from '@/components/ui/textarea.js';
+import { toast } from 'sonner';
 
 const ShowInvoice = ({ invoice }) => {
-    const [selectedFile, setSelectedFile] = useState(null);
-
-// ADD THESE:
-    const [reviewFormData, setReviewFormData] = useState({
-        physicalFilesReceived: false,
-        approvalStatus: '',
-        remarks: ''
-    });
-    const [isSubmittingReview, setIsSubmittingReview] = useState(false);
 
     // Destructure related data from invoice object
     const {
@@ -76,8 +68,11 @@ const ShowInvoice = ({ invoice }) => {
         files = [],
         invoice_remarks = [],
         created_by: creator,
-        check_requisitions = []
+        check_requisitions = [],
+        reviews = [] ,
     } = invoice;
+
+    console.log(reviews);
 
     const project = po?.project;
     const vendor = po?.vendor;
@@ -125,31 +120,30 @@ const ShowInvoice = ({ invoice }) => {
     const canReviewInvoice = true;
 
 // Check if invoice is already reviewed
-//     const isAlreadyReviewed = invoice.review_status && invoice.review_status !== 'pending';
-    const isAlreadyReviewed = false;
+    const isAlreadyReviewed = invoice.invoice_status !== 'received';
+//     const isAlreadyReviewed = false;
+
+
+    const { data, setData, post, processing, errors, reset } = useForm({
+        physicalFilesReceived: false,
+        approvalStatus: '',
+        remarks: ''
+    });
 
 // Handle review form submission
-    const handleReviewSubmit = async (e) => {
+    const handleReviewSubmit =  (id,e) => {
         e.preventDefault();
-        setIsSubmittingReview(true);
 
-        try {
-            console.log('Submitting review:', reviewFormData);
-            // Add your API call here
-        } catch (error) {
-            console.error('Error submitting review:', error);
-        } finally {
-            setIsSubmittingReview(false);
-        }
+        post(`/invoices/${id}/review`,{
+            onSuccess: () => {
+                toast.success('Reviewed Successfully!');
+            },
+            onError: (e) => {
+                alert(e.message)
+            }
+        })
     };
 
-// Handle form field changes
-    const handleReviewFormChange = (field, value) => {
-        setReviewFormData(prev => ({
-            ...prev,
-            [field]: value
-        }));
-    };
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
@@ -709,50 +703,49 @@ const ShowInvoice = ({ invoice }) => {
                             </CardHeader>
                             <CardContent>
                                 {canReviewInvoice && !isAlreadyReviewed ? (
-                                    <form onSubmit={handleReviewSubmit} className="space-y-6">
+                                    // 🔹 Show Review Form
+                                    <form onSubmit={(e) => handleReviewSubmit(invoice.id, e)} className="space-y-6">
                                         {/* Physical Files Confirmation */}
                                         <div className="space-y-3">
                                             <div className="flex items-center space-x-2">
                                                 <Checkbox
                                                     id="physicalFiles"
-                                                    checked={reviewFormData.physicalFilesReceived}
-                                                    onCheckedChange={(checked) =>
-                                                        handleReviewFormChange('physicalFilesReceived', checked)
-                                                    }
+                                                    checked={data.physicalFilesReceived}
+                                                    onCheckedChange={(checked) => setData("physicalFilesReceived", checked)}
                                                 />
                                                 <Label htmlFor="physicalFiles" className="text-sm font-medium">
                                                     Physical files have been received and verified
                                                 </Label>
                                             </div>
-                                            {!reviewFormData.physicalFilesReceived && (
+                                            {!data.physicalFilesReceived && (
                                                 <div className="text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded px-3 py-2">
-                                                    <AlertTriangle className="w-4 h-4 inline mr-2"/>
+                                                    <AlertTriangle className="w-4 h-4 inline mr-2" />
                                                     Please confirm physical file receipt before proceeding
                                                 </div>
                                             )}
                                         </div>
 
                                         {/* Approval Decision */}
-                                        {reviewFormData.physicalFilesReceived && (
+                                        {data.physicalFilesReceived && (
                                             <div className="space-y-3">
                                                 <Label className="text-sm font-medium">Approval Decision</Label>
                                                 <Select
-                                                    value={reviewFormData.approvalStatus}
-                                                    onValueChange={(value) => handleReviewFormChange('approvalStatus', value)}
+                                                    value={data.approvalStatus}
+                                                    onValueChange={(value) => setData("approvalStatus", value)}
                                                 >
                                                     <SelectTrigger>
-                                                        <SelectValue placeholder="Select approval decision"/>
+                                                        <SelectValue placeholder="Select approval decision" />
                                                     </SelectTrigger>
                                                     <SelectContent>
                                                         <SelectItem value="approved">
                                                             <div className="flex items-center">
-                                                                <CheckCircle className="w-4 h-4 mr-2 text-green-600"/>
+                                                                <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
                                                                 Approve Invoice
                                                             </div>
                                                         </SelectItem>
                                                         <SelectItem value="rejected">
                                                             <div className="flex items-center">
-                                                                <XCircle className="w-4 h-4 mr-2 text-red-600"/>
+                                                                <XCircle className="w-4 h-4 mr-2 text-red-600" />
                                                                 Reject Invoice
                                                             </div>
                                                         </SelectItem>
@@ -762,27 +755,27 @@ const ShowInvoice = ({ invoice }) => {
                                         )}
 
                                         {/* Remarks */}
-                                        {reviewFormData.approvalStatus && (
+                                        {data.approvalStatus && (
                                             <div className="space-y-2">
                                                 <Label className="text-sm font-medium">
                                                     Remarks
-                                                    {reviewFormData.approvalStatus === 'rejected' && (
+                                                    {data.approvalStatus === "rejected" && (
                                                         <span className="text-red-500 ml-1">*</span>
                                                     )}
-                                                    {reviewFormData.approvalStatus === 'approved' && (
+                                                    {data.approvalStatus === "approved" && (
                                                         <span className="text-slate-500 text-xs ml-2">(Optional)</span>
                                                     )}
                                                 </Label>
                                                 <Textarea
-                                                    value={reviewFormData.remarks}
-                                                    onChange={(e) => handleReviewFormChange('remarks', e.target.value)}
+                                                    value={data.remarks}
+                                                    onChange={(e) => setData("remarks", e.target.value)}
                                                     placeholder={
-                                                        reviewFormData.approvalStatus === 'rejected'
+                                                        data.approvalStatus === "rejected"
                                                             ? "Please provide detailed reasons for rejection..."
                                                             : "Add any additional comments or notes..."
                                                     }
                                                     className="min-h-[100px]"
-                                                    required={reviewFormData.approvalStatus === 'rejected'}
+                                                    required={data.approvalStatus === "rejected"}
                                                 />
                                             </div>
                                         )}
@@ -792,60 +785,80 @@ const ShowInvoice = ({ invoice }) => {
                                             type="submit"
                                             className="w-full"
                                             disabled={
-                                                !reviewFormData.physicalFilesReceived ||
-                                                !reviewFormData.approvalStatus ||
-                                                (reviewFormData.approvalStatus === 'rejected' && !reviewFormData.remarks.trim()) ||
-                                                isSubmittingReview
+                                                !data.physicalFilesReceived ||
+                                                !data.approvalStatus ||
+                                                (data.approvalStatus === "rejected" && !data.remarks.trim()) ||
+                                                processing
                                             }
                                         >
-                                            {isSubmittingReview ? (
+                                            {processing ? (
                                                 <>
                                                     <div className="w-4 h-4 mr-2 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
                                                     Submitting...
                                                 </>
                                             ) : (
                                                 <>
-                                                    <Send className="w-4 h-4 mr-2"/>
+                                                    <Send className="w-4 h-4 mr-2" />
                                                     Submit Review
                                                 </>
                                             )}
                                         </Button>
                                     </form>
                                 ) : isAlreadyReviewed ? (
-                                    <div className="space-y-4">
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-sm text-slate-600">Status:</span>
-                                            <Badge className={cn(
-                                                "capitalize",
-                                                invoice.review_status === 'approved'
-                                                    ? "bg-green-100 text-green-800"
-                                                    : "bg-red-100 text-red-800"
-                                            )}>
-                                                {invoice.review_status}
-                                            </Badge>
-                                        </div>
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-sm text-slate-600">Reviewed By:</span>
-                                            <span className="text-sm font-medium">{invoice.reviewed_by?.name || 'Unknown'}</span>
-                                        </div>
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-sm text-slate-600">Review Date:</span>
-                                            <span className="text-sm font-medium">{formatDate(invoice.reviewed_at)}</span>
-                                        </div>
-                                        {invoice.review_remarks && (
-                                            <div className="pt-3 border-t">
-                                                <span className="text-sm text-slate-600 block mb-2">Remarks:</span>
-                                                <div className="bg-slate-50 p-3 rounded text-sm">{invoice.review_remarks}</div>
+                                    // 🔹 Show Review History (all past reviews)
+                                    <div className="space-y-6">
+                                        {invoice.reviews?.map((review) => (
+                                            <div
+                                                key={review.id}
+                                                className="p-4 border rounded-lg bg-slate-50 space-y-3"
+                                            >
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-sm text-slate-600">Status:</span>
+                                                    <Badge
+                                                        className={cn(
+                                                            "capitalize",
+                                                            review.status === "approved"
+                                                                ? "bg-green-100 text-green-800"
+                                                                : "bg-red-100 text-red-800"
+                                                        )}
+                                                    >
+                                                        {review.status}
+                                                    </Badge>
+                                                </div>
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-sm text-slate-600">Reviewed By:</span>
+                                                    <span className="text-sm font-medium">
+                                                      {review.reviewer?.name || "Unknown"}
+                                                    </span>
+                                                </div>
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-sm text-slate-600">Review Date:</span>
+                                                    <span className="text-sm font-medium">
+                                                      {format(review.reviewed_at,'PPp')}
+                                                    </span>
+                                                </div>
+                                                {review.comments && (
+                                                    <div className="pt-3 border-t">
+                                                          <span className="text-sm text-slate-600 block mb-2">
+                                                            Remarks:
+                                                          </span>
+                                                        <div className="bg-white p-3 rounded text-sm">
+                                                            {review.comments}
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
-                                        )}
+                                        ))}
                                     </div>
                                 ) : (
+                                    // 🔹 Show No Permission
                                     <div className="text-center py-8 text-slate-500">
-                                        <ClipboardCheck className="w-12 h-12 mx-auto mb-3 text-slate-300"/>
+                                        <ClipboardCheck className="w-12 h-12 mx-auto mb-3 text-slate-300" />
                                         <div>You don't have permission to review this invoice</div>
                                     </div>
                                 )}
                             </CardContent>
+
                         </Card>
                     </TabsContent>
 

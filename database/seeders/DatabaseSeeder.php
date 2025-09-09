@@ -29,7 +29,7 @@ class DatabaseSeeder extends Seeder
             VendorSeeder::class,
             ProjectSeeder::class,
             PurchaseOrderSeeder::class,
-            InvoiceSeeder::class,
+//            InvoiceSeeder::class,
         ]);
 
 
