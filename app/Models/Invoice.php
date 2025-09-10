@@ -19,13 +19,9 @@ class Invoice extends Model
         return $this->morphMany(File::class, 'fileable');
     }
 
-    public function statusHistories()
-    {
-        return $this->morphMany(StatusHistory::class, 'statusable');
+    public function activityLogs(){
+        return $this->morphMany(ActivityLog::class , 'loggable');
     }
 
 
-//    public function reviews(){
-//        return $this->morphMany(Review::class, 'reviewable');
-//    }
 }

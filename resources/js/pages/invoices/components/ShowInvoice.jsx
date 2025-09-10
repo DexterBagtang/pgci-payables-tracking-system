@@ -1,67 +1,40 @@
-import React, { useState } from 'react';
-import { Link, useForm, usePage } from '@inertiajs/react';
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from "@/components/ui/card";
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox.js';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label.js';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select.js';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea.js';
+import { cn } from '@/lib/utils';
+import { Link, useForm, usePage } from '@inertiajs/react';
+import { format } from 'date-fns';
 import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-    Tabs,
-    TabsContent,
-    TabsList,
-    TabsTrigger,
-} from "@/components/ui/tabs";
-import {
-    CalendarIcon,
-    FileText,
-    DollarSign,
-    Building2,
     AlertCircle,
+    AlertTriangle,
     ArrowLeft,
+    Building2,
+    CheckCircle,
+    ClipboardCheck,
+    Clock,
+    CreditCard,
     Download,
     Edit,
     Eye,
-    MapPin,
-    Phone,
-    Mail,
-    Calendar,
-    Clock,
-    User,
     FileIcon,
-    CheckCircle,
-    XCircle,
-    AlertTriangle,
-    Paperclip,
-    Receipt,
-    CreditCard,
-    Building,
+    FileText,
     Folder,
     Info,
-    ClipboardCheck,
-    Send
+    Paperclip,
+    Receipt,
+    Send,
+    XCircle,
 } from 'lucide-react';
-import { format } from "date-fns";
-import { cn } from "@/lib/utils";
-import { Checkbox } from '@/components/ui/checkbox.js';
-import { Label } from '@/components/ui/label.js';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select.js';
-import { Textarea } from '@/components/ui/textarea.js';
+import { useState } from 'react';
 import { toast } from 'sonner';
 
 const ShowInvoice = ({ invoice }) => {
-
     // Destructure related data from invoice object
     const {
         purchase_order: po,
@@ -69,24 +42,27 @@ const ShowInvoice = ({ invoice }) => {
         invoice_remarks = [],
         created_by: creator,
         check_requisitions = [],
-        reviews = [] ,
+        reviews = [],
+        activity_logs,
     } = invoice;
 
-    console.log(reviews);
+    console.log(activity_logs);
 
     const project = po?.project;
     const vendor = po?.vendor;
 
-    const {user} = usePage().props.auth;
+    const { user } = usePage().props.auth;
+
+    const [tab, setTab] = useState('details');
 
     // Helper function to get status color
     const getStatusColor = (status) => {
         const statusColors = {
-            'pending': 'bg-yellow-100 text-yellow-800 border-yellow-200',
-            'paid': 'bg-green-100 text-green-800 border-green-200',
-            'overdue': 'bg-red-100 text-red-800 border-red-200',
-            'processing': 'bg-blue-100 text-blue-800 border-blue-200',
-            'cancelled': 'bg-gray-100 text-gray-800 border-gray-200'
+            pending: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+            paid: 'bg-green-100 text-green-800 border-green-200',
+            overdue: 'bg-red-100 text-red-800 border-red-200',
+            processing: 'bg-blue-100 text-blue-800 border-blue-200',
+            cancelled: 'bg-gray-100 text-gray-800 border-gray-200',
         };
         return statusColors[status?.toLowerCase()] || 'bg-gray-100 text-gray-800 border-gray-200';
     };
@@ -94,13 +70,13 @@ const ShowInvoice = ({ invoice }) => {
     // Helper function to format currency
     const formatCurrency = (amount) => {
         if (!amount) return '₱0.00';
-        return `₱${Number(amount).toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+        return `₱${Number(amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
     };
 
     // Helper function to format date
     const formatDate = (date) => {
         if (!date) return 'Not set';
-        return format(new Date(date), "MMM dd, yyyy");
+        return format(new Date(date), 'MMM dd, yyyy');
     };
 
     // Helper function to calculate days overdue
@@ -119,51 +95,46 @@ const ShowInvoice = ({ invoice }) => {
     // const canReviewInvoice = user?.role?.includes('accounting') || user?.permissions?.includes('review_invoice');
     const canReviewInvoice = true;
 
-// Check if invoice is already reviewed
-    const isAlreadyReviewed = invoice.invoice_status !== 'received';
-//     const isAlreadyReviewed = false;
+    // Check if invoice is already reviewed
+    const isAlreadyReviewed = invoice.invoice_status === 'approved';
 
+    //     const isAlreadyReviewed = false;
 
     const { data, setData, post, processing, errors, reset } = useForm({
         physicalFilesReceived: false,
         approvalStatus: '',
-        remarks: ''
+        remarks: '',
     });
 
-// Handle review form submission
-    const handleReviewSubmit =  (id,e) => {
+    // Handle review form submission
+    const handleReviewSubmit = (id, e) => {
         e.preventDefault();
 
-        post(`/invoices/${id}/review`,{
+        post(`/invoices/${id}/review`, {
             onSuccess: () => {
                 toast.success('Reviewed Successfully!');
             },
             onError: (e) => {
-                alert(e.message)
-            }
-        })
+                alert(e.message);
+            },
+        });
     };
-
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-            <div className="container max-w-7xl mx-auto p-6 space-y-6">
+            <div className="container mx-auto max-w-7xl space-y-6 p-6">
                 {/* Compact Header with Key Info */}
-                <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
-                    <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-6">
+                <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+                    <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
                         {/* Invoice Title & Status */}
                         <div className="space-y-2">
-                            <div className="flex items-center gap-3 flex-wrap">
-                                <h1 className="text-2xl font-bold text-slate-900">
-                                    Invoice #{invoice.si_number}
-                                </h1>
-                                <Badge className={cn("px-3 py-1", getStatusColor(invoice.invoice_status))}>
+                            <div className="flex flex-wrap items-center gap-3">
+                                <h1 className="text-2xl font-bold text-slate-900">Invoice #{invoice.si_number}</h1>
+                                <Badge className={cn('px-3 py-1', getStatusColor(invoice.invoice_status))}>
                                     {invoice.invoice_status || 'Pending'}
                                 </Badge>
                                 {daysOverdue && (
-                                    <Badge className="bg-red-100 text-red-800 border-red-200 px-3 py-1">
-                                        {daysOverdue} days overdue
-                                    </Badge>
+                                    <Badge className="border-red-200 bg-red-100 px-3 py-1 text-red-800">{daysOverdue} days overdue</Badge>
                                 )}
                             </div>
                             <div className="text-sm text-slate-600">
@@ -172,16 +143,16 @@ const ShowInvoice = ({ invoice }) => {
                         </div>
 
                         {/* Action Buttons */}
-                        <div className="flex gap-2 flex-shrink-0">
+                        <div className="flex flex-shrink-0 gap-2">
                             <Link href={`/invoices/${invoice.id}/edit`} prefetch>
                                 <Button variant="outline" size="sm">
-                                    <Edit className="w-4 h-4 mr-2"/>
+                                    <Edit className="mr-2 h-4 w-4" />
                                     Edit
                                 </Button>
                             </Link>
                             <Link href="/invoices" prefetch>
                                 <Button variant="outline" size="sm">
-                                    <ArrowLeft className="w-4 h-4 mr-2"/>
+                                    <ArrowLeft className="mr-2 h-4 w-4" />
                                     Back
                                 </Button>
                             </Link>
@@ -189,35 +160,26 @@ const ShowInvoice = ({ invoice }) => {
                     </div>
 
                     {/* Key Information Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mt-6 pt-6 border-t">
+                    <div className="mt-6 grid grid-cols-1 gap-6 border-t pt-6 md:grid-cols-2 xl:grid-cols-4">
                         {/* Amount */}
                         <div className="text-center">
-                            <div className="text-3xl font-bold text-green-600 mb-1">
-                                {formatCurrency(invoice.invoice_amount)}
-                            </div>
+                            <div className="mb-1 text-3xl font-bold text-green-600">{formatCurrency(invoice.invoice_amount)}</div>
                             <div className="text-sm text-slate-500">Invoice Amount</div>
                             {invoice.net_amount !== invoice.invoice_amount && (
-                                <div className="text-xs text-slate-400 mt-1">
-                                    Net: {formatCurrency(invoice.net_amount)}
-                                </div>
+                                <div className="mt-1 text-xs text-slate-400">Net: {formatCurrency(invoice.net_amount)}</div>
                             )}
                         </div>
 
                         {/* Vendor */}
                         <div>
-                            <div className="flex items-center mb-2">
-                                <Building2 className="w-4 h-4 mr-2 text-orange-600"/>
+                            <div className="mb-2 flex items-center">
+                                <Building2 className="mr-2 h-4 w-4 text-orange-600" />
                                 <span className="text-sm font-medium text-slate-700">Vendor</span>
                             </div>
-                            <div className="font-semibold text-slate-900 truncate">
-                                {vendor?.name || 'No Vendor'}
-                            </div>
-                            <div className="text-sm text-slate-600 truncate">
-                                {vendor?.category || ''}
-                            </div>
+                            <div className="truncate font-semibold text-slate-900">{vendor?.name || 'No Vendor'}</div>
+                            <div className="truncate text-sm text-slate-600">{vendor?.category || ''}</div>
                             {vendor && (
-                                <Link href={`/vendors/${vendor.id}`}
-                                      className="text-xs text-blue-600 hover:text-blue-800">
+                                <Link href={`/vendors/${vendor.id}`} className="text-xs text-blue-600 hover:text-blue-800">
                                     View Details
                                 </Link>
                             )}
@@ -225,19 +187,14 @@ const ShowInvoice = ({ invoice }) => {
 
                         {/* Project */}
                         <div>
-                            <div className="flex items-center mb-2">
-                                <Folder className="w-4 h-4 mr-2 text-purple-600"/>
+                            <div className="mb-2 flex items-center">
+                                <Folder className="mr-2 h-4 w-4 text-purple-600" />
                                 <span className="text-sm font-medium text-slate-700">Project</span>
                             </div>
-                            <div className="font-semibold text-slate-900 truncate">
-                                {project?.project_title || 'No Project'}
-                            </div>
-                            <div className="text-sm text-slate-600 font-mono">
-                                CER: {project?.cer_number || 'N/A'}
-                            </div>
+                            <div className="truncate font-semibold text-slate-900">{project?.project_title || 'No Project'}</div>
+                            <div className="font-mono text-sm text-slate-600">CER: {project?.cer_number || 'N/A'}</div>
                             {project && (
-                                <Link href={`/projects/${project.id}`}
-                                      className="text-xs text-blue-600 hover:text-blue-800">
+                                <Link href={`/projects/${project.id}`} className="text-xs text-blue-600 hover:text-blue-800">
                                     View Details
                                 </Link>
                             )}
@@ -245,19 +202,16 @@ const ShowInvoice = ({ invoice }) => {
 
                         {/* Purchase Order */}
                         <div>
-                            <div className="flex items-center mb-2">
-                                <FileText className="w-4 h-4 mr-2 text-green-600"/>
+                            <div className="mb-2 flex items-center">
+                                <FileText className="mr-2 h-4 w-4 text-green-600" />
                                 <span className="text-sm font-medium text-slate-700">Purchase Order</span>
                             </div>
-                            <div className="font-semibold text-slate-900">
-                                {po?.po_number || 'No PO'}
-                            </div>
+                            <div className="font-semibold text-slate-900">{po?.po_number || 'No PO'}</div>
                             <div className="text-sm text-slate-600">
                                 {formatCurrency(po?.po_amount)} • {po?.po_status}
                             </div>
                             {po && (
-                                <Link href={`/purchase-orders/${po.id}`}
-                                      className="text-xs text-blue-600 hover:text-blue-800">
+                                <Link href={`/purchase-orders/${po.id}`} className="text-xs text-blue-600 hover:text-blue-800">
                                     View Details
                                 </Link>
                             )}
@@ -266,7 +220,7 @@ const ShowInvoice = ({ invoice }) => {
                 </div>
 
                 {/* Tabbed Content */}
-                <Tabs defaultValue="details" className="space-y-4">
+                <Tabs value={tab} onValueChange={setTab} className="space-y-4">
                     <TabsList className="grid w-full grid-cols-6">
                         <TabsTrigger value="details">Details</TabsTrigger>
                         <TabsTrigger value="files">Files ({files.length})</TabsTrigger>
@@ -278,12 +232,12 @@ const ShowInvoice = ({ invoice }) => {
 
                     {/* Invoice Details Tab */}
                     <TabsContent value="details" className="space-y-6">
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
                             {/* Invoice Information */}
                             <Card>
                                 <CardHeader className="pb-4">
                                     <CardTitle className="flex items-center text-lg">
-                                        <Receipt className="w-5 h-5 mr-2 text-blue-600"/>
+                                        <Receipt className="mr-2 h-5 w-5 text-blue-600" />
                                         Invoice Details
                                     </CardTitle>
                                 </CardHeader>
@@ -317,25 +271,22 @@ const ShowInvoice = ({ invoice }) => {
 
                                     {/* Amount Breakdown */}
                                     <div className="border-t pt-4">
-                                        <div className="text-sm font-medium text-slate-700 mb-3">Amount Breakdown</div>
+                                        <div className="mb-3 text-sm font-medium text-slate-700">Amount Breakdown</div>
                                         <div className="space-y-2 text-sm">
                                             <div className="flex justify-between">
                                                 <span>Invoice Amount:</span>
-                                                <span
-                                                    className="font-medium">{formatCurrency(invoice.invoice_amount)}</span>
+                                                <span className="font-medium">{formatCurrency(invoice.invoice_amount)}</span>
                                             </div>
                                             {invoice.tax_amount > 0 && (
                                                 <div className="flex justify-between">
                                                     <span>Tax Amount:</span>
-                                                    <span
-                                                        className="font-medium">{formatCurrency(invoice.tax_amount)}</span>
+                                                    <span className="font-medium">{formatCurrency(invoice.tax_amount)}</span>
                                                 </div>
                                             )}
                                             {invoice.discount_amount > 0 && (
                                                 <div className="flex justify-between text-green-600">
                                                     <span>Discount:</span>
-                                                    <span
-                                                        className="font-medium">-{formatCurrency(invoice.discount_amount)}</span>
+                                                    <span className="font-medium">-{formatCurrency(invoice.discount_amount)}</span>
                                                 </div>
                                             )}
                                             <div className="flex justify-between border-t pt-2 font-semibold">
@@ -347,10 +298,8 @@ const ShowInvoice = ({ invoice }) => {
 
                                     {invoice.notes && (
                                         <div className="border-t pt-4">
-                                            <div className="text-sm font-medium text-slate-700 mb-2">Notes</div>
-                                            <div className="bg-slate-50 p-3 rounded text-sm text-slate-700">
-                                                {invoice.notes}
-                                            </div>
+                                            <div className="mb-2 text-sm font-medium text-slate-700">Notes</div>
+                                            <div className="rounded bg-slate-50 p-3 text-sm text-slate-700">{invoice.notes}</div>
                                         </div>
                                     )}
                                 </CardContent>
@@ -360,7 +309,7 @@ const ShowInvoice = ({ invoice }) => {
                             <Card>
                                 <CardHeader className="pb-4">
                                     <CardTitle className="flex items-center text-lg">
-                                        <Info className="w-5 h-5 mr-2 text-indigo-600"/>
+                                        <Info className="mr-2 h-5 w-5 text-indigo-600" />
                                         Related Information
                                     </CardTitle>
                                 </CardHeader>
@@ -368,11 +317,11 @@ const ShowInvoice = ({ invoice }) => {
                                     {/* Vendor Details */}
                                     {vendor && (
                                         <div>
-                                            <div className="flex items-center justify-between mb-3">
+                                            <div className="mb-3 flex items-center justify-between">
                                                 <h4 className="font-medium text-slate-800">Vendor Information</h4>
                                                 <Link href={`/vendors/${vendor.id}`}>
                                                     <Button variant="ghost" size="sm">
-                                                        <Eye className="w-3 h-3 mr-1"/>
+                                                        <Eye className="mr-1 h-3 w-3" />
                                                         View
                                                     </Button>
                                                 </Link>
@@ -388,18 +337,13 @@ const ShowInvoice = ({ invoice }) => {
                                                 </div>
                                                 <div className="flex justify-between">
                                                     <span className="text-slate-500">Payment Terms:</span>
-                                                    <span
-                                                        className="font-medium">{vendor.payment_terms || 'Not specified'}</span>
+                                                    <span className="font-medium">{vendor.payment_terms || 'Not specified'}</span>
                                                 </div>
                                                 <div className="flex justify-between">
                                                     <span className="text-slate-500">Contact:</span>
-                                                    <span className="font-medium text-right">
-                                                        {vendor.email && (
-                                                            <div>{vendor.email}</div>
-                                                        )}
-                                                        {vendor.phone && (
-                                                            <div>{vendor.phone}</div>
-                                                        )}
+                                                    <span className="text-right font-medium">
+                                                        {vendor.email && <div>{vendor.email}</div>}
+                                                        {vendor.phone && <div>{vendor.phone}</div>}
                                                     </span>
                                                 </div>
                                             </div>
@@ -409,11 +353,11 @@ const ShowInvoice = ({ invoice }) => {
                                     {/* Project Details */}
                                     {project && (
                                         <div className="border-t pt-4">
-                                            <div className="flex items-center justify-between mb-3">
+                                            <div className="mb-3 flex items-center justify-between">
                                                 <h4 className="font-medium text-slate-800">Project Information</h4>
                                                 <Link href={`/projects/${project.id}`}>
                                                     <Button variant="ghost" size="sm">
-                                                        <Eye className="w-3 h-3 mr-1"/>
+                                                        <Eye className="mr-1 h-3 w-3" />
                                                         View
                                                     </Button>
                                                 </Link>
@@ -421,24 +365,19 @@ const ShowInvoice = ({ invoice }) => {
                                             <div className="space-y-2 text-sm">
                                                 <div className="flex justify-between">
                                                     <span className="text-slate-500">Title:</span>
-                                                    <span className="font-medium text-right max-w-[200px] truncate">
-                                                        {project.project_title}
-                                                    </span>
+                                                    <span className="max-w-[200px] truncate text-right font-medium">{project.project_title}</span>
                                                 </div>
                                                 <div className="flex justify-between">
                                                     <span className="text-slate-500">CER Number:</span>
-                                                    <span className="font-medium font-mono">{project.cer_number}</span>
+                                                    <span className="font-mono font-medium">{project.cer_number}</span>
                                                 </div>
                                                 <div className="flex justify-between">
                                                     <span className="text-slate-500">Project Cost:</span>
-                                                    <span
-                                                        className="font-medium">{formatCurrency(project.total_project_cost)}</span>
+                                                    <span className="font-medium">{formatCurrency(project.total_project_cost)}</span>
                                                 </div>
                                                 <div className="flex justify-between">
                                                     <span className="text-slate-500">Status:</span>
-                                                    <Badge className="text-xs capitalize">
-                                                        {project.project_status?.replace('_', ' ')}
-                                                    </Badge>
+                                                    <Badge className="text-xs capitalize">{project.project_status?.replace('_', ' ')}</Badge>
                                                 </div>
                                             </div>
                                         </div>
@@ -447,7 +386,7 @@ const ShowInvoice = ({ invoice }) => {
                                     {/* PO Comparison */}
                                     {po && (
                                         <div className="border-t pt-4">
-                                            <h4 className="font-medium text-slate-800 mb-3">PO vs Invoice</h4>
+                                            <h4 className="mb-3 font-medium text-slate-800">PO vs Invoice</h4>
                                             <div className="space-y-2 text-sm">
                                                 <div className="flex justify-between">
                                                     <span className="text-slate-500">PO Amount:</span>
@@ -455,17 +394,16 @@ const ShowInvoice = ({ invoice }) => {
                                                 </div>
                                                 <div className="flex justify-between">
                                                     <span className="text-slate-500">Invoice Amount:</span>
-                                                    <span
-                                                        className="font-medium">{formatCurrency(invoice.invoice_amount)}</span>
+                                                    <span className="font-medium">{formatCurrency(invoice.invoice_amount)}</span>
                                                 </div>
                                                 <div className="flex justify-between border-t pt-2">
                                                     <span className="text-slate-500">Remaining:</span>
-                                                    <span className={cn(
-                                                        "font-medium",
-                                                        (po.po_amount - invoice.invoice_amount) >= 0
-                                                            ? "text-green-600"
-                                                            : "text-red-600"
-                                                    )}>
+                                                    <span
+                                                        className={cn(
+                                                            'font-medium',
+                                                            po.po_amount - invoice.invoice_amount >= 0 ? 'text-green-600' : 'text-red-600',
+                                                        )}
+                                                    >
                                                         {formatCurrency(po.po_amount - invoice.invoice_amount)}
                                                     </span>
                                                 </div>
@@ -482,23 +420,22 @@ const ShowInvoice = ({ invoice }) => {
                         <Card>
                             <CardHeader>
                                 <CardTitle className="flex items-center">
-                                    <Paperclip className="w-5 h-5 mr-2 text-indigo-600"/>
+                                    <Paperclip className="mr-2 h-5 w-5 text-indigo-600" />
                                     Attachments ({files.length})
                                 </CardTitle>
                             </CardHeader>
                             <CardContent>
                                 {files.length > 0 ? (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
                                         {files.map((file) => (
-                                            <div key={file.id}
-                                                 className="border rounded-lg p-4 hover:bg-slate-50 transition-colors">
-                                                <div className="flex items-start justify-between mb-2">
-                                                    <FileIcon className="w-8 h-8 text-slate-400 flex-shrink-0"/>
+                                            <div key={file.id} className="rounded-lg border p-4 transition-colors hover:bg-slate-50">
+                                                <div className="mb-2 flex items-start justify-between">
+                                                    <FileIcon className="h-8 w-8 flex-shrink-0 text-slate-400" />
                                                     <div className="flex gap-1">
                                                         <Dialog>
                                                             <DialogTrigger asChild>
                                                                 <Button variant="ghost" size="sm">
-                                                                    <Eye className="w-4 h-4"/>
+                                                                    <Eye className="h-4 w-4" />
                                                                 </Button>
                                                             </DialogTrigger>
                                                             <DialogContent>
@@ -512,30 +449,24 @@ const ShowInvoice = ({ invoice }) => {
                                                                     <div className="grid grid-cols-2 gap-4 text-sm">
                                                                         <div>
                                                                             <div className="text-slate-500">Type</div>
-                                                                            <div
-                                                                                className="font-medium">{file.file_type}</div>
+                                                                            <div className="font-medium">{file.file_type}</div>
                                                                         </div>
                                                                         <div>
-                                                                            <div className="text-slate-500">Purpose
-                                                                            </div>
-                                                                            <div
-                                                                                className="font-medium">{file.file_purpose || 'Not specified'}</div>
+                                                                            <div className="text-slate-500">Purpose</div>
+                                                                            <div className="font-medium">{file.file_purpose || 'Not specified'}</div>
                                                                         </div>
                                                                     </div>
                                                                     {file.description && (
                                                                         <div>
-                                                                            <div
-                                                                                className="text-slate-500 text-sm mb-1">Description
-                                                                            </div>
-                                                                            <div
-                                                                                className="bg-slate-50 p-3 rounded text-sm">{file.description}</div>
+                                                                            <div className="mb-1 text-sm text-slate-500">Description</div>
+                                                                            <div className="rounded bg-slate-50 p-3 text-sm">{file.description}</div>
                                                                         </div>
                                                                     )}
                                                                     <Button
                                                                         onClick={() => window.open(`/storage/${file.file_path}`, '_blank')}
                                                                         className="w-full"
                                                                     >
-                                                                        <Download className="w-4 h-4 mr-2"/>
+                                                                        <Download className="mr-2 h-4 w-4" />
                                                                         Download
                                                                     </Button>
                                                                 </div>
@@ -546,15 +477,13 @@ const ShowInvoice = ({ invoice }) => {
                                                             size="sm"
                                                             onClick={() => window.open(`/storage/${file.file_path}`, '_blank')}
                                                         >
-                                                            <Download className="w-4 h-4"/>
+                                                            <Download className="h-4 w-4" />
                                                         </Button>
                                                     </div>
                                                 </div>
                                                 <div className="space-y-1">
-                                                    <div className="font-medium text-sm truncate">{file.file_name}</div>
-                                                    <div className="text-xs text-slate-500">
-                                                        {(file.file_size / 1024 / 1024).toFixed(2)} MB
-                                                    </div>
+                                                    <div className="truncate text-sm font-medium">{file.file_name}</div>
+                                                    <div className="text-xs text-slate-500">{(file.file_size / 1024 / 1024).toFixed(2)} MB</div>
                                                     {file.file_category && (
                                                         <Badge variant="outline" className="text-xs">
                                                             {file.file_category}
@@ -565,8 +494,8 @@ const ShowInvoice = ({ invoice }) => {
                                         ))}
                                     </div>
                                 ) : (
-                                    <div className="text-center py-8 text-slate-500">
-                                        <FileIcon className="w-12 h-12 mx-auto mb-3 text-slate-300"/>
+                                    <div className="py-8 text-center text-slate-500">
+                                        <FileIcon className="mx-auto mb-3 h-12 w-12 text-slate-300" />
                                         <div>No attachments found</div>
                                     </div>
                                 )}
@@ -579,7 +508,7 @@ const ShowInvoice = ({ invoice }) => {
                         <Card>
                             <CardHeader>
                                 <CardTitle className="flex items-center">
-                                    <CreditCard className="w-5 h-5 mr-2 text-blue-600"/>
+                                    <CreditCard className="mr-2 h-5 w-5 text-blue-600" />
                                     Check Requisitions ({check_requisitions.length})
                                 </CardTitle>
                             </CardHeader>
@@ -587,20 +516,15 @@ const ShowInvoice = ({ invoice }) => {
                                 {check_requisitions.length > 0 ? (
                                     <div className="space-y-4">
                                         {check_requisitions.map((cr) => (
-                                            <div key={cr.id} className="border rounded-lg p-4">
-                                                <div className="flex justify-between items-start mb-3">
+                                            <div key={cr.id} className="rounded-lg border p-4">
+                                                <div className="mb-3 flex items-start justify-between">
                                                     <div>
-                                                        <div
-                                                            className="font-semibold text-slate-900">{cr.requisition_number}</div>
-                                                        <div
-                                                            className="text-sm text-slate-600">{formatDate(cr.request_date)}</div>
+                                                        <div className="font-semibold text-slate-900">{cr.requisition_number}</div>
+                                                        <div className="text-sm text-slate-600">{formatDate(cr.request_date)}</div>
                                                     </div>
                                                     <div className="text-right">
-                                                        <div className="text-lg font-bold text-green-600">
-                                                            {formatCurrency(cr.php_amount)}
-                                                        </div>
-                                                        <Badge
-                                                            className={cn("text-xs", getStatusColor(cr.requisition_status))}>
+                                                        <div className="text-lg font-bold text-green-600">{formatCurrency(cr.php_amount)}</div>
+                                                        <Badge className={cn('text-xs', getStatusColor(cr.requisition_status))}>
                                                             {cr.requisition_status}
                                                         </Badge>
                                                     </div>
@@ -608,12 +532,11 @@ const ShowInvoice = ({ invoice }) => {
                                                 <div className="flex justify-between text-sm">
                                                     <div>
                                                         <div className="text-slate-500">Payee: {cr.payee_name}</div>
-                                                        <div className="text-slate-500">Payment
-                                                            Method: {cr.payment_method}</div>
+                                                        <div className="text-slate-500">Payment Method: {cr.payment_method}</div>
                                                     </div>
                                                     <Link href={`/check-requisitions/${cr.id}`}>
                                                         <Button variant="outline" size="sm">
-                                                            <Eye className="w-3 h-3 mr-1"/>
+                                                            <Eye className="mr-1 h-3 w-3" />
                                                             View
                                                         </Button>
                                                     </Link>
@@ -622,12 +545,12 @@ const ShowInvoice = ({ invoice }) => {
                                         ))}
                                     </div>
                                 ) : (
-                                    <div className="text-center py-8">
-                                        <CreditCard className="w-12 h-12 mx-auto mb-3 text-slate-300"/>
-                                        <div className="text-slate-500 mb-4">No check requisitions created yet</div>
+                                    <div className="py-8 text-center">
+                                        <CreditCard className="mx-auto mb-3 h-12 w-12 text-slate-300" />
+                                        <div className="mb-4 text-slate-500">No check requisitions created yet</div>
                                         {invoice.invoice_status !== 'paid' && (
                                             <Button>
-                                                <CreditCard className="w-4 h-4 mr-2"/>
+                                                <CreditCard className="mr-2 h-4 w-4" />
                                                 Create Check Requisition
                                             </Button>
                                         )}
@@ -642,7 +565,7 @@ const ShowInvoice = ({ invoice }) => {
                         <Card>
                             <CardHeader>
                                 <CardTitle className="flex items-center">
-                                    <AlertCircle className="w-5 h-5 mr-2 text-amber-600"/>
+                                    <AlertCircle className="mr-2 h-5 w-5 text-amber-600" />
                                     Remarks ({invoice_remarks.length})
                                 </CardTitle>
                             </CardHeader>
@@ -650,41 +573,38 @@ const ShowInvoice = ({ invoice }) => {
                                 {invoice_remarks.length > 0 ? (
                                     <div className="space-y-4">
                                         {invoice_remarks.map((remark) => (
-                                            <div key={remark.id} className="border rounded-lg p-4">
-                                                <div className="flex justify-between items-start mb-2">
+                                            <div key={remark.id} className="rounded-lg border p-4">
+                                                <div className="mb-2 flex items-start justify-between">
                                                     <div className="flex items-center gap-2">
                                                         <Badge variant="outline" className="text-xs">
                                                             {remark.remark_type}
                                                         </Badge>
-                                                        <Badge className={cn(
-                                                            "text-xs",
-                                                            remark.priority === 'high' && "bg-red-100 text-red-800",
-                                                            remark.priority === 'medium' && "bg-yellow-100 text-yellow-800",
-                                                            remark.priority === 'low' && "bg-green-100 text-green-800"
-                                                        )}>
+                                                        <Badge
+                                                            className={cn(
+                                                                'text-xs',
+                                                                remark.priority === 'high' && 'bg-red-100 text-red-800',
+                                                                remark.priority === 'medium' && 'bg-yellow-100 text-yellow-800',
+                                                                remark.priority === 'low' && 'bg-green-100 text-green-800',
+                                                            )}
+                                                        >
                                                             {remark.priority}
                                                         </Badge>
                                                         {remark.is_internal && (
-                                                            <Badge variant="outline"
-                                                                   className="text-xs bg-blue-50 text-blue-700">
+                                                            <Badge variant="outline" className="bg-blue-50 text-xs text-blue-700">
                                                                 Internal
                                                             </Badge>
                                                         )}
                                                     </div>
-                                                    <div className="text-xs text-slate-500">
-                                                        {formatDate(remark.created_at)}
-                                                    </div>
+                                                    <div className="text-xs text-slate-500">{formatDate(remark.created_at)}</div>
                                                 </div>
-                                                <div className="text-slate-700 mb-2">{remark.remark_text}</div>
-                                                <div className="text-xs text-slate-500">
-                                                    By {remark.created_by?.name || 'System'}
-                                                </div>
+                                                <div className="mb-2 text-slate-700">{remark.remark_text}</div>
+                                                <div className="text-xs text-slate-500">By {remark.created_by?.name || 'System'}</div>
                                             </div>
                                         ))}
                                     </div>
                                 ) : (
-                                    <div className="text-center py-8 text-slate-500">
-                                        <AlertCircle className="w-12 h-12 mx-auto mb-3 text-slate-300"/>
+                                    <div className="py-8 text-center text-slate-500">
+                                        <AlertCircle className="mx-auto mb-3 h-12 w-12 text-slate-300" />
                                         <div>No remarks found</div>
                                     </div>
                                 )}
@@ -697,7 +617,7 @@ const ShowInvoice = ({ invoice }) => {
                         <Card>
                             <CardHeader>
                                 <CardTitle className="flex items-center">
-                                    <ClipboardCheck className="w-5 h-5 mr-2 text-blue-600"/>
+                                    <ClipboardCheck className="mr-2 h-5 w-5 text-blue-600" />
                                     Accounting Review
                                 </CardTitle>
                             </CardHeader>
@@ -711,15 +631,15 @@ const ShowInvoice = ({ invoice }) => {
                                                 <Checkbox
                                                     id="physicalFiles"
                                                     checked={data.physicalFilesReceived}
-                                                    onCheckedChange={(checked) => setData("physicalFilesReceived", checked)}
+                                                    onCheckedChange={(checked) => setData('physicalFilesReceived', checked)}
                                                 />
                                                 <Label htmlFor="physicalFiles" className="text-sm font-medium">
                                                     Physical files have been received and verified
                                                 </Label>
                                             </div>
                                             {!data.physicalFilesReceived && (
-                                                <div className="text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded px-3 py-2">
-                                                    <AlertTriangle className="w-4 h-4 inline mr-2" />
+                                                <div className="rounded border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-600">
+                                                    <AlertTriangle className="mr-2 inline h-4 w-4" />
                                                     Please confirm physical file receipt before proceeding
                                                 </div>
                                             )}
@@ -729,23 +649,20 @@ const ShowInvoice = ({ invoice }) => {
                                         {data.physicalFilesReceived && (
                                             <div className="space-y-3">
                                                 <Label className="text-sm font-medium">Approval Decision</Label>
-                                                <Select
-                                                    value={data.approvalStatus}
-                                                    onValueChange={(value) => setData("approvalStatus", value)}
-                                                >
+                                                <Select value={data.approvalStatus} onValueChange={(value) => setData('approvalStatus', value)}>
                                                     <SelectTrigger>
                                                         <SelectValue placeholder="Select approval decision" />
                                                     </SelectTrigger>
                                                     <SelectContent>
                                                         <SelectItem value="approved">
                                                             <div className="flex items-center">
-                                                                <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
+                                                                <CheckCircle className="mr-2 h-4 w-4 text-green-600" />
                                                                 Approve Invoice
                                                             </div>
                                                         </SelectItem>
                                                         <SelectItem value="rejected">
                                                             <div className="flex items-center">
-                                                                <XCircle className="w-4 h-4 mr-2 text-red-600" />
+                                                                <XCircle className="mr-2 h-4 w-4 text-red-600" />
                                                                 Reject Invoice
                                                             </div>
                                                         </SelectItem>
@@ -759,23 +676,21 @@ const ShowInvoice = ({ invoice }) => {
                                             <div className="space-y-2">
                                                 <Label className="text-sm font-medium">
                                                     Remarks
-                                                    {data.approvalStatus === "rejected" && (
-                                                        <span className="text-red-500 ml-1">*</span>
-                                                    )}
-                                                    {data.approvalStatus === "approved" && (
-                                                        <span className="text-slate-500 text-xs ml-2">(Optional)</span>
+                                                    {data.approvalStatus === 'rejected' && <span className="ml-1 text-red-500">*</span>}
+                                                    {data.approvalStatus === 'approved' && (
+                                                        <span className="ml-2 text-xs text-slate-500">(Optional)</span>
                                                     )}
                                                 </Label>
                                                 <Textarea
                                                     value={data.remarks}
-                                                    onChange={(e) => setData("remarks", e.target.value)}
+                                                    onChange={(e) => setData('remarks', e.target.value)}
                                                     placeholder={
-                                                        data.approvalStatus === "rejected"
-                                                            ? "Please provide detailed reasons for rejection..."
-                                                            : "Add any additional comments or notes..."
+                                                        data.approvalStatus === 'rejected'
+                                                            ? 'Please provide detailed reasons for rejection...'
+                                                            : 'Add any additional comments or notes...'
                                                     }
                                                     className="min-h-[100px]"
-                                                    required={data.approvalStatus === "rejected"}
+                                                    required={data.approvalStatus === 'rejected'}
                                                 />
                                             </div>
                                         )}
@@ -787,18 +702,18 @@ const ShowInvoice = ({ invoice }) => {
                                             disabled={
                                                 !data.physicalFilesReceived ||
                                                 !data.approvalStatus ||
-                                                (data.approvalStatus === "rejected" && !data.remarks.trim()) ||
+                                                (data.approvalStatus === 'rejected' && !data.remarks.trim()) ||
                                                 processing
                                             }
                                         >
                                             {processing ? (
                                                 <>
-                                                    <div className="w-4 h-4 mr-2 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                                                    <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
                                                     Submitting...
                                                 </>
                                             ) : (
                                                 <>
-                                                    <Send className="w-4 h-4 mr-2" />
+                                                    <Send className="mr-2 h-4 w-4" />
                                                     Submit Review
                                                 </>
                                             )}
@@ -806,134 +721,121 @@ const ShowInvoice = ({ invoice }) => {
                                     </form>
                                 ) : isAlreadyReviewed ? (
                                     // 🔹 Show Review History (all past reviews)
-                                    <div className="space-y-6">
-                                        {invoice.reviews?.map((review) => (
-                                            <div
-                                                key={review.id}
-                                                className="p-4 border rounded-lg bg-slate-50 space-y-3"
-                                            >
-                                                <div className="flex items-center justify-between">
-                                                    <span className="text-sm text-slate-600">Status:</span>
-                                                    <Badge
-                                                        className={cn(
-                                                            "capitalize",
-                                                            review.status === "approved"
-                                                                ? "bg-green-100 text-green-800"
-                                                                : "bg-red-100 text-red-800"
-                                                        )}
-                                                    >
-                                                        {review.status}
-                                                    </Badge>
-                                                </div>
-                                                <div className="flex items-center justify-between">
-                                                    <span className="text-sm text-slate-600">Reviewed By:</span>
-                                                    <span className="text-sm font-medium">
-                                                      {review.reviewer?.name || "Unknown"}
-                                                    </span>
-                                                </div>
-                                                <div className="flex items-center justify-between">
-                                                    <span className="text-sm text-slate-600">Review Date:</span>
-                                                    <span className="text-sm font-medium">
-                                                      {format(review.reviewed_at,'PPp')}
-                                                    </span>
-                                                </div>
-                                                {review.comments && (
-                                                    <div className="pt-3 border-t">
-                                                          <span className="text-sm text-slate-600 block mb-2">
-                                                            Remarks:
-                                                          </span>
-                                                        <div className="bg-white p-3 rounded text-sm">
-                                                            {review.comments}
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        ))}
+                                    <div className="space-y-4 rounded-2xl border bg-green-50 p-6 text-center">
+                                        <div className="flex justify-center">
+                                            <CheckCircle className="h-10 w-10 text-green-600" />
+                                        </div>
+                                        <div className="text-lg font-semibold text-green-700">Invoice Already Approved</div>
+                                        <p className="text-sm text-green-800">
+                                            This invoice has been reviewed and approved. You may now proceed to the Check Requisition process.
+                                        </p>
+                                        <Button variant="outline" className="mt-2" onClick={() => setTab('requisitions')}>
+                                            Go to Check Requisition
+                                        </Button>
                                     </div>
                                 ) : (
                                     // 🔹 Show No Permission
-                                    <div className="text-center py-8 text-slate-500">
-                                        <ClipboardCheck className="w-12 h-12 mx-auto mb-3 text-slate-300" />
+                                    <div className="py-8 text-center text-slate-500">
+                                        <ClipboardCheck className="mx-auto mb-3 h-12 w-12 text-slate-300" />
                                         <div>You don't have permission to review this invoice</div>
                                     </div>
                                 )}
                             </CardContent>
-
                         </Card>
                     </TabsContent>
 
                     {/* Timeline Tab */}
                     <TabsContent value="timeline">
-                        <Card className="shadow-sm border-slate-200">
+                        <Card className="border-slate-200 shadow-sm">
                             <CardHeader className="pb-4">
                                 <CardTitle className="flex items-center text-slate-800">
-                                    <Clock className="w-5 h-5 mr-2 text-slate-600"/>
-                                    Timeline
+                                    <Clock className="mr-2 h-5 w-5 text-slate-600" />
+                                    Activity Timeline
                                 </CardTitle>
                             </CardHeader>
                             <CardContent>
                                 <div className="space-y-4">
-                                    <div className="flex items-start space-x-3">
-                                        <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
-                                        <div className="flex-1">
-                                            <div className="text-sm font-medium text-slate-900">Invoice Created</div>
-                                            <div className="text-xs text-slate-500">
-                                                {formatDate(invoice.created_at)} by {creator?.name || 'System'}
-                                            </div>
-                                        </div>
-                                    </div>
+                                    {/* Activity Logs */}
+                                    {activity_logs &&
+                                        activity_logs.length > 0 &&
+                                        activity_logs.map((log, index) => {
+                                            // Helper function to get action details
+                                            const getActionDetails = (action) => {
+                                                switch (action) {
+                                                    case 'created':
+                                                        return { color: 'bg-blue-500', label: 'Invoice Created' };
+                                                    case 'updated':
+                                                        return { color: 'bg-amber-500', label: 'Invoice Updated' };
+                                                    case 'submitted':
+                                                        return {
+                                                            color: 'bg-purple-500',
+                                                            label: 'Submitted for Processing',
+                                                        };
+                                                    case 'received':
+                                                        return { color: 'bg-green-500', label: 'Invoice Received' };
+                                                    case 'approved':
+                                                        return { color: 'bg-emerald-500', label: 'Invoice Approved' };
+                                                    case 'rejected':
+                                                        return { color: 'bg-red-500', label: 'Invoice Rejected' };
+                                                    default:
+                                                        return { color: 'bg-slate-400', label: 'Activity' };
+                                                }
+                                            };
 
-                                    {invoice.si_received_at && (
-                                        <div className="flex items-start space-x-3">
-                                            <div className="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
-                                            <div className="flex-1">
-                                                <div className="text-sm font-medium text-slate-900">Invoice Received
-                                                </div>
-                                                <div className="text-xs text-slate-500">
-                                                    {formatDate(invoice.si_received_at)}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
+                                            // Helper function to format changes
+                                            const formatChanges = (changesString) => {
+                                                try {
+                                                    const changes = JSON.parse(changesString);
+                                                    if (Object.keys(changes).length === 0) return null;
 
-                                    {invoice.submitted_at && (
-                                        <div className="flex items-start space-x-3">
-                                            <div className="w-2 h-2 bg-purple-500 rounded-full mt-2"></div>
-                                            <div className="flex-1">
-                                                <div className="text-sm font-medium text-slate-900">Submitted for
-                                                    Processing
-                                                </div>
-                                                <div className="text-xs text-slate-500">
-                                                    {formatDate(invoice.submitted_at)}
-                                                    {invoice.submitted_to && ` to ${invoice.submitted_to}`}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
+                                                    return Object.entries(changes)
+                                                        .filter(([key]) => !['id', 'updated_at', 'created_at'].includes(key))
+                                                        .map(([key, value]) => {
+                                                            const fieldName = key.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+                                                            return `${fieldName}: ${value}`;
+                                                        })
+                                                        .slice(0, 3) // Show only first 3 changes to keep it clean
+                                                        .join(', ');
+                                                } catch (e) {
+                                                    return null;
+                                                }
+                                            };
 
-                                    {check_requisitions.length > 0 && (
-                                        <div className="flex items-start space-x-3">
-                                            <div className="w-2 h-2 bg-indigo-500 rounded-full mt-2"></div>
-                                            <div className="flex-1">
-                                                <div className="text-sm font-medium text-slate-900">Check Requisition
-                                                    Created
-                                                </div>
-                                                <div className="text-xs text-slate-500">
-                                                    {check_requisitions.length} requisition(s) generated
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
+                                            const actionDetails = getActionDetails(log.action);
+                                            const changes = formatChanges(log.changes);
 
-                                    <div className="flex items-start space-x-3">
-                                        <div className="w-2 h-2 bg-slate-300 rounded-full mt-2"></div>
-                                        <div className="flex-1">
-                                            <div className="text-sm font-medium text-slate-900">Last Updated</div>
-                                            <div className="text-xs text-slate-500">
-                                                {formatDate(invoice.updated_at)}
-                                            </div>
-                                        </div>
-                                    </div>
+                                            return (
+                                                <div key={log.id} className="relative flex items-start space-x-3">
+                                                    <div className={`h-3 w-3 ${actionDetails.color} z-10 mt-1.5 rounded-full`}></div>
+
+                                                    {/* Timeline connector line */}
+                                                    {index < activity_logs.length - 1 && (
+                                                        <div className="absolute top-6 left-1.5 -z-10 h-8 w-0.5 bg-slate-900"></div>
+                                                    )}
+
+                                                    <div className="flex-1 pb-4">
+                                                        <div className="text-sm font-medium text-slate-900">{actionDetails.label}</div>
+                                                        <div className="mt-1 text-xs text-slate-500">
+                                                            {format(log.created_at, 'PPp')} by User {log.user?.name}
+                                                        </div>
+
+                                                        {log.notes && (
+                                                            <div className="mt-2 rounded-md border-l-2 border-slate-300 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+                                                                <span className="font-medium text-slate-700">Note:</span> {log.notes}
+                                                            </div>
+                                                        )}
+
+                                                        {changes && (
+                                                            <div className="mt-2 text-xs text-slate-600">
+                                                                <span className="font-medium text-slate-700">Changes:</span> {changes}
+                                                            </div>
+                                                        )}
+
+                                                        <div className="mt-1 text-xs text-slate-400">{log.ip_address}</div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
                                 </div>
                             </CardContent>
                         </Card>
@@ -941,7 +843,7 @@ const ShowInvoice = ({ invoice }) => {
                 </Tabs>
             </div>
         </div>
-    )
-}
+    );
+};
 
 export default ShowInvoice;

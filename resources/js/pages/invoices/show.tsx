@@ -18,7 +18,6 @@ interface ShowPageProps{
 
 
 export default function ShowPoPage({invoice,purchaseOrders}: ShowPageProps) {
-    console.log(purchaseOrders);
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Show Invoice" />

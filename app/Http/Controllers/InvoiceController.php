@@ -136,9 +136,11 @@ class InvoiceController extends Controller
             'created_by' => auth()->id(),
         ]);
 
-        $invoice->statusHistories()->create([
-           'status' => 'created',
-           'changed_by' => auth()->id(),
+        $invoice->activityLogs()->create([
+           'action' => 'created',
+           'user_id' => auth()->id(),
+            'ip_address' => $request->ip(),
+            'changes' => json_encode($invoice->toArray()),
             'notes' => $validated['notes'],
         ]);
 
@@ -161,9 +163,11 @@ class InvoiceController extends Controller
             }
         }
 
-        return redirect()
-            ->route('invoices.show', $invoice)
-            ->with('success', 'Invoice created successfully!');
+        return back()->with('success', 'Invoice created successfully!');
+
+//        return redirect()
+//            ->route('invoices.show', $invoice)
+//            ->with('success', 'Invoice created successfully!');
 
     }
 
@@ -172,7 +176,7 @@ class InvoiceController extends Controller
      */
     public function show(Invoice $invoice)
     {
-        $invoice->load('purchaseOrder.project', 'purchaseOrder.vendor', 'files','statusHistories','reviews');
+        $invoice->load('purchaseOrder.project', 'purchaseOrder.vendor', 'files','activityLogs.user');
         return inertia('invoices/show', [
             'invoice' => $invoice,
             'purchaseOrders' => PurchaseOrder::with(['project', 'vendor'])->get(),
@@ -216,12 +220,19 @@ class InvoiceController extends Controller
 
         $validated['net_amount'] = $validated['invoice_amount'];
 
-        // Update invoice
-        $invoice->update($validated);
+//        $dirty = $invoice->getDirty();
 
-        $invoice->statusHistories()->create([
-            'status' => 'updated',
-            'changed_by' => auth()->id(),
+        // Update invoice
+//        $invoice->update($validated);
+        $invoice->fill($validated)->save();
+
+        $changes = $invoice->getChanges();
+
+        $invoice->activityLogs()->create([
+            'action' => 'updated',
+            'user_id' => auth()->id(),
+            'ip_address' => $request->ip(),
+            'changes' => json_encode($changes),
             'notes' => $validated['notes'],
         ]);
 
@@ -259,20 +270,18 @@ class InvoiceController extends Controller
 
     public function review(Invoice $invoice, Request $request)
     {
-        $invoice->update([
+        $invoice->fill([
             'invoice_status' => $request->approvalStatus,
-        ]);
+        ])->save();
 
-        $invoice->statusHistories()->create([
-            'status' => $request->approvalStatus,
-            'changed_by' => auth()->id(),
-        ]);
+        $changes = $invoice->getChanges();
 
-        $invoice->statusHistories()->reviews()->create([
-            'reviewer_id' => auth()->id(),
-            'status' => $request->approvalStatus,
-            'comments' => $request->remarks,
-            'reviewed_at' => now(),
+        $invoice->activityLogs()->create([
+            'action' => $request->approvalStatus,
+            'user_id' => auth()->id(),
+            'ip_address' => $request->ip(),
+            'changes' => json_encode($changes),
+            'notes' => $request->remarks,
         ]);
 
         return back()->with('success', 'Invoice reviewed successfully!');
