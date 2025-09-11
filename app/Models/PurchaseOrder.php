@@ -30,4 +30,12 @@ class PurchaseOrder extends Model
     {
         return $this->morphMany(File::class, 'fileable');
     }
+
+    public function invoices(){
+        return $this->hasMany(Invoice::class);
+    }
+
+    public function activityLogs(){
+        return $this->morphMany(ActivityLog::class , 'loggable');
+    }
 }
