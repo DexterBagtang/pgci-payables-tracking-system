@@ -29,12 +29,10 @@ return new class extends Migration
             $table->date('request_date');
             $table->string('payee_name');
             $table->text('purpose');
-            $table->text('payment_for');
             $table->string('po_number')->nullable();
             $table->string('cer_number')->nullable();
             $table->string('si_number')->nullable();
             $table->string('account_charge')->nullable();
-            $table->string('budget_code')->nullable();
             $table->string('service_line_dist')->nullable();
             $table->text('amount_in_words');
 
@@ -43,13 +41,6 @@ return new class extends Migration
             $table->string('reviewed_by')->nullable();
             $table->string('approved_by')->nullable();
 
-            // System Fields
-            $table->enum('payment_method', [
-                'check',
-                'bank_transfer',
-                'cash',
-                'other'
-            ])->default('check');
             $table->foreignId('generated_by')->constrained('users')->onDelete('restrict');
             $table->timestamp('approved_at')->nullable();
             $table->foreignId('processed_by')->nullable()->constrained('users')->onDelete('set null');

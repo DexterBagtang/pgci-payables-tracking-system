@@ -23,5 +23,9 @@ class Invoice extends Model
         return $this->morphMany(ActivityLog::class , 'loggable');
     }
 
+    public function checkRequisitions(){
+        return $this->hasMany(CheckRequisition::class);
+    }
+
 
 }

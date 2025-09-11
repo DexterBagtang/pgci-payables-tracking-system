@@ -17,7 +17,10 @@ class InvoiceController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Invoice::with(['purchaseOrder.project', 'purchaseOrder.vendor'])
+        $query = Invoice::with([
+            'purchaseOrder.project',
+            'purchaseOrder.vendor'
+        ])
             ->select('invoices.*')
             ->leftJoin('purchase_orders', 'purchase_orders.id', '=', 'invoices.purchase_order_id');
 
@@ -176,7 +179,12 @@ class InvoiceController extends Controller
      */
     public function show(Invoice $invoice)
     {
-        $invoice->load('purchaseOrder.project', 'purchaseOrder.vendor', 'files','activityLogs.user');
+        $invoice->load('purchaseOrder.project',
+            'purchaseOrder.vendor',
+            'files',
+            'activityLogs.user',
+            'checkRequisitions',
+        );
         return inertia('invoices/show', [
             'invoice' => $invoice,
             'purchaseOrders' => PurchaseOrder::with(['project', 'vendor'])->get(),

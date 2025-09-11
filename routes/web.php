@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\CheckRequisitionController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\PurchaseOrderController;
@@ -25,6 +26,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('invoices', InvoiceController::class)->except(['update']);
     Route::post('invoices/{invoice}', [InvoiceController::class, 'update'])->name('invoices.update');
     Route::post('invoices/{invoice}/review', [InvoiceController::class, 'review'])->name('invoices.review');
+
+
+    Route::resource('check-requisitions', CheckRequisitionController::class);
 
 
 
