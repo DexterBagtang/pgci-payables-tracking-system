@@ -137,6 +137,15 @@ class PurchaseOrderController extends Controller
         // Create the purchase order
         $purchaseOrder = PurchaseOrder::create($validated);
 
+        $purchaseOrder->activityLogs()->create([
+            'action' => 'created',
+            'user_id' => auth()->id(),
+            'ip_address' => $request->ip(),
+            'changes' => json_encode($purchaseOrder),
+            'notes' => $validated['description'],
+        ]);
+
+
         // Handle file uploads
         if ($request->hasFile('files')) {
             foreach ($request->file('files') as $file) {
@@ -231,7 +240,17 @@ class PurchaseOrderController extends Controller
 
 //        $validated['updated_by'] = auth()->id();
 
-        $purchaseOrder->update($validated);
+
+//        $purchaseOrder->update($validated);
+        $purchaseOrder->fill($validated)->save();
+
+        $purchaseOrder->activityLogs()->create([
+            'action' => 'updated',
+            'user_id' => auth()->id(),
+            'ip_address' => $request->ip(),
+            'changes' => json_encode($purchaseOrder->getChanges()),
+            'notes' => $validated['description'],
+        ]);
 
         // In your update method, add file handling
         if ($request->hasFile('files')) {

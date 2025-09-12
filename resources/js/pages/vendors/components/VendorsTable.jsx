@@ -276,7 +276,12 @@ function VendorRow({ vendor, onEdit }) {
                         </span>
                     </div>
                     <div>
-                        <div className="font-semibold text-gray-900 dark:text-gray-100">{vendor.name}</div>
+                        <div
+                            className="font-semibold text-gray-900 dark:text-gray-100 hover:underline hover:cursor-pointer"
+                            onClick={()=>router.get(`/vendors/${vendor.id}`)}
+                        >
+                            {vendor.name}
+                        </div>
                     </div>
                 </div>
             </TableCell>

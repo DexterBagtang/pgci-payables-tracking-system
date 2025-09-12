@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\CheckRequisition;
+use App\Models\Invoice;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -43,6 +44,15 @@ class CheckRequisitionController extends Controller
 
         // Create the check requisition
         CheckRequisition::create($validatedData);
+
+        $invoice = Invoice::find($validatedData['invoice_id']);
+
+        $invoice->activityLogs()->create([
+            'action' => 'check requisition created',
+            'user_id' => auth()->id(),
+            'ip_address' => $request->ip(),
+            'changes' => json_encode($validatedData),
+        ]);
 
         return back()->with('success', 'Check requisition created successfully!');
     }

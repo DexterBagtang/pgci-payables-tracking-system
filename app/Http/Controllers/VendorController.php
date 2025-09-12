@@ -108,9 +108,12 @@ class VendorController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
+    public function show(Vendor $vendor)
     {
-        //
+        $vendor->load('purchaseOrders','purchaseOrders.project');
+        return inertia('vendors/show', [
+            'vendor' => $vendor,
+        ]);
     }
 
     /**

@@ -36,6 +36,8 @@ import {
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input.js';
+import ActivityTimeline from '@/components/custom/ActivityTimeline.jsx';
+import AttachmentsCard from '@/components/custom/AttachmentsCard.jsx';
 
 const ShowInvoice = ({ invoice }) => {
     // Destructure related data from invoice object
@@ -420,90 +422,7 @@ const ShowInvoice = ({ invoice }) => {
 
                         {/* Files Tab */}
                         <TabsContent value="files">
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle className="flex items-center">
-                                        <Paperclip className="mr-2 h-5 w-5 text-indigo-600" />
-                                        Attachments ({files.length})
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    {files.length > 0 ? (
-                                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-                                            {files.map((file) => (
-                                                <div key={file.id} className="rounded-lg border p-4 transition-colors hover:bg-slate-50">
-                                                    <div className="mb-2 flex items-start justify-between">
-                                                        <FileIcon className="h-8 w-8 flex-shrink-0 text-slate-400" />
-                                                        <div className="flex gap-1">
-                                                            <Dialog>
-                                                                <DialogTrigger asChild>
-                                                                    <Button variant="ghost" size="sm">
-                                                                        <Eye className="h-4 w-4" />
-                                                                    </Button>
-                                                                </DialogTrigger>
-                                                                <DialogContent>
-                                                                    <DialogHeader>
-                                                                        <DialogTitle>{file.file_name}</DialogTitle>
-                                                                        <DialogDescription>
-                                                                            {file.file_category} • {(file.file_size / 1024 / 1024).toFixed(2)} MB
-                                                                        </DialogDescription>
-                                                                    </DialogHeader>
-                                                                    <div className="space-y-4">
-                                                                        <div className="grid grid-cols-2 gap-4 text-sm">
-                                                                            <div>
-                                                                                <div className="text-slate-500">Type</div>
-                                                                                <div className="font-medium">{file.file_type}</div>
-                                                                            </div>
-                                                                            <div>
-                                                                                <div className="text-slate-500">Purpose</div>
-                                                                                <div className="font-medium">{file.file_purpose || 'Not specified'}</div>
-                                                                            </div>
-                                                                        </div>
-                                                                        {file.description && (
-                                                                            <div>
-                                                                                <div className="mb-1 text-sm text-slate-500">Description</div>
-                                                                                <div className="rounded bg-slate-50 p-3 text-sm">{file.description}</div>
-                                                                            </div>
-                                                                        )}
-                                                                        <Button
-                                                                            onClick={() => window.open(`/storage/${file.file_path}`, '_blank')}
-                                                                            className="w-full"
-                                                                        >
-                                                                            <Download className="mr-2 h-4 w-4" />
-                                                                            Download
-                                                                        </Button>
-                                                                    </div>
-                                                                </DialogContent>
-                                                            </Dialog>
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="sm"
-                                                                onClick={() => window.open(`/storage/${file.file_path}`, '_blank')}
-                                                            >
-                                                                <Download className="h-4 w-4" />
-                                                            </Button>
-                                                        </div>
-                                                    </div>
-                                                    <div className="space-y-1">
-                                                        <div className="truncate text-sm font-medium">{file.file_name}</div>
-                                                        <div className="text-xs text-slate-500">{(file.file_size / 1024 / 1024).toFixed(2)} MB</div>
-                                                        {file.file_category && (
-                                                            <Badge variant="outline" className="text-xs">
-                                                                {file.file_category}
-                                                            </Badge>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    ) : (
-                                        <div className="py-8 text-center text-slate-500">
-                                            <FileIcon className="mx-auto mb-3 h-12 w-12 text-slate-300" />
-                                            <div>No attachments found</div>
-                                        </div>
-                                    )}
-                                </CardContent>
-                            </Card>
+                            <AttachmentsCard files={files} />
                         </TabsContent>
 
                         {/* Check Requisitions Tab */}
@@ -763,7 +682,7 @@ const ShowInvoice = ({ invoice }) => {
 
                         {/* Timeline Tab */}
                         <TabsContent value="timeline">
-                            <InvoiceTimeline activity_logs={activity_logs} />
+                            <ActivityTimeline activity_logs={activity_logs} title={"Invoice Timeline"} entityType={"Invoice"} />
                         </TabsContent>
                     </Tabs>
                 </div>
@@ -981,104 +900,6 @@ const CreateCheckRequisitionDialog = ({ invoice, isOpen, onClose, onSuccess }) =
         </Dialog>
     );
 };
-
-function InvoiceTimeline({activity_logs}){
-    return (
-        <Card className="border-slate-200 shadow-sm">
-            <CardHeader className="pb-4">
-                <CardTitle className="flex items-center text-slate-800">
-                    <Clock className="mr-2 h-5 w-5 text-slate-600" />
-                    Activity Timeline
-                </CardTitle>
-            </CardHeader>
-            <CardContent>
-                <div className="space-y-4">
-                    {/* Activity Logs */}
-                    {activity_logs &&
-                        activity_logs.length > 0 &&
-                        activity_logs.map((log, index) => {
-                            // Helper function to get action details
-                            const getActionDetails = (action) => {
-                                switch (action) {
-                                    case 'created':
-                                        return { color: 'bg-blue-500', label: 'Invoice Created' };
-                                    case 'updated':
-                                        return { color: 'bg-amber-500', label: 'Invoice Updated' };
-                                    case 'submitted':
-                                        return {
-                                            color: 'bg-purple-500',
-                                            label: 'Submitted for Processing',
-                                        };
-                                    case 'received':
-                                        return { color: 'bg-green-500', label: 'Invoice Received' };
-                                    case 'approved':
-                                        return { color: 'bg-emerald-500', label: 'Invoice Approved' };
-                                    case 'rejected':
-                                        return { color: 'bg-red-500', label: 'Invoice Rejected' };
-                                    default:
-                                        return { color: 'bg-slate-400', label: 'Activity' };
-                                }
-                            };
-
-                            // Helper function to format changes
-                            const formatChanges = (changesString) => {
-                                try {
-                                    const changes = JSON.parse(changesString);
-                                    if (Object.keys(changes).length === 0) return null;
-
-                                    return Object.entries(changes)
-                                        .filter(([key]) => !['id', 'updated_at', 'created_at'].includes(key))
-                                        .map(([key, value]) => {
-                                            const fieldName = key.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
-                                            return `${fieldName}: ${value}`;
-                                        })
-                                        .slice(0, 3) // Show only first 3 changes to keep it clean
-                                        .join(', ');
-                                } catch (e) {
-                                    return null;
-                                }
-                            };
-
-                            const actionDetails = getActionDetails(log.action);
-                            const changes = formatChanges(log.changes);
-
-                            return (
-                                <div key={log.id} className="relative flex items-start space-x-3">
-                                    <div className={`h-3 w-3 ${actionDetails.color} z-10 mt-1.5 rounded-full`}></div>
-
-                                    {/* Timeline connector line */}
-                                    {index < activity_logs.length - 1 && (
-                                        <div className="absolute top-6 left-1.5 -z-10 h-8 w-0.5 bg-slate-900"></div>
-                                    )}
-
-                                    <div className="flex-1 pb-4">
-                                        <div className="text-sm font-medium text-slate-900">{actionDetails.label}</div>
-                                        <div className="mt-1 text-xs text-slate-500">
-                                            {format(log.created_at, 'PPp')} by User {log.user?.name}
-                                        </div>
-
-                                        {log.notes && (
-                                            <div className="mt-2 rounded-md border-l-2 border-slate-300 bg-slate-50 px-3 py-2 text-xs text-slate-600">
-                                                <span className="font-medium text-slate-700">Note:</span> {log.notes}
-                                            </div>
-                                        )}
-
-                                        {changes && (
-                                            <div className="mt-2 text-xs text-slate-600">
-                                                <span className="font-medium text-slate-700">Changes:</span> {changes}
-                                            </div>
-                                        )}
-
-                                        <div className="mt-1 text-xs text-slate-400">{log.ip_address}</div>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                </div>
-            </CardContent>
-        </Card>
-    )
-}
 
 
 export default ShowInvoice;

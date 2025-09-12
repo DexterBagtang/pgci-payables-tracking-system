@@ -3,6 +3,7 @@ import AppLayout from '@/layouts/app-layout';
 import { dashboard } from '@/routes';
 import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/react';
+import ShowVendorPage from '@/pages/ShowVendorPage';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -31,6 +32,7 @@ export default function Dashboard() {
                     <PlaceholderPattern className="absolute inset-0 size-full stroke-neutral-900/20 dark:stroke-neutral-100/20" />
                     {/*<TestComponent />*/}
                 </div>
+                <ShowVendorPage />
             </div>
         </AppLayout>
     );
