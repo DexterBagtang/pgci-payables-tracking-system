@@ -170,10 +170,6 @@ const ShowVendor = ({vendor,backUrl}) => {
                                     <Edit className="mr-2 h-4 w-4" />
                                     Edit Vendor
                                 </Button>
-                                <Button>
-                                    <Plus className="mr-2 h-4 w-4" />
-                                    Create PO
-                                </Button>
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                         <Button variant="outline" size="icon">

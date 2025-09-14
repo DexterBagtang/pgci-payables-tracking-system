@@ -179,7 +179,7 @@ class PurchaseOrderController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(PurchaseOrder $purchaseOrder)
+    public function show(Request $request,PurchaseOrder $purchaseOrder)
     {
         $purchaseOrder->load([
             'project:id,project_title,cer_number,total_project_cost,total_contract_cost,project_status,description,project_type,smpo_number,philcom_category',

@@ -243,7 +243,7 @@ export default function CreatePOForm({ vendors, projects }) {
                                                             {projects.map((project) => (
                                                                 <CommandItem
                                                                     key={project.id}
-                                                                    value={project.project_title.toString()}
+                                                                    value={project.project_title.toString()- project.cer_number}
                                                                     onSelect={() => {
                                                                         setData('project_id', project.id.toString());
                                                                         setProjectOpen(false);
@@ -256,9 +256,9 @@ export default function CreatePOForm({ vendors, projects }) {
                                                                         )}
                                                                     />
                                                                     <div className="flex flex-col">
-                                                                        <span className="font-medium">{project.project_title}</span>
+                                                                        <span className="font-medium">{project.project_title} - {project.cer_number} </span>
                                                                         <span className="text-xs text-muted-foreground">
-                                                                            CER: {project.cer_number || 'N/A'}
+                                                                            Total: {formatCurrency(project.total_project_cost) || 'N/A'}
                                                                         </span>
                                                                     </div>
                                                                 </CommandItem>
