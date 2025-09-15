@@ -187,7 +187,8 @@ class PurchaseOrderController extends Controller
             'creator:id,name',
             'files',
             'invoices',
-            'activityLogs'
+            'activityLogs',
+            'remarks.user'
         ]);
 
         // Get vendors and projects for edit mode

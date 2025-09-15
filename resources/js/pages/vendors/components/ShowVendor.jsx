@@ -262,7 +262,7 @@ const ShowVendor = ({vendor,backUrl}) => {
                             <TabsTrigger value="pos">Purchase Orders</TabsTrigger>
                             <TabsTrigger value="projects">Projects</TabsTrigger>
                             <TabsTrigger value="files">Files</TabsTrigger>
-                            <TabsTrigger value="remarks">Remarks</TabsTrigger>
+                            <TabsTrigger value="remarks">Remarks <Badge variant='secondary' className="ml-2" >{remarks.length}</Badge></TabsTrigger>
                         </TabsList>
 
                         <TabsContent value="overview" className="mt-6">

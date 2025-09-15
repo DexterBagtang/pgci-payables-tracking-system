@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
+use App\Models\Traits\HasRemarks;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class PurchaseOrder extends Model
 {
-    use HasFactory;
+    use HasFactory,HasRemarks;
     protected $guarded = [];
 
     public function creator(){

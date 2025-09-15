@@ -181,9 +181,11 @@ class InvoiceController extends Controller
     {
         $invoice->load('purchaseOrder.project',
             'purchaseOrder.vendor',
+            'purchaseOrder.files',
             'files',
             'activityLogs.user',
             'checkRequisitions',
+            'remarks.user:id,name'
         );
         return inertia('invoices/show', [
             'invoice' => $invoice,

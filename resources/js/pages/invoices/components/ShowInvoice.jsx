@@ -15,7 +15,7 @@ import { numberToWords } from 'number-to-words';
 import {
     AlertCircle,
     AlertTriangle,
-    ArrowLeft,
+    ArrowLeft, ArrowRight,
     Building2,
     CheckCircle,
     ClipboardCheck,
@@ -26,33 +26,43 @@ import {
     Eye,
     FileIcon,
     FileText,
-    Folder,
-    Info,
+    Folder, History,
+    Info, MessageSquare,
     Paperclip,
     Receipt,
     Send,
-    XCircle,
+    XCircle
 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input.js';
 import ActivityTimeline from '@/components/custom/ActivityTimeline.jsx';
 import AttachmentsCard from '@/components/custom/AttachmentsCard.jsx';
+import Remarks from '@/components/custom/Remarks.jsx';
+import remarks from '@/routes/remarks/index.js';
+import InvoiceReview from '@/pages/invoices/components/InvoiceReview.jsx';
 
 const ShowInvoice = ({ invoice }) => {
     // Destructure related data from invoice object
     const {
         purchase_order: po,
         files = [],
-        invoice_remarks = [],
         created_by: creator,
         check_requisitions = [],
         activity_logs,
+        remarks = [],
     } = invoice;
+
+
+
 
 
     const project = po?.project;
     const vendor = po?.vendor;
+    const po_files = po?.files;
+
+    const attachments = [...po_files,...files];
+    console.log(attachments);
 
     const { user } = usePage().props.auth;
 
@@ -101,28 +111,6 @@ const ShowInvoice = ({ invoice }) => {
 
     // Check if invoice is already reviewed
     const isAlreadyReviewed = invoice.invoice_status === 'approved';
-
-    //     const isAlreadyReviewed = false;
-
-    const { data, setData, post, processing, errors, reset } = useForm({
-        physicalFilesReceived: false,
-        approvalStatus: '',
-        remarks: '',
-    });
-
-    // Handle review form submission
-    const handleReviewSubmit = (id, e) => {
-        e.preventDefault();
-
-        post(`/invoices/${id}/review`, {
-            onSuccess: () => {
-                toast.success('Reviewed Successfully!');
-            },
-            onError: (e) => {
-                alert(e.message);
-            },
-        });
-    };
 
     return (
         <>
@@ -228,9 +216,9 @@ const ShowInvoice = ({ invoice }) => {
                     <Tabs value={tab} onValueChange={setTab} className="space-y-4">
                         <TabsList className="grid w-full grid-cols-2 md:grid-cols-6">
                             <TabsTrigger value="details">Details</TabsTrigger>
-                            <TabsTrigger value="files">Files ({files.length})</TabsTrigger>
+                            <TabsTrigger value="files">Files ({attachments.length})</TabsTrigger>
                             <TabsTrigger value="requisitions">Requisitions ({check_requisitions.length})</TabsTrigger>
-                            <TabsTrigger value="remarks">Remarks ({invoice_remarks.length})</TabsTrigger>
+                            <TabsTrigger value="remarks">Remarks ({remarks.length})</TabsTrigger>
                             <TabsTrigger value="review">Review</TabsTrigger>
                             <TabsTrigger value="timeline">Activity Logs</TabsTrigger>
                         </TabsList>
@@ -422,7 +410,7 @@ const ShowInvoice = ({ invoice }) => {
 
                         {/* Files Tab */}
                         <TabsContent value="files">
-                            <AttachmentsCard files={files} />
+                            <AttachmentsCard files={attachments} />
                         </TabsContent>
 
                         {/* Check Requisitions Tab */}
@@ -498,186 +486,18 @@ const ShowInvoice = ({ invoice }) => {
 
                         {/* Remarks Tab */}
                         <TabsContent value="remarks">
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle className="flex items-center">
-                                        <AlertCircle className="mr-2 h-5 w-5 text-amber-600" />
-                                        Remarks ({invoice_remarks.length})
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    {invoice_remarks.length > 0 ? (
-                                        <div className="space-y-4">
-                                            {invoice_remarks.map((remark) => (
-                                                <div key={remark.id} className="rounded-lg border p-4">
-                                                    <div className="mb-2 flex items-start justify-between">
-                                                        <div className="flex items-center gap-2">
-                                                            <Badge variant="outline" className="text-xs">
-                                                                {remark.remark_type}
-                                                            </Badge>
-                                                            <Badge
-                                                                className={cn(
-                                                                    'text-xs',
-                                                                    remark.priority === 'high' && 'bg-red-100 text-red-800',
-                                                                    remark.priority === 'medium' && 'bg-yellow-100 text-yellow-800',
-                                                                    remark.priority === 'low' && 'bg-green-100 text-green-800',
-                                                                )}
-                                                            >
-                                                                {remark.priority}
-                                                            </Badge>
-                                                            {remark.is_internal && (
-                                                                <Badge variant="outline" className="bg-blue-50 text-xs text-blue-700">
-                                                                    Internal
-                                                                </Badge>
-                                                            )}
-                                                        </div>
-                                                        <div className="text-xs text-slate-500">{formatDate(remark.created_at)}</div>
-                                                    </div>
-                                                    <div className="mb-2 text-slate-700">{remark.remark_text}</div>
-                                                    <div className="text-xs text-slate-500">By {remark.created_by?.name || 'System'}</div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    ) : (
-                                        <div className="py-8 text-center text-slate-500">
-                                            <AlertCircle className="mx-auto mb-3 h-12 w-12 text-slate-300" />
-                                            <div>No remarks found</div>
-                                        </div>
-                                    )}
-                                </CardContent>
-                            </Card>
+                            <Remarks remarks={remarks} remarkableType={"Invoice"} remarkableId={invoice.id} />
                         </TabsContent>
 
                         {/* Review Tab */}
                         <TabsContent value="review">
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle className="flex items-center">
-                                        <ClipboardCheck className="mr-2 h-5 w-5 text-blue-600" />
-                                        Accounting Review
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    {canReviewInvoice && !isAlreadyReviewed ? (
-                                        // 🔹 Show Review Form
-                                        <form onSubmit={(e) => handleReviewSubmit(invoice.id, e)} className="space-y-6">
-                                            {/* Physical Files Confirmation */}
-                                            <div className="space-y-3">
-                                                <div className="flex items-center space-x-2">
-                                                    <Checkbox
-                                                        id="physicalFiles"
-                                                        checked={data.physicalFilesReceived}
-                                                        onCheckedChange={(checked) => setData('physicalFilesReceived', checked)}
-                                                    />
-                                                    <Label htmlFor="physicalFiles" className="text-sm font-medium">
-                                                        Physical files have been received and verified
-                                                    </Label>
-                                                </div>
-                                                {!data.physicalFilesReceived && (
-                                                    <div className="rounded border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-600">
-                                                        <AlertTriangle className="mr-2 inline h-4 w-4" />
-                                                        Please confirm physical file receipt before proceeding
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            {/* Approval Decision */}
-                                            {data.physicalFilesReceived && (
-                                                <div className="space-y-3">
-                                                    <Label className="text-sm font-medium">Approval Decision</Label>
-                                                    <Select value={data.approvalStatus} onValueChange={(value) => setData('approvalStatus', value)}>
-                                                        <SelectTrigger>
-                                                            <SelectValue placeholder="Select approval decision" />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            <SelectItem value="approved">
-                                                                <div className="flex items-center">
-                                                                    <CheckCircle className="mr-2 h-4 w-4 text-green-600" />
-                                                                    Approve Invoice
-                                                                </div>
-                                                            </SelectItem>
-                                                            <SelectItem value="rejected">
-                                                                <div className="flex items-center">
-                                                                    <XCircle className="mr-2 h-4 w-4 text-red-600" />
-                                                                    Reject Invoice
-                                                                </div>
-                                                            </SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
-                                                </div>
-                                            )}
-
-                                            {/* Remarks */}
-                                            {data.approvalStatus && (
-                                                <div className="space-y-2">
-                                                    <Label className="text-sm font-medium">
-                                                        Remarks
-                                                        {data.approvalStatus === 'rejected' && <span className="ml-1 text-red-500">*</span>}
-                                                        {data.approvalStatus === 'approved' && (
-                                                            <span className="ml-2 text-xs text-slate-500">(Optional)</span>
-                                                        )}
-                                                    </Label>
-                                                    <Textarea
-                                                        value={data.remarks}
-                                                        onChange={(e) => setData('remarks', e.target.value)}
-                                                        placeholder={
-                                                            data.approvalStatus === 'rejected'
-                                                                ? 'Please provide detailed reasons for rejection...'
-                                                                : 'Add any additional comments or notes...'
-                                                        }
-                                                        className="min-h-[100px]"
-                                                        required={data.approvalStatus === 'rejected'}
-                                                    />
-                                                </div>
-                                            )}
-
-                                            {/* Submit Button */}
-                                            <Button
-                                                type="submit"
-                                                className="w-full"
-                                                disabled={
-                                                    !data.physicalFilesReceived ||
-                                                    !data.approvalStatus ||
-                                                    (data.approvalStatus === 'rejected' && !data.remarks.trim()) ||
-                                                    processing
-                                                }
-                                            >
-                                                {processing ? (
-                                                    <>
-                                                        <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                                                        Submitting...
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <Send className="mr-2 h-4 w-4" />
-                                                        Submit Review
-                                                    </>
-                                                )}
-                                            </Button>
-                                        </form>
-                                    ) : isAlreadyReviewed ? (
-                                        // 🔹 Show Review History (all past reviews)
-                                        <div className="space-y-4 rounded-2xl border bg-green-50 p-6 text-center">
-                                            <div className="flex justify-center">
-                                                <CheckCircle className="h-10 w-10 text-green-600" />
-                                            </div>
-                                            <div className="text-lg font-semibold text-green-700">Invoice Already Approved</div>
-                                            <p className="text-sm text-green-800">
-                                                This invoice has been reviewed and approved. You may now proceed to the Check Requisition process.
-                                            </p>
-                                            <Button variant="outline" className="mt-2" onClick={() => setTab('requisitions')}>
-                                                Go to Check Requisition
-                                            </Button>
-                                        </div>
-                                    ) : (
-                                        // 🔹 Show No Permission
-                                        <div className="py-8 text-center text-slate-500">
-                                            <ClipboardCheck className="mx-auto mb-3 h-12 w-12 text-slate-300" />
-                                            <div>You don't have permission to review this invoice</div>
-                                        </div>
-                                    )}
-                                </CardContent>
-                            </Card>
+                            <InvoiceReview
+                                invoice={invoice}
+                                canReviewInvoice={canReviewInvoice}
+                                isAlreadyReviewed={isAlreadyReviewed}
+                                activityLogs={activity_logs}
+                                onTabChange={setTab}
+                            />
                         </TabsContent>
 
                         {/* Timeline Tab */}

@@ -7,7 +7,14 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger
+} from '@/components/ui/dialog';
 import { Label } from "@/components/ui/label";
 import { FileText, Plus, Clock, User, MessageSquare } from "lucide-react";
 
@@ -74,6 +81,8 @@ export default function Remarks({ remarkableType, remarkableId, remarks = [] }) 
                                     <MessageSquare className="h-5 w-5" />
                                     Add New Remark
                                 </DialogTitle>
+                                <DialogDescription></DialogDescription>
+
                             </DialogHeader>
 
                             <form onSubmit={handleSubmit} className="space-y-4 mt-4">

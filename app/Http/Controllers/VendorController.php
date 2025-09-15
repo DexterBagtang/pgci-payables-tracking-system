@@ -91,16 +91,6 @@ class VendorController extends Controller
             'created_by' => auth()->id(),
         ]);
 
-        // Create remark if notes provided
-        if ($request->filled('notes')) {
-            $vendor->remarks()->create([
-                'remark_type' => 'note',
-                'remark_text' => $request->notes,
-                'priority' => 'low',
-                'is_internal' => true,
-                'created_by' => auth()->id(),
-            ]);
-        }
 
         return back()->with('success', 'Vendor created successfully.');
     }
@@ -153,16 +143,6 @@ class VendorController extends Controller
             'is_active' => $request->is_active,
         ]);
 
-        // Handle notes as a new remark if provided
-        if ($request->filled('notes')) {
-            $vendor->remarks()->create([
-                'remark_type' => 'note',
-                'remark_text' => $request->notes,
-                'priority' => 'low',
-                'is_internal' => true,
-                'created_by' => auth()->id(),
-            ]);
-        }
 
         return back()->with('success', 'Vendor updated successfully.');
     }

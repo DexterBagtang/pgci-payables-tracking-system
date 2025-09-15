@@ -104,6 +104,19 @@ function AttachmentsCard({
         return file.file_purpose || file.purpose || file.description || null;
     };
 
+    function getBadgeColor(category) {
+        const colors = {
+            purchase_order: "bg-blue-100 text-blue-800",
+            invoice: "bg-green-100 text-green-800",
+            project: "bg-purple-100 text-purple-800",
+            vendor: "bg-amber-100 text-amber-800",
+            check_requisition: "bg-pink-100 text-pink-800",
+        }
+
+        return colors[category] || "bg-gray-100 text-gray-800"
+    }
+
+
     // Helper function to handle file download
     const handleDownload = (file) => {
         const url = getFileUrl(file);
@@ -151,7 +164,7 @@ function AttachmentsCard({
                             const fileName = getFileName(file);
                             const fileSize = getFileSize(file);
                             const fileType = getFileType(file);
-                            const fileCategory = getFileCategory(file);
+                            const fileCategory = getFileCategory(file).replace('_', ' ');
                             const filePurpose = getFilePurpose(file);
                             const fileIcon = getFileIcon(fileName, fileType);
 
@@ -268,7 +281,7 @@ function AttachmentsCard({
 
                                         {/* File category badge */}
                                         {fileCategory && (
-                                            <Badge variant="outline" className="text-xs">
+                                            <Badge variant="outline" className={"text-xs capitalize " + getBadgeColor(fileCategory)}>
                                                 {fileCategory}
                                             </Badge>
                                         )}

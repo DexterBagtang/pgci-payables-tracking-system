@@ -37,6 +37,7 @@ import { formatFileSize, getFileIcon } from '@/components/custom/helpers.jsx';
 import EditPOForm from '@/pages/purchase-orders/components/EditPOForm.jsx';
 import ActivityTimeline from '@/components/custom/ActivityTimeline.jsx';
 import AttachmentsCard from '@/components/custom/AttachmentsCard.jsx';
+import Remarks from '@/components/custom/Remarks.jsx';
 
 export default function ShowPO({ purchaseOrder, vendors, projects , backUrl}) {
     const [isEditing, setIsEditing] = useState(false);
@@ -44,7 +45,7 @@ export default function ShowPO({ purchaseOrder, vendors, projects , backUrl}) {
     const [showCreateReqDialog, setShowCreateReqDialog] = useState(false);
     const { user } = usePage().props.auth;
 
-    const {files,activity_logs,invoices} = purchaseOrder;
+    const {files,activity_logs,invoices,remarks} = purchaseOrder;
 
     // Helper function to format currency
     const formatCurrency = (amount) => {
@@ -192,11 +193,12 @@ export default function ShowPO({ purchaseOrder, vendors, projects , backUrl}) {
 
                     {/* Tabbed Content */}
                     <Tabs value={tab} onValueChange={setTab} className="space-y-4">
-                        <TabsList className="grid w-full grid-cols-1 md:grid-cols-5">
+                        <TabsList className="grid w-full grid-cols-1 md:grid-cols-6">
                             <TabsTrigger value="overview">Overview</TabsTrigger>
                             <TabsTrigger value="financial">Financial</TabsTrigger>
                             <TabsTrigger value="invoices">Invoices ({purchaseOrder.invoices?.length || 0})</TabsTrigger>
                             <TabsTrigger value="attachments">Attachments ({purchaseOrder.files?.length || 0})</TabsTrigger>
+                            <TabsTrigger value="remarks">Remarks ({remarks?.length || 0})</TabsTrigger>
                             <TabsTrigger value="timeline">Activity Logs</TabsTrigger>
                         </TabsList>
 
@@ -482,67 +484,55 @@ export default function ShowPO({ purchaseOrder, vendors, projects , backUrl}) {
                         </TabsContent>
 
                         {/* Invoices Tab */}
-                        <TabsContent value="invoices" className="space-y-6">
+                        <TabsContent value="invoices" className="space-y-4">
                             <Card>
-                                <CardHeader>
-                                    <CardTitle className="flex items-center">
-                                        <Receipt className="mr-2 h-5 w-5 text-blue-600" />
-                                        Invoices ({purchaseOrder.invoices?.length || 0})
+                                <CardHeader className="pb-4">
+                                    <CardTitle className="flex items-center text-base">
+                                        <Receipt className="mr-2 h-4 w-4 text-blue-600" />
+                                        Invoices ({invoices?.length || 0})
                                     </CardTitle>
                                 </CardHeader>
-                                <CardContent>
-                                    {purchaseOrder.invoices && purchaseOrder.invoices.length > 0 ? (
-                                        <div className="space-y-4">
+                                <CardContent className="pt-0">
+                                    {invoices && invoices.length > 0 ? (
+                                        <div className="space-y-3">
                                             {purchaseOrder.invoices.map((invoice) => (
-                                                <div key={invoice.id} className="rounded-lg border p-4 hover:shadow-md transition-shadow">
-                                                    <div className="flex items-start justify-between mb-3">
-                                                        <div className="flex flex-col">
-                                                            <div className="font-semibold text-slate-900">SI #{invoice.si_number}</div>
-                                                            <div className="text-sm text-slate-600">{formatDate(invoice.si_date)}</div>
+                                                <div key={invoice.id} className="rounded-md border border-slate-200 p-3 hover:bg-slate-50 transition-colors">
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="font-medium text-slate-900">SI #{invoice.si_number}</div>
+                                                            <div className="text-xs text-slate-500">{formatDate(invoice.si_date)}</div>
                                                         </div>
-                                                        <div className="text-right">
-                                                            <Badge className={cn('px-2 py-1 text-xs', getStatusColor(invoice.invoice_status))}>
-                                                                {invoice.invoice_status || 'Pending'}
-                                                            </Badge>
-                                                        </div>
+                                                        <Badge className={cn('px-2 py-0.5 text-xs', getStatusColor(invoice.invoice_status))}>
+                                                            {invoice.invoice_status || 'Pending'}
+                                                        </Badge>
                                                     </div>
-                                                    <div className="grid grid-cols-2 gap-4 text-sm mb-3">
-                                                        <div>
-                                                            <div className="text-slate-500">Amount</div>
-                                                            <div className="font-medium">{formatCurrency(invoice.invoice_amount)}</div>
-                                                        </div>
-                                                        <div>
-                                                            <div className="text-slate-500">Net Amount</div>
-                                                            <div className="font-medium">{formatCurrency(invoice.net_amount)}</div>
-                                                        </div>
-                                                    </div>
-                                                    <div className="flex items-center justify-between text-sm">
-                                                        <div className="flex gap-2">
+
+                                                    <div className="flex items-center justify-between text-xs text-slate-600">
+                                                        <div className="flex gap-4">
+                                                            <span>Amount: <strong className="text-slate-900">{formatCurrency(invoice.invoice_amount)}</strong></span>
+                                                            <span>Net: <strong className="text-slate-900">{formatCurrency(invoice.net_amount)}</strong></span>
                                                             {invoice.due_date && (
-                                                                <div>
-                                                                    <div className="text-slate-500">Due</div>
-                                                                    <div className="font-medium">{formatDate(invoice.due_date)}</div>
-                                                                </div>
+                                                                <span>Due: <strong className="text-slate-900">{formatDate(invoice.due_date)}</strong></span>
                                                             )}
                                                             {invoice.submitted_to && (
-                                                                <div>
-                                                                    <div className="text-slate-500">Submitted To</div>
-                                                                    <div className="font-medium">{invoice.submitted_to}</div>
-                                                                </div>
+                                                                <span>To: <strong className="text-slate-900">{invoice.submitted_to}</strong></span>
                                                             )}
                                                         </div>
-                                                        <Link href={`/invoices/${invoice.id}`} className="text-xs text-blue-600 hover:text-blue-800">
-                                                            View Details
+                                                        <Link
+                                                            href={`/invoices/${invoice.id}`}
+                                                            className="text-blue-600 hover:text-blue-800 font-medium"
+                                                        >
+                                                            View →
                                                         </Link>
                                                     </div>
                                                 </div>
                                             ))}
                                         </div>
                                     ) : (
-                                        <div className="py-8 text-center text-slate-500">
-                                            <Receipt className="mx-auto mb-3 h-12 w-12 text-slate-300" />
-                                            <div>No invoices linked to this PO</div>
-                                            <p className="text-sm mt-2">Invoices will appear here once they are created and associated.</p>
+                                        <div className="py-6 text-center text-slate-500">
+                                            <Receipt className="mx-auto mb-2 h-8 w-8 text-slate-300" />
+                                            <div className="text-sm font-medium">No invoices linked</div>
+                                            <p className="text-xs text-slate-400 mt-1">Invoices will appear once created and associated</p>
                                         </div>
                                     )}
                                 </CardContent>
@@ -552,6 +542,10 @@ export default function ShowPO({ purchaseOrder, vendors, projects , backUrl}) {
                         {/* Attachments Tab */}
                         <TabsContent value="attachments" className="space-y-6">
                             <AttachmentsCard files={files} />
+                        </TabsContent>
+
+                        <TabsContent value="remarks" className="space-y-6">
+                            <Remarks remarks={remarks} remarkableType={"PurchaseOrder"} remarkableId={purchaseOrder.id} />
                         </TabsContent>
 
                         {/* Audit Trail Tab */}
