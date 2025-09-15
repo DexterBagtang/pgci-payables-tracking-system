@@ -28,8 +28,8 @@ class DatabaseSeeder extends Seeder
         $this->call([
             VendorSeeder::class,
             ProjectSeeder::class,
-            PurchaseOrderSeeder::class,
-            InvoiceSeeder::class,
+//            PurchaseOrderSeeder::class,
+//            InvoiceSeeder::class,
         ]);
 
 
