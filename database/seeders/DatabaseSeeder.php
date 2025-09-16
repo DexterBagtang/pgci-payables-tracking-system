@@ -25,6 +25,14 @@ class DatabaseSeeder extends Seeder
             'password' => Hash::make('asdfasdf'),
         ]);
 
+        User::factory()->create([
+            'name' => 'Payables Admin',
+            'username' => 'payables.admin',
+            'email' => 'payables.admin@philcom.com',
+            'role' => 'admin',
+            'password' => Hash::make('payablesadmin2025'),
+        ]);
+
         $this->call([
             VendorSeeder::class,
             ProjectSeeder::class,
