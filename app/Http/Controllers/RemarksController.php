@@ -41,8 +41,14 @@ class RemarksController extends Controller
             'created_by'      => $request->user()->id,
         ])->load('user');
 
-        return back()->with('success', "Remark created successfully");
+//        return back()->with('success', "Remark created successfully");
+        return response()->json([
+            'success' => true,
+            'message' => 'Remark created successfully',
+            'remark' => $remark,
+        ], 201);
     }
+
 
 
     /**

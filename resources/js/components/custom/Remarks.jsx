@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { useForm } from "@inertiajs/react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -7,6 +6,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import axios from 'axios';
 import {
     Dialog,
     DialogContent,
@@ -17,28 +17,57 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from "@/components/ui/label";
 import { FileText, Plus, Clock, User, MessageSquare } from "lucide-react";
+import { toast } from 'sonner';
 
 export default function Remarks({ remarkableType, remarkableId, remarks = [] }) {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const [currentRemarks, setCurrentRemarks] = useState(remarks);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [remarkText, setRemarkText] = useState('');
+    const [error, setError] = useState('');
 
-    const form = useForm({
-        remarkable_type: `App\\Models\\${remarkableType}`,
-        remarkable_id: remarkableId,
-        remark_text: "",
-    });
-
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
 
-        if (!form.data.remark_text.trim()) return;
+        if (!remarkText.trim()) return;
 
-        form.post('/remarks', {
-            preserveScroll: true,
-            onSuccess: (page) => {
-                form.reset("remark_text");
+        setIsSubmitting(true);
+        setError('');
+
+        try {
+            // Get CSRF cookie first (might not be needed for web routes, but good practice)
+            // await axios.get('/sanctum/csrf-cookie');
+
+            // Use the API-specific route
+            const response = await axios.post('/remarks', {
+                remarkable_type: `App\\Models\\${remarkableType}`,
+                remarkable_id: remarkableId,
+                remark_text: remarkText,
+            });
+
+            if (response.data.success) {
+                // Add the new remark to the beginning of the list
+                setCurrentRemarks([response.data.remark, ...currentRemarks]);
+                setRemarkText('');
                 setIsDialogOpen(false);
-            },
-        });
+                toast.success(response.data.message);
+            }
+        } catch (error) {
+            console.error('Error creating remark:', error);
+
+            if (error.response?.status === 401) {
+                setError('Authentication failed. Please refresh the page and try again.');
+            } else if (error.response?.status === 419) {
+                setError('Session expired. Please refresh the page and try again.');
+            } else if (error.response?.data?.errors) {
+                const errors = Object.values(error.response.data.errors).flat();
+                setError(errors.join(', '));
+            } else {
+                setError(error.response?.data?.message || 'Failed to create remark. Please try again.');
+            }
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     const formatDateTime = (date) => {
@@ -52,6 +81,14 @@ export default function Remarks({ remarkableType, remarkableId, remarks = [] }) 
         });
     };
 
+    // Clear error when dialog opens/closes
+    useEffect(() => {
+        if (!isDialogOpen) {
+            setError('');
+            setRemarkText('');
+        }
+    }, [isDialogOpen]);
+
     return (
         <Card className="w-full">
             <CardHeader>
@@ -63,7 +100,7 @@ export default function Remarks({ remarkableType, remarkableId, remarks = [] }) 
                         <div>
                             <CardTitle className="text-lg">Remarks & Notes</CardTitle>
                             <p className="text-sm text-muted-foreground">
-                                {remarks.length} {remarks.length === 1 ? 'entry' : 'entries'}
+                                {currentRemarks.length} {currentRemarks.length === 1 ? 'entry' : 'entries'}
                             </p>
                         </div>
                     </div>
@@ -82,7 +119,6 @@ export default function Remarks({ remarkableType, remarkableId, remarks = [] }) 
                                     Add New Remark
                                 </DialogTitle>
                                 <DialogDescription></DialogDescription>
-
                             </DialogHeader>
 
                             <form onSubmit={handleSubmit} className="space-y-4 mt-4">
@@ -93,14 +129,14 @@ export default function Remarks({ remarkableType, remarkableId, remarks = [] }) 
                                     <Textarea
                                         id="remark-text"
                                         placeholder="Enter your professional remark or observation..."
-                                        value={form.data.remark_text}
-                                        onChange={(e) => form.setData("remark_text", e.target.value)}
+                                        value={remarkText}
+                                        onChange={(e) => setRemarkText(e.target.value)}
                                         className="min-h-[120px] resize-none"
-                                        disabled={form.processing}
+                                        disabled={isSubmitting}
                                     />
-                                    {form.errors.remark_text && (
+                                    {error && (
                                         <p className="text-sm text-red-600 bg-red-50 p-2 rounded border">
-                                            {form.errors.remark_text}
+                                            {error}
                                         </p>
                                     )}
                                 </div>
@@ -110,17 +146,17 @@ export default function Remarks({ remarkableType, remarkableId, remarks = [] }) 
                                         type="button"
                                         variant="outline"
                                         onClick={() => setIsDialogOpen(false)}
-                                        disabled={form.processing}
+                                        disabled={isSubmitting}
                                         className="flex-1"
                                     >
                                         Cancel
                                     </Button>
                                     <Button
                                         type="submit"
-                                        disabled={form.processing || !form.data.remark_text.trim()}
+                                        disabled={isSubmitting || !remarkText.trim()}
                                         className="flex-1"
                                     >
-                                        {form.processing ? "Saving..." : "Save Remark"}
+                                        {isSubmitting ? "Saving..." : "Save Remark"}
                                     </Button>
                                 </div>
                             </form>
@@ -130,7 +166,7 @@ export default function Remarks({ remarkableType, remarkableId, remarks = [] }) 
             </CardHeader>
 
             <CardContent>
-                {remarks.length === 0 ? (
+                {currentRemarks.length === 0 ? (
                     <div className="text-center py-8 bg-slate-50 rounded-lg border-2 border-dashed border-slate-200">
                         <div className="mx-auto w-12 h-12 bg-slate-200 rounded-lg flex items-center justify-center mb-3">
                             <FileText className="h-6 w-6 text-slate-500" />
@@ -142,7 +178,7 @@ export default function Remarks({ remarkableType, remarkableId, remarks = [] }) 
                     </div>
                 ) : (
                     <div className="space-y-4">
-                        {remarks.map((remark, index) => (
+                        {currentRemarks.map((remark, index) => (
                             <div key={remark.id} className="border rounded-lg p-4 bg-white hover:bg-slate-50 transition-colors">
                                 <div className="flex items-start justify-between mb-3">
                                     <div className="flex items-center gap-3">
