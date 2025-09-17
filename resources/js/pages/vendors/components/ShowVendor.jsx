@@ -20,33 +20,21 @@ import {
 } from '@/components/ui/tabs';
 
 import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
     Building2,
     Mail,
     Phone,
     MapPin,
     Calendar,
     User,
-    FileText,
     Plus,
     Edit,
-    MoreHorizontal,
     TrendingUp,
     Clock,
     DollarSign,
     ShoppingCart,
-    Upload,
-    MessageSquare,
     Eye,
     CheckCircle,
-    AlertCircle,
     XCircle,
-    Users,
     Package, ArrowLeft
 } from 'lucide-react';
 const EditVendorDialog = lazy(()=> import("@/pages/vendors/components/EditVendorDialog.jsx"));
@@ -58,9 +46,7 @@ const ShowVendor = ({vendor,backUrl}) => {
     const [activeTab, setActiveTab] = useState('overview');
     const [editDialogOpen, setEditDialogOpen] = useState(false);
 
-
     const {purchase_orders,remarks} = vendor;
-
 
     // Calculate completion rate
     const completionRate = purchase_orders.length > 0
@@ -78,16 +64,8 @@ const ShowVendor = ({vendor,backUrl}) => {
         projects_count: uniqueProjects
     };
 
-
     // Sample projects data
     const projects = getUniqueProjectsWithFormattedDate(purchase_orders);
-
-    // Sample files data
-    const files = [
-        { id: 1, name: "Contract_Agreement_2024.pdf", type: "pdf", category: "Contract", uploaded_at: "2024-01-20", size: "2.4 MB" },
-        { id: 2, name: "Tax_Certificate.pdf", type: "pdf", category: "Tax Document", uploaded_at: "2024-02-15", size: "1.1 MB" },
-        { id: 3, name: "Business_License.jpg", type: "image", category: "License", uploaded_at: "2024-01-25", size: "856 KB" }
-    ];
 
 
     const getStatusBadge = (status) => {
@@ -222,11 +200,10 @@ const ShowVendor = ({vendor,backUrl}) => {
 
                     {/* Tabs Section */}
                     <Tabs value={activeTab} onValueChange={setActiveTab}>
-                        <TabsList className="grid w-full grid-cols-5">
+                        <TabsList className="grid w-full grid-cols-4">
                             <TabsTrigger value="overview">Overview</TabsTrigger>
                             <TabsTrigger value="pos">Purchase Orders</TabsTrigger>
                             <TabsTrigger value="projects">Projects</TabsTrigger>
-                            <TabsTrigger value="files">Files</TabsTrigger>
                             <TabsTrigger value="remarks">Remarks <Badge variant='secondary' className="ml-2" >{remarks.length}</Badge></TabsTrigger>
                         </TabsList>
 
@@ -401,50 +378,6 @@ const ShowVendor = ({vendor,backUrl}) => {
                                                     <p className="text-sm font-medium">{project.po_count} POs</p>
                                                     <Button variant="ghost" size="sm">
                                                         <Eye className="h-4 w-4" />
-                                                    </Button>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        </TabsContent>
-
-                        <TabsContent value="files" className="mt-6">
-                            <Card>
-                                <CardHeader>
-                                    <div className="flex items-center justify-between">
-                                        <div>
-                                            <CardTitle>Files & Documents</CardTitle>
-                                            <CardDescription>Vendor-related documents and files</CardDescription>
-                                        </div>
-                                        <Button>
-                                            <Upload className="mr-2 h-4 w-4" />
-                                            Upload File
-                                        </Button>
-                                    </div>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="space-y-4">
-                                        {files.map((file) => (
-                                            <div key={file.id} className="flex items-center justify-between border rounded-lg p-4">
-                                                <div className="flex items-center gap-3">
-                                                    <FileText className="h-8 w-8 text-blue-600" />
-                                                    <div>
-                                                        <p className="font-medium">{file.name}</p>
-                                                        <div className="flex gap-2">
-                                                            <Badge variant="outline">{file.category}</Badge>
-                                                            <span className="text-sm text-gray-500">{file.size}</span>
-                                                        </div>
-                                                        <p className="text-xs text-gray-500">Uploaded {formatDate(file.uploaded_at)}</p>
-                                                    </div>
-                                                </div>
-                                                <div className="flex gap-2">
-                                                    <Button variant="ghost" size="sm">
-                                                        <Eye className="h-4 w-4" />
-                                                    </Button>
-                                                    <Button variant="ghost" size="sm">
-                                                        <MoreHorizontal className="h-4 w-4" />
                                                     </Button>
                                                 </div>
                                             </div>
