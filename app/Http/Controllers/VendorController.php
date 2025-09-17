@@ -100,8 +100,9 @@ class VendorController extends Controller
      */
     public function show(Vendor $vendor)
     {
-        $vendor->load('purchaseOrders','purchaseOrders.project',
-            'remarks.user'
+        $vendor->load(
+            'purchaseOrders.project',
+            'remarks.user:id,name'
         );
         return inertia('vendors/show', [
             'vendor' => $vendor,

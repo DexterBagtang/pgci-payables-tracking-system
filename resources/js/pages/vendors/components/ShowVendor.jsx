@@ -1,4 +1,4 @@
-import React, { lazy, Suspense, useState } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import {
     Card,
     CardContent,
@@ -109,20 +109,6 @@ const ShowVendor = ({vendor,backUrl}) => {
         );
     };
 
-    const getPriorityBadge = (priority) => {
-        const colors = {
-            High: "bg-red-100 text-red-800",
-            Medium: "bg-yellow-100 text-yellow-800",
-            Low: "bg-green-100 text-green-800"
-        };
-
-        return (
-            <Badge variant="outline" className={colors[priority]}>
-                {priority}
-            </Badge>
-        );
-    };
-
     const formatCurrency = (amount) => {
         return new Intl.NumberFormat('en-US', {
             style: 'currency',
@@ -170,27 +156,6 @@ const ShowVendor = ({vendor,backUrl}) => {
                                     <Edit className="mr-2 h-4 w-4" />
                                     Edit Vendor
                                 </Button>
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <Button variant="outline" size="icon">
-                                            <MoreHorizontal className="h-4 w-4" />
-                                        </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                        <DropdownMenuItem>
-                                            <Upload className="mr-2 h-4 w-4" />
-                                            Upload File
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem>
-                                            <MessageSquare className="mr-2 h-4 w-4" />
-                                            Add Remark
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem>
-                                            <Eye className="mr-2 h-4 w-4" />
-                                            View History
-                                        </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
                             </div>
                         </div>
                     </div>

@@ -1,43 +1,30 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox.js';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label.js';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select.js';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Textarea } from '@/components/ui/textarea.js';
 import { cn } from '@/lib/utils';
 import { Link, useForm, usePage } from '@inertiajs/react';
 import { format } from 'date-fns';
 import {
     ArrowLeft,
-    Building2,
     CheckCircle,
-    Clock,
     CreditCard,
-    Download,
     Edit,
-    FileIcon,
     FileText,
     Folder,
     Info,
-    Package,
     Receipt,
     Truck,
     User,
     Eye,
-    DollarSign,
+    DollarSign, Loader
 
 } from 'lucide-react';
-import { useState } from 'react';
-import { toast } from 'sonner';
-import { Input } from '@/components/ui/input.js';
-import { formatFileSize, getFileIcon } from '@/components/custom/helpers.jsx';
-import EditPOForm from '@/pages/purchase-orders/components/EditPOForm.jsx';
-import ActivityTimeline from '@/components/custom/ActivityTimeline.jsx';
-import AttachmentsCard from '@/components/custom/AttachmentsCard.jsx';
-import Remarks from '@/components/custom/Remarks.jsx';
+import { lazy, Suspense, useState } from 'react';
+const EditPOForm = lazy(() => import('@/pages/purchase-orders/components/EditPOForm.jsx'));
+const ActivityTimeline = lazy(()=> import('@/components/custom/ActivityTimeline.jsx'));
+const AttachmentsCard = lazy(()=> import('@/components/custom/AttachmentsCard.jsx')) ;
+const Remarks = lazy(()=> import('@/components/custom/Remarks.jsx'));
 
 export default function ShowPO({ purchaseOrder, vendors, projects , backUrl}) {
     const [isEditing, setIsEditing] = useState(false);
@@ -99,13 +86,20 @@ export default function ShowPO({ purchaseOrder, vendors, projects , backUrl}) {
         return (
             <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
                 <div className="container mx-auto max-w-7xl p-6">
-                    <EditPOForm
-                        purchaseOrder={purchaseOrder}
-                        vendors={vendors}
-                        projects={projects}
-                        onCancel={() => setIsEditing(false)}
-                        onSuccess={() => handleEditSubmit()}
-                    />
+                    <Suspense fallback={
+                        <div className="flex items-center justify-center min-h-screen">
+                            <Loader className="animate-spin" />
+                        </div>
+                    }>
+                        <EditPOForm
+                            purchaseOrder={purchaseOrder}
+                            vendors={vendors}
+                            projects={projects}
+                            onCancel={() => setIsEditing(false)}
+                            onSuccess={() => handleEditSubmit()}
+                        />
+                    </Suspense>
+
                 </div>
             </div>
         );
@@ -541,16 +535,22 @@ export default function ShowPO({ purchaseOrder, vendors, projects , backUrl}) {
 
                         {/* Attachments Tab */}
                         <TabsContent value="attachments" className="space-y-6">
-                            <AttachmentsCard files={files} />
+                            <Suspense fallback={<Loader className="animate-spin" />}>
+                                <AttachmentsCard files={files} />
+                            </Suspense>
                         </TabsContent>
 
                         <TabsContent value="remarks" className="space-y-6">
-                            <Remarks remarks={remarks} remarkableType={"PurchaseOrder"} remarkableId={purchaseOrder.id} />
+                            <Suspense fallback={<Loader className="animate-spin" />}>
+                                <Remarks remarks={remarks} remarkableType={"PurchaseOrder"} remarkableId={purchaseOrder.id} />
+                            </Suspense>
                         </TabsContent>
 
                         {/* Audit Trail Tab */}
                         <TabsContent value="timeline" className="space-y-6">
-                            <ActivityTimeline activity_logs={activity_logs} title={"Purchase Order Timeline"} entityType={"Purchase Order"} />
+                            <Suspense fallback={<Loader className="animate-spin" />}>
+                                <ActivityTimeline activity_logs={activity_logs} title={"Purchase Order Timeline"} entityType={"Purchase Order"} />
+                            </Suspense>
                         </TabsContent>
                     </Tabs>
                 </div>
