@@ -1,27 +1,25 @@
 import { Badge } from '@/components/ui/badge.js';
 import { Button } from '@/components/ui/button.js';
-import { Calendar } from '@/components/ui/calendar.js';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card.js';
 import { Checkbox } from '@/components/ui/checkbox.js';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command.js';
 import { Input } from '@/components/ui/input.js';
 import { Label } from '@/components/ui/label.js';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover.js';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select.js';
 import { Separator } from '@/components/ui/separator.js';
 import { Textarea } from '@/components/ui/textarea.js';
-import { cn } from '@/lib/utils.js';
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import { format } from 'date-fns';
-import { ArrowLeft, Calendar as CalendarIcon, Check, ChevronsUpDown, FileText, Save, Download, File } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { FileText, Save, Download, } from 'lucide-react';
+import { useState, useEffect, Suspense, lazy } from 'react';
 import { toast } from 'sonner';
 import { getFileIcon } from '@/components/custom/helpers.jsx';
 
+const PoDateSelection = lazy(()=> import('@/pages/purchase-orders/components/create/PoDateSelection.jsx'));
+const ExpectedDateSelectionButton = lazy(()=> import('@/pages/purchase-orders/components/create/ExpectedDateSelection.jsx'));
+const ProjectSelection = lazy(() => import('@/pages/purchase-orders/components/create/ProjectSelection.jsx'));
+const VendorSelection = lazy(()=> import('@/pages/purchase-orders/components/create/VendorSelection.jsx'));
+
 export default function EditPOForm({ purchaseOrder, vendors, projects, onCancel, onSuccess }) {
     const [isDraft, setIsDraft] = useState(purchaseOrder.po_status === 'draft');
-    const [projectOpen, setProjectOpen] = useState(false);
-    const [vendorOpen, setVendorOpen] = useState(false);
     const [files, setFiles] = useState([]);
 
     const { data, setData, post, processing, errors, reset } = useForm({
@@ -70,10 +68,7 @@ export default function EditPOForm({ purchaseOrder, vendors, projects, onCancel,
         });
     };
 
-    const selectedProject = projects.find((p) => p.id == data.project_id);
-    const selectedVendor = vendors.find((v) => v.id == data.vendor_id);
 
-    const paymentTermOptions = ['15 Days', '30 Days', '45 Days', '60 Days', 'COD', 'Advance Payment', 'Upon Delivery'];
 
     const formatCurrency = (amount) => {
         if (!amount) return '';
@@ -88,10 +83,6 @@ export default function EditPOForm({ purchaseOrder, vendors, projects, onCancel,
         setIsDraft(checked);
     }
 
-    // Custom function to handle PO Amount changes from line items
-    const setPoAmount = (amount) => {
-        setData('po_amount', amount);
-    };
 
     // Function to download existing files
     const downloadFile = (file) => {
@@ -147,33 +138,8 @@ export default function EditPOForm({ purchaseOrder, vendors, projects, onCancel,
                                         {errors.po_number && <p className="text-sm text-red-600">{errors.po_number}</p>}
                                     </div>
 
-                                    <div className="space-y-2">
-                                        <Label htmlFor="po_date">PO Date *</Label>
-                                        <Popover>
-                                            <PopoverTrigger asChild>
-                                                <Button
-                                                    variant="outline"
-                                                    className={cn(
-                                                        'w-full justify-start text-left font-normal',
-                                                        !data.po_date && 'text-muted-foreground',
-                                                    )}
-                                                >
-                                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                                    {data.po_date ? format(new Date(data.po_date), 'PPP') : 'Pick a date'}
-                                                </Button>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="p-0">
-                                                <Calendar
-                                                    className="w-full"
-                                                    mode="single"
-                                                    selected={data.po_date ? new Date(data.po_date) : undefined}
-                                                    onSelect={(date) => setData('po_date', date ? format(date, 'yyyy-MM-dd') : '')}
-                                                    captionLayout={'dropdown'}
-                                                />
-                                            </PopoverContent>
-                                        </Popover>
-                                        {errors.po_date && <p className="text-sm text-red-600">{errors.po_date}</p>}
-                                    </div>
+                                    {/*PO Date Selection*/}
+                                    <PoDateSelection data={data} setData={setData} errors={errors} />
 
                                     <div className="space-y-2">
                                         <Label htmlFor="po_amount">PO Amount *</Label>
@@ -235,119 +201,13 @@ export default function EditPOForm({ purchaseOrder, vendors, projects, onCancel,
 
                                 {/* Project & Vendor Selection */}
                                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="project_id">Project *</Label>
-                                        <Popover open={projectOpen} onOpenChange={setProjectOpen}>
-                                            <PopoverTrigger className="truncate" asChild>
-                                                <Button
-                                                    variant="outline"
-                                                    role="combobox"
-                                                    aria-expanded={projectOpen}
-                                                    className="w-full justify-between"
-                                                >
-                                                    {selectedProject ? selectedProject.project_title : 'Select project...'}
-                                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                                </Button>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="w-full p-0">
-                                                <Command>
-                                                    <CommandInput placeholder="Search projects..." />
-                                                    <CommandList>
-                                                        <CommandEmpty>No project found.</CommandEmpty>
-                                                        <CommandGroup>
-                                                            {projects.map((project) => (
-                                                                <CommandItem
-                                                                    key={project.id}
-                                                                    value={project.project_title.toString()}
-                                                                    onSelect={() => {
-                                                                        setData('project_id', project.id.toString());
-                                                                        setProjectOpen(false);
-                                                                    }}
-                                                                >
-                                                                    <Check
-                                                                        className={cn(
-                                                                            'mr-2 h-4 w-4',
-                                                                            data.project_id === project.id.toString() ? 'opacity-100' : 'opacity-0',
-                                                                        )}
-                                                                    />
-                                                                    <div className="flex flex-col">
-                                                                        <span className="font-medium">{project.project_title}</span>
-                                                                        <span className="text-xs text-muted-foreground">
-                                                                            CER: {project.cer_number || 'N/A'}
-                                                                        </span>
-                                                                    </div>
-                                                                </CommandItem>
-                                                            ))}
-                                                        </CommandGroup>
-                                                    </CommandList>
-                                                </Command>
-                                            </PopoverContent>
-                                        </Popover>
-                                        {errors.project_id && <p className="text-sm text-red-600">{errors.project_id}</p>}
-                                        {selectedProject && (
-                                            <div className="mt-2 rounded-md bg-muted p-2">
-                                                <p className="text-sm font-medium">{selectedProject.project_title}</p>
-                                                <p className="text-xs text-muted-foreground">CER: {selectedProject.cer_number}</p>
-                                            </div>
-                                        )}
-                                    </div>
+                                    <Suspense fallback={<div>Loading...</div>}>
+                                        <ProjectSelection projects={projects} data={data} setData={setData} errors={errors} />
+                                    </Suspense>
 
-                                    <div className="space-y-2">
-                                        <Label htmlFor="vendor_id">Vendor *</Label>
-                                        <Popover open={vendorOpen} onOpenChange={setVendorOpen}>
-                                            <PopoverTrigger asChild className="truncate">
-                                                <Button
-                                                    variant="outline"
-                                                    role="combobox"
-                                                    aria-expanded={vendorOpen}
-                                                    className="w-full justify-between"
-                                                >
-                                                    {selectedVendor ? selectedVendor.name : 'Select vendor...'}
-                                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                                </Button>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="w-full p-0">
-                                                <Command>
-                                                    <CommandInput placeholder="Search vendors..." />
-                                                    <CommandList>
-                                                        <CommandEmpty>No vendor found.</CommandEmpty>
-                                                        <CommandGroup>
-                                                            {vendors.map((vendor) => (
-                                                                <CommandItem
-                                                                    key={vendor.id}
-                                                                    value={vendor.name.toString()}
-                                                                    onSelect={() => {
-                                                                        setData('vendor_id', vendor.id.toString());
-                                                                        setVendorOpen(false);
-                                                                    }}
-                                                                >
-                                                                    <Check
-                                                                        className={cn(
-                                                                            'mr-2 h-4 w-4',
-                                                                            data.vendor_id === vendor.id.toString() ? 'opacity-100' : 'opacity-0',
-                                                                        )}
-                                                                    />
-                                                                    <div className="flex flex-col">
-                                                                        <span className="font-medium">{vendor.name}</span>
-                                                                        <span className="text-xs text-muted-foreground">
-                                                                            {vendor.category || 'General'}
-                                                                        </span>
-                                                                    </div>
-                                                                </CommandItem>
-                                                            ))}
-                                                        </CommandGroup>
-                                                    </CommandList>
-                                                </Command>
-                                            </PopoverContent>
-                                        </Popover>
-                                        {errors.vendor_id && <p className="text-sm text-red-600">{errors.vendor_id}</p>}
-                                        {selectedVendor && (
-                                            <div className="mt-2 rounded-md bg-muted p-2">
-                                                <p className="text-sm font-medium">{selectedVendor.name}</p>
-                                                <p className="text-xs text-muted-foreground">{selectedVendor.category}</p>
-                                            </div>
-                                        )}
-                                    </div>
+                                    <Suspense fallback={<div>Loading...</div>}>
+                                        <VendorSelection vendors={vendors} data={data} setData={setData} errors={errors} />
+                                    </Suspense>
                                 </div>
 
                                 {/* Financial & Timeline Information */}
@@ -364,35 +224,7 @@ export default function EditPOForm({ purchaseOrder, vendors, projects, onCancel,
                                         {errors.payment_term && <p className="text-sm text-red-600">{errors.payment_term}</p>}
                                     </div>
 
-                                    <div className="space-y-2">
-                                        <Label htmlFor="expected_delivery_date">Expected Delivery Date</Label>
-                                        <Popover>
-                                            <PopoverTrigger asChild>
-                                                <Button
-                                                    variant="outline"
-                                                    className={cn(
-                                                        'w-full justify-start text-left font-normal',
-                                                        !data.expected_delivery_date && 'text-muted-foreground',
-                                                    )}
-                                                >
-                                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                                    {data.expected_delivery_date
-                                                        ? format(new Date(data.expected_delivery_date), 'PPP')
-                                                        : 'Pick a date'}
-                                                </Button>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="p-2">
-                                                <Calendar
-                                                    className="w-full"
-                                                    mode="single"
-                                                    selected={data.expected_delivery_date ? new Date(data.expected_delivery_date) : undefined}
-                                                    onSelect={(date) => setData('expected_delivery_date', date ? format(date, 'yyyy-MM-dd') : '')}
-                                                    captionLayout="dropdown"
-                                                />
-                                            </PopoverContent>
-                                        </Popover>
-                                        {errors.expected_delivery_date && <p className="text-sm text-red-600">{errors.expected_delivery_date}</p>}
-                                    </div>
+                                    <ExpectedDateSelectionButton data={data} setData={setData} errors={errors} />
                                 </div>
 
                                 {/* Attachments Section */}
