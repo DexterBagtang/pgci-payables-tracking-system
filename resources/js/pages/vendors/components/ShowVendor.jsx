@@ -38,9 +38,9 @@ import {
 } from 'lucide-react';
 import {getUniqueProjectsWithFormattedDate} from "@/components/custom/helpers.jsx";
 import {Link} from "@inertiajs/react";
-const VendorShowProjects = lazy(()=> import('@/pages/vendors/components/ShowVendorProjects'));
+const ShowVendorProjects = lazy(()=> import('@/pages/vendors/components/ShowVendorProjects'));
 const EditVendorDialog = lazy(()=> import("@/pages/vendors/components/EditVendorDialog.jsx"));
-const VendorShowPO = lazy(()=> import('@/pages/vendors/components/ShowVendorPO'));
+const ShowVendorPO = lazy(()=> import('@/pages/vendors/components/ShowVendorPO'));
 const Remarks = lazy(() => import("@/components/custom/Remarks.jsx"));
 
 const ShowVendor = ({vendor,backUrl}) => {
@@ -305,14 +305,14 @@ const ShowVendor = ({vendor,backUrl}) => {
 
                         <TabsContent value="pos" className="mt-6">
                             <Suspense fallback={<Loader className="animate-spin" />}>
-                                <VendorShowPO purchase_orders={purchase_orders} />
+                                <ShowVendorPO purchase_orders={purchase_orders} />
                             </Suspense>
 
                         </TabsContent>
 
                         <TabsContent value="projects" className="mt-6">
                             <Suspense fallback={<Loader className="animate-spin" />}>
-                                <VendorShowProjects projects={projects} />
+                                <ShowVendorProjects projects={projects} />
                             </Suspense>
                         </TabsContent>
 

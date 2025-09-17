@@ -17,7 +17,7 @@ interface VendorsProp {
     backUrl: string;
 }
 
-export default function VendorShow({vendor,backUrl}: VendorsProp) {
+export default function VendorShowIndex({vendor,backUrl}: VendorsProp) {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Vendors" />
