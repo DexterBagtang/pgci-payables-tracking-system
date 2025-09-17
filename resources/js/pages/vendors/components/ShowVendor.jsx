@@ -39,9 +39,9 @@ import {
 } from 'lucide-react';
 import {getUniqueProjectsWithFormattedDate} from "@/components/custom/helpers.jsx";
 import {Link} from "@inertiajs/react";
-const VendorShowProjects = lazy(()=> import('@/pages/vendors/components/VendorShowProjects.jsx'));
+const VendorShowProjects = lazy(()=> import('@/pages/vendors/components/ShowVendorProjects'));
 const EditVendorDialog = lazy(()=> import("@/pages/vendors/components/EditVendorDialog.jsx"));
-const VendorShowPO = lazy(()=> import('@/pages/vendors/components/VendorShowPO.jsx'));
+const VendorShowPO = lazy(()=> import('@/pages/vendors/components/ShowVendorPO'));
 const Remarks = lazy(() => import("@/components/custom/Remarks.jsx"));
 
 const ShowVendor = ({vendor,backUrl}) => {

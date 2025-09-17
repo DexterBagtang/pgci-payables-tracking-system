@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button.js';
 import { Eye } from 'lucide-react';
 import { formatDate } from 'date-fns';
 
-export default function VendorShowProjects({projects}){
+export default function ShowVendorProjects({projects}){
     return (
         <Card>
             <CardHeader>
