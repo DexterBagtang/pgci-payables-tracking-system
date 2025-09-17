@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { router, usePage } from '@inertiajs/react';
 
 import {
@@ -27,8 +27,8 @@ import {
     Phone, Calendar
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import AddVendorDialog from '@/pages/vendors/components/AddVendorDialog.jsx';
-import EditVendorDialog from '@/pages/vendors/components/EditVendorDialog.jsx';
+const AddVendorDialog = lazy(() => import('@/pages/vendors/components/AddVendorDialog.jsx'));
+const EditVendorDialog = lazy(() => import('@/pages/vendors/components/EditVendorDialog.jsx'));
 import PaginationServerSide from '@/components/custom/Pagination.jsx';
 
 export default function VendorsTable({ vendors, filters = {} }) {
@@ -115,18 +115,21 @@ export default function VendorsTable({ vendors, filters = {} }) {
                             Vendors Management
                         </CardTitle>
 
-                        <AddVendorDialog
-                            trigger={
-                                <Button className="gap-2">
-                                    <Plus className="h-4 w-4" />
-                                    Add Vendor
-                                </Button>
-                            }
-                            onSuccess={() => {
-                                // Optional: Add any additional logic after successful vendor creation
-                                console.log('Vendor added successfully!');
-                            }}
-                        />
+                        <Suspense fallback={<Button className="gap-2" disabled><Plus className="h-4 w-4" />Add Vendor</Button>}>
+                            <AddVendorDialog
+                                trigger={
+                                    <Button className="gap-2">
+                                        <Plus className="h-4 w-4" />
+                                        Add Vendor
+                                    </Button>
+                                }
+                                onSuccess={() => {
+                                    // Optional: Add any additional logic after successful vendor creation
+                                    console.log('Vendor added successfully!');
+                                }}
+                            />
+                        </Suspense>
+
                     </div>
                 </CardHeader>
                 <CardContent>
@@ -230,12 +233,14 @@ export default function VendorsTable({ vendors, filters = {} }) {
 
             {/* Single Edit Dialog Instance */}
             {selectedVendor && (
-                <EditVendorDialog
-                    vendor={selectedVendor}
-                    isOpen={editDialogOpen}
-                    onOpenChange={setEditDialogOpen}
-                    onSuccess={handleEditSuccess}
-                />
+                <Suspense fallback={null}>
+                    <EditVendorDialog
+                        vendor={selectedVendor}
+                        isOpen={editDialogOpen}
+                        onOpenChange={setEditDialogOpen}
+                        onSuccess={handleEditSuccess}
+                    />
+                </Suspense>
             )}
         </>
     );

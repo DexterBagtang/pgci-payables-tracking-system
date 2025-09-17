@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { lazy, Suspense, useState } from 'react';
 import {
     Card,
     CardContent,
@@ -49,7 +49,7 @@ import {
     Users,
     Package, ArrowLeft
 } from 'lucide-react';
-import EditVendorDialog from "@/pages/vendors/components/EditVendorDialog.jsx";
+const EditVendorDialog = lazy(()=> import("@/pages/vendors/components/EditVendorDialog.jsx"));
 import {getUniqueProjectsWithFormattedDate} from "@/components/custom/helpers.jsx";
 import {Link} from "@inertiajs/react";
 import Remarks from "@/components/custom/Remarks.jsx";
@@ -495,12 +495,14 @@ const ShowVendor = ({vendor,backUrl}) => {
                     </Tabs>
                 </div>
             </div>
-            <EditVendorDialog
-                vendor={vendor}
-                isOpen={editDialogOpen}
-                onOpenChange={setEditDialogOpen}
-                onSuccess={()=>{}}
-            />
+            <Suspense fallback={null}>
+                <EditVendorDialog
+                    vendor={vendor}
+                    isOpen={editDialogOpen}
+                    onOpenChange={setEditDialogOpen}
+                    onSuccess={()=>{}}
+                />
+            </Suspense>
         </>
     );
 };

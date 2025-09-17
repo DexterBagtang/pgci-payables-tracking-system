@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { router } from '@inertiajs/react';
 import {
     Table,
@@ -33,8 +33,10 @@ import {
     Building
 } from "lucide-react";
 import PaginationServerSide from '@/components/custom/Pagination.jsx';
-import AddProjectDialog from '@/pages/projects/components/AddProjectDialog.jsx';
-import EditProjectDialog from '@/pages/projects/components/EditProjectDialog.jsx';
+
+// Lazy load the heavy dialog components
+const AddProjectDialog = lazy(() => import('@/pages/projects/components/AddProjectDialog.jsx'));
+const EditProjectDialog = lazy(() => import('@/pages/projects/components/EditProjectDialog.jsx'));
 
 export default function ProjectsTable({ projects, filters = {} }) {
     const [searchTerm, setSearchTerm] = useState(filters.search || '');
@@ -44,7 +46,6 @@ export default function ProjectsTable({ projects, filters = {} }) {
     const [sortDirection, setSortDirection] = useState(filters.sort_direction || 'asc');
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
     const [selectedProject, setSelectedProject] = useState(null);
-
 
     // Debounced search
     useEffect(() => {
@@ -129,14 +130,16 @@ export default function ProjectsTable({ projects, filters = {} }) {
                             Projects Management
                         </CardTitle>
 
-                        <AddProjectDialog
-                            trigger={
-                                <Button className="gap-2">
-                                    <Plus className="h-4 w-4" />
-                                    Add Project
-                                </Button>
-                            }
-                        />
+                        <Suspense fallback={<Button className="gap-2" disabled><Plus className="h-4 w-4" />Add Project</Button>}>
+                            <AddProjectDialog
+                                trigger={
+                                    <Button className="gap-2">
+                                        <Plus className="h-4 w-4" />
+                                        Add Project
+                                    </Button>
+                                }
+                            />
+                        </Suspense>
                     </div>
                 </CardHeader>
                 <CardContent>
@@ -163,19 +166,6 @@ export default function ProjectsTable({ projects, filters = {} }) {
                                     <SelectItem value="philcom_project">PhilCom Project</SelectItem>
                                 </SelectContent>
                             </Select>
-
-                            {/*<Select value={projectStatus} onValueChange={handleStatusChange}>*/}
-                            {/*    <SelectTrigger className="w-full sm:w-[200px]">*/}
-                            {/*        <SelectValue placeholder="All Statuses" />*/}
-                            {/*    </SelectTrigger>*/}
-                            {/*    <SelectContent>*/}
-                            {/*        <SelectItem value="all">All Statuses</SelectItem>*/}
-                            {/*        <SelectItem value="active">Active</SelectItem>*/}
-                            {/*        <SelectItem value="on_hold">On Hold</SelectItem>*/}
-                            {/*        <SelectItem value="completed">Completed</SelectItem>*/}
-                            {/*        <SelectItem value="cancelled">Cancelled</SelectItem>*/}
-                            {/*    </SelectContent>*/}
-                            {/*</Select>*/}
 
                             {hasActiveFilters && (
                                 <Button variant="outline" onClick={clearFilters}>
@@ -254,21 +244,23 @@ export default function ProjectsTable({ projects, filters = {} }) {
                     <PaginationServerSide items={projects} onChange={handleFilterChange} />
                 </CardContent>
             </Card>
-            {selectedProject &&
-                <EditProjectDialog
-                    key={selectedProject.id}
-                    open={isEditDialogOpen}
-                    setOpen={setIsEditDialogOpen}
-                    project={selectedProject}
-                />
-            }
 
+            {/* Lazy-loaded Edit Dialog */}
+            {selectedProject && (
+                <Suspense fallback={null}>
+                    <EditProjectDialog
+                        key={selectedProject.id}
+                        open={isEditDialogOpen}
+                        setOpen={setIsEditDialogOpen}
+                        project={selectedProject}
+                    />
+                </Suspense>
+            )}
         </>
-
     );
 }
 
-function ProjectRow({ project,onEdit }) {
+function ProjectRow({ project, onEdit }) {
     const formatDate = (dateString) => {
         return new Date(dateString).toLocaleDateString('en-US', {
             year: 'numeric',
@@ -288,20 +280,6 @@ function ProjectRow({ project,onEdit }) {
         }).format(amount || 0);
     };
 
-    const getStatusColor = (status) => {
-        const colors = {
-            'active': 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900 dark:text-green-300 dark:border-green-700',
-            'on_hold': 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900 dark:text-yellow-300 dark:border-yellow-700',
-            'completed': 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900 dark:text-blue-300 dark:border-blue-700',
-            'cancelled': 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900 dark:text-red-300 dark:border-red-700',
-        };
-        return colors[status] || 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-900 dark:text-gray-300 dark:border-gray-700';
-    };
-
-    const getStatusVariant = (status) => {
-        return status === 'active' ? 'default' : 'outline';
-    };
-
     const getTypeColor = (type) => {
         const colors = {
             'sm_project': 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900 dark:text-blue-300 dark:border-blue-700',
@@ -309,7 +287,6 @@ function ProjectRow({ project,onEdit }) {
         };
         return colors[type] || 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-900 dark:text-gray-300 dark:border-gray-700';
     };
-
 
     return (
         <TableRow className="group transition-all hover:bg-muted/30 border-b border-gray-100 dark:border-gray-800">
@@ -365,25 +342,6 @@ function ProjectRow({ project,onEdit }) {
                 </div>
             </TableCell>
 
-            {/* Status */}
-            {/*<TableCell className="px-3 py-4">*/}
-            {/*    {project.project_status ? (*/}
-            {/*        <Badge*/}
-            {/*            variant={getStatusVariant(project.project_status)}*/}
-            {/*            className={`rounded-full border ${getStatusColor(project.project_status)} py-1 px-2.5 text-xs font-medium flex items-center w-fit`}*/}
-            {/*        >*/}
-            {/*            <div className={`h-2 w-2 rounded-full mr-1.5 ${*/}
-            {/*                project.project_status === 'active' ? 'bg-green-500' :*/}
-            {/*                    project.project_status === 'completed' ? 'bg-blue-500' :*/}
-            {/*                        project.project_status === 'on_hold' ? 'bg-yellow-500' : 'bg-red-500'*/}
-            {/*            }`}></div>*/}
-            {/*            {project.project_status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}*/}
-            {/*        </Badge>*/}
-            {/*    ) : (*/}
-            {/*        <span className="text-muted-foreground text-sm">---</span>*/}
-            {/*    )}*/}
-            {/*</TableCell>*/}
-
             {/* Date Created */}
             <TableCell className="px-3 py-4 text-xs text-muted-foreground">
                 <div className="flex items-center">
@@ -395,7 +353,7 @@ function ProjectRow({ project,onEdit }) {
             {/* Actions */}
             <TableCell className="px-3 py-4">
                 <Button
-                    onClick={()=>onEdit(project)}
+                    onClick={() => onEdit(project)}
                     variant="ghost"
                     size="sm"
                     className="rounded-full h-8 w-8 p-0"
