@@ -8,7 +8,7 @@ import ShowPO from '@/pages/purchase-orders/components/ShowPO';
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Show Purchase Order',
-        href: 'edit',
+        href: 'show',
     },
 ];
 

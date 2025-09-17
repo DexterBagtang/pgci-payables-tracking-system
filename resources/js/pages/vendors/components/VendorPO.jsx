@@ -3,7 +3,7 @@ import { Plus, ShoppingCart } from 'lucide-react';
 import { Button } from '@/components/ui/button.js';
 import { formatDate } from 'date-fns';
 
-export default function ShowVendorPO({purchase_orders}) {
+export default function VendorPO({purchase_orders}) {
     return (
         <Card>
             <CardHeader>
