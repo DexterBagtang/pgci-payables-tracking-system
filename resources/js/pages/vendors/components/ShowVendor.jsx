@@ -52,7 +52,7 @@ import {
 const EditVendorDialog = lazy(()=> import("@/pages/vendors/components/EditVendorDialog.jsx"));
 import {getUniqueProjectsWithFormattedDate} from "@/components/custom/helpers.jsx";
 import {Link} from "@inertiajs/react";
-import Remarks from "@/components/custom/Remarks.jsx";
+const Remarks = lazy(() => import("@/components/custom/Remarks.jsx"));
 
 const ShowVendor = ({vendor,backUrl}) => {
     const [activeTab, setActiveTab] = useState('overview');
@@ -490,7 +490,9 @@ const ShowVendor = ({vendor,backUrl}) => {
                         </TabsContent>
 
                         <TabsContent value="remarks" className="mt-6">
-                            <Remarks remarkableType="Vendor" remarkableId={vendor.id} remarks={remarks} />
+                            <Suspense fallback={null}>
+                                <Remarks remarkableType="Vendor" remarkableId={vendor.id} remarks={remarks} />
+                            </Suspense>
                         </TabsContent>
                     </Tabs>
                 </div>
