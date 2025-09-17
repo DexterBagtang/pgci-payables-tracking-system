@@ -1,20 +1,19 @@
 import { formatCurrency } from '@/components/custom/helpers.jsx';
 import { Badge } from '@/components/ui/badge.js';
 import { Button } from '@/components/ui/button.js';
-import { Calendar } from '@/components/ui/calendar.js';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card.js';
 import { Checkbox } from '@/components/ui/checkbox.js';
 import { Input } from '@/components/ui/input.js';
 import { Label } from '@/components/ui/label.js';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover.js';
 import { Separator } from '@/components/ui/separator.js';
 import { Textarea } from '@/components/ui/textarea.js';
-import { cn } from '@/lib/utils.js';
 import { Head, Link, useForm } from '@inertiajs/react';
-import { format } from 'date-fns';
-import { ArrowLeft, Calendar as CalendarIcon, FileText, Save } from 'lucide-react';
+import { ArrowLeft, FileText, Save } from 'lucide-react';
 import { lazy, Suspense, useState } from 'react';
 import { toast } from 'sonner';
+
+const PoDateSelection = lazy(()=> import('@/pages/purchase-orders/components/create/PoDateSelection.jsx'));
+const ExpectedDateSelectionButton = lazy(()=> import('@/pages/purchase-orders/components/create/ExpectedDateSelection.jsx'));
 
 const ProjectSelection = lazy(() => import('@/pages/purchase-orders/components/create/ProjectSelection.jsx'));
 const VendorSelection = lazy(()=> import('@/pages/purchase-orders/components/create/VendorSelection.jsx'));
@@ -108,33 +107,7 @@ export default function CreatePOForm({ vendors, projects }) {
                                         {errors.po_number && <p className="text-sm text-red-600">{errors.po_number}</p>}
                                     </div>
 
-                                    <div className="space-y-2">
-                                        <Label htmlFor="po_date">PO Date *</Label>
-                                        <Popover>
-                                            <PopoverTrigger asChild>
-                                                <Button
-                                                    variant="outline"
-                                                    className={cn(
-                                                        'w-full justify-start text-left font-normal',
-                                                        !data.po_date && 'text-muted-foreground',
-                                                    )}
-                                                >
-                                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                                    {data.po_date ? format(new Date(data.po_date), 'PPP') : 'Pick a date'}
-                                                </Button>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="p-0">
-                                                <Calendar
-                                                    className="w-full"
-                                                    mode="single"
-                                                    selected={data.po_date ? new Date(data.po_date) : undefined}
-                                                    onSelect={(date) => setData('po_date', date ? format(date, 'yyyy-MM-dd') : '')}
-                                                    captionLayout={'dropdown'}
-                                                />
-                                            </PopoverContent>
-                                        </Popover>
-                                        {errors.po_date && <p className="text-sm text-red-600">{errors.po_date}</p>}
-                                    </div>
+                                    <PoDateSelection data={data} setData={setData} errors={errors} />
 
                                     <div className="space-y-2">
                                         <Label htmlFor="po_amount">PO Amount *</Label>
@@ -216,35 +189,7 @@ export default function CreatePOForm({ vendors, projects }) {
                                         {errors.payment_term && <p className="text-sm text-red-600">{errors.payment_term}</p>}
                                     </div>
 
-                                    <div className="space-y-2">
-                                        <Label htmlFor="expected_delivery_date">Expected Delivery Date</Label>
-                                        <Popover>
-                                            <PopoverTrigger asChild>
-                                                <Button
-                                                    variant="outline"
-                                                    className={cn(
-                                                        'w-full justify-start text-left font-normal',
-                                                        !data.expected_delivery_date && 'text-muted-foreground',
-                                                    )}
-                                                >
-                                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                                    {data.expected_delivery_date
-                                                        ? format(new Date(data.expected_delivery_date), 'PPP')
-                                                        : 'Pick a date'}
-                                                </Button>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="p-2">
-                                                <Calendar
-                                                    className="w-full"
-                                                    mode="single"
-                                                    selected={data.expected_delivery_date ? new Date(data.expected_delivery_date) : undefined}
-                                                    onSelect={(date) => setData('expected_delivery_date', date ? format(date, 'yyyy-MM-dd') : '')}
-                                                    captionLayout="dropdown"
-                                                />
-                                            </PopoverContent>
-                                        </Popover>
-                                        {errors.expected_delivery_date && <p className="text-sm text-red-600">{errors.expected_delivery_date}</p>}
-                                    </div>
+                                    <ExpectedDateSelectionButton data={data} setData={setData} errors={errors} />
                                 </div>
 
                                 {/* Bottom Section: Save as Draft Checkbox */}
