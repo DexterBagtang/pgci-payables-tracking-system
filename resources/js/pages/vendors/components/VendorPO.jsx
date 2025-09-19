@@ -1,6 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card.js';
 import { Plus, ShoppingCart } from 'lucide-react';
 import { Button } from '@/components/ui/button.js';
+import {Badge} from '@/components/ui/badge.js';
 import { formatDate } from 'date-fns';
 
 export default function VendorPO({purchase_orders}) {
@@ -21,10 +22,6 @@ export default function VendorPO({purchase_orders}) {
                         </div>
                         <h3 className="text-lg font-medium text-gray-900 mb-2">No Purchase Orders</h3>
                         <p className="text-gray-500 mb-6">This vendor doesn't have any purchase orders yet.</p>
-                        <Button>
-                            <Plus className="mr-2 h-4 w-4" />
-                            Create First PO
-                        </Button>
                     </div>
                 ) : (
                     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -44,13 +41,9 @@ export default function VendorPO({purchase_orders}) {
                                         <span className="font-medium">PO Date:</span>
                                         <span className="text-gray-600">{formatDate(po.po_date,'PP')}</span>
                                     </div>
-                                    <div className="flex justify-between">
-                                        <span className="font-medium">Expected Delivery:</span>
-                                        <span className="text-gray-600">{formatDate(po.expected_delivery,'PP')}</span>
-                                    </div>
                                     <div className="flex justify-between items-center pt-2 border-t">
                                         <span className="font-medium">{(po.po_amount)}</span>
-                                        {(po.po_status)}
+                                        <Badge>{po.po_status}</Badge>
                                     </div>
                                 </CardContent>
                             </Card>

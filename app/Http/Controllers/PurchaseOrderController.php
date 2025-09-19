@@ -185,9 +185,9 @@ class PurchaseOrderController extends Controller
             'project:id,project_title,cer_number,total_project_cost,total_contract_cost,project_status,description,project_type,smpo_number,philcom_category',
             'vendor:id,name,category',
             'creator:id,name',
-            'files',
+            'files.uploader:id,name',
             'invoices',
-            'activityLogs',
+            'activityLogs.user',
             'remarks.user'
         ]);
 

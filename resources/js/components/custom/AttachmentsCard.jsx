@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/dialog.js';
 import { Button } from '@/components/ui/button.js';
 import { Badge } from '@/components/ui/badge.js';
+import { format } from 'date-fns';
 
 
 function AttachmentsCard({
@@ -289,7 +290,7 @@ function AttachmentsCard({
                                         {/* Upload date if available */}
                                         {(file.created_at || file.uploaded_at || file.date_uploaded) && (
                                             <div className="text-xs text-slate-400">
-                                                Uploaded {new Date(file.created_at || file.uploaded_at || file.date_uploaded).toLocaleDateString()}
+                                                Uploaded by {file.uploader?.name} {format(file.created_at,'PPp')}
                                             </div>
                                         )}
                                     </div>

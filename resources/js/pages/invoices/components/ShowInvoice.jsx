@@ -4,7 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox.js';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label.js';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select.js';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea.js';
 import { cn } from '@/lib/utils';
@@ -62,7 +61,6 @@ const ShowInvoice = ({ invoice }) => {
     const po_files = po?.files;
 
     const attachments = [...po_files,...files];
-    console.log(attachments);
 
     const { user } = usePage().props.auth;
 
@@ -158,9 +156,6 @@ const ShowInvoice = ({ invoice }) => {
                             <div className="text-center">
                                 <div className="mb-1 text-3xl font-bold text-green-600">{formatCurrency(invoice.invoice_amount)}</div>
                                 <div className="text-sm text-slate-500">Invoice Amount</div>
-                                {invoice.net_amount !== invoice.invoice_amount && (
-                                    <div className="mt-1 text-xs text-slate-400">Net: {formatCurrency(invoice.net_amount)}</div>
-                                )}
                             </div>
 
                             {/* Vendor */}
@@ -171,11 +166,11 @@ const ShowInvoice = ({ invoice }) => {
                                 </div>
                                 <div className="truncate font-semibold text-slate-900">{vendor?.name || 'No Vendor'}</div>
                                 <div className="truncate text-sm text-slate-600">{vendor?.category || ''}</div>
-                                {vendor && (
-                                    <Link href={`/vendors/${vendor.id}`} className="text-xs text-blue-600 hover:text-blue-800">
-                                        View Details
-                                    </Link>
-                                )}
+                                {/*{vendor && (*/}
+                                {/*    <Link href={`/vendors/${vendor.id}`} className="text-xs text-blue-600 hover:text-blue-800">*/}
+                                {/*        View Details*/}
+                                {/*    </Link>*/}
+                                {/*)}*/}
                             </div>
 
                             {/* Project */}
@@ -184,13 +179,13 @@ const ShowInvoice = ({ invoice }) => {
                                     <Folder className="mr-2 h-4 w-4 text-purple-600" />
                                     <span className="text-sm font-medium text-slate-700">Project</span>
                                 </div>
-                                <div className="truncate font-semibold text-slate-900">{project?.project_title || 'No Project'}</div>
+                                <div className="text-wrap font-semibold text-slate-900">{project?.project_title || 'No Project'}</div>
                                 <div className="font-mono text-sm text-slate-600">CER: {project?.cer_number || 'N/A'}</div>
-                                {project && (
-                                    <Link href={`/projects/${project.id}`} className="text-xs text-blue-600 hover:text-blue-800">
-                                        View Details
-                                    </Link>
-                                )}
+                                {/*{project && (*/}
+                                {/*    <Link href={`/projects/${project.id}`} className="text-xs text-blue-600 hover:text-blue-800">*/}
+                                {/*        View Details*/}
+                                {/*    </Link>*/}
+                                {/*)}*/}
                             </div>
 
                             {/* Purchase Order */}
@@ -201,13 +196,13 @@ const ShowInvoice = ({ invoice }) => {
                                 </div>
                                 <div className="font-semibold text-slate-900">{po?.po_number || 'No PO'}</div>
                                 <div className="text-sm text-slate-600">
-                                    {formatCurrency(po?.po_amount)} • {po?.po_status}
+                                    {formatCurrency(po?.po_amount)} • <Badge variant="outline">{po?.po_status}</Badge>
                                 </div>
-                                {po && (
-                                    <Link href={`/purchase-orders/${po.id}`} className="text-xs text-blue-600 hover:text-blue-800">
-                                        View Details
-                                    </Link>
-                                )}
+                                {/*{po && (*/}
+                                {/*    <Link href={`/purchase-orders/${po.id}`} className="text-xs text-blue-600 hover:text-blue-800">*/}
+                                {/*        View Details*/}
+                                {/*    </Link>*/}
+                                {/*)}*/}
                             </div>
                         </div>
                     </div>
