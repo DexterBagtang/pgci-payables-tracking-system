@@ -36,7 +36,7 @@ const mediaQuery = () => {
 
 const handleSystemThemeChange = () => {
     const currentAppearance = localStorage.getItem('appearance') as Appearance;
-    applyTheme(currentAppearance || 'system');
+    applyTheme(currentAppearance || 'light');
 };
 
 export function initializeTheme() {
@@ -65,7 +65,7 @@ export function useAppearance() {
 
     useEffect(() => {
         const savedAppearance = localStorage.getItem('appearance') as Appearance | null;
-        updateAppearance(savedAppearance || 'system');
+        updateAppearance(savedAppearance || 'light');
 
         return () => mediaQuery()?.removeEventListener('change', handleSystemThemeChange);
     }, [updateAppearance]);
