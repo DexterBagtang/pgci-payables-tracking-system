@@ -29,6 +29,7 @@ export default function AddVendorDialog({ trigger, onSuccess }) {
 
     const initialValues = {
         name: '',
+        contact_person: '',
         email: '',
         phone: '',
         address: '',
@@ -109,7 +110,7 @@ export default function AddVendorDialog({ trigger, onSuccess }) {
                             <Input
                                 id="name"
                                 value={data.name}
-                                onChange={(e) => setData('name', e.target.value)}
+                                onChange={(e) => setData('name', e.target.value.toUpperCase())}
                                 placeholder="Enter vendor name"
                                 className={errors.name ? 'border-destructive' : ''}
                                 disabled={processing}
@@ -154,6 +155,18 @@ export default function AddVendorDialog({ trigger, onSuccess }) {
                     {/* Optional Fields */}
                     {showOptionalFields && (
                         <div className="space-y-4 pt-2 border-t">
+                            <div className="space-y-2">
+                                <Label htmlFor="name">Contact Person Name</Label>
+                                <Input
+                                    id="contact_person"
+                                    value={data.contact_person}
+                                    onChange={(e) => setData('contact_person', e.target.value)}
+                                    placeholder="Enter contact person"
+                                    className={errors.contact_person ? 'border-destructive' : ''}
+                                    disabled={processing}
+                                />
+                                {errors.contact_person && <p className="text-sm text-destructive">{errors.contact_person}</p>}
+                            </div>
                             <div className="space-y-2">
                                 <Label htmlFor="email">Email</Label>
                                 <Input

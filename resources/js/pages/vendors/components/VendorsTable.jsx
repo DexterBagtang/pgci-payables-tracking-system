@@ -174,6 +174,9 @@ export default function VendorsTable({ vendors, filters = {} }) {
                                         </Button>
                                     </TableHead>
                                     <TableHead>
+                                        Contact Person
+                                    </TableHead>
+                                    <TableHead>
                                         Contact
                                     </TableHead>
                                     <TableHead className="w-[200px]">Address</TableHead>
@@ -213,7 +216,7 @@ export default function VendorsTable({ vendors, filters = {} }) {
                                     ))
                                 ) : (
                                     <TableRow>
-                                        <TableCell colSpan={6} className="text-center py-8">
+                                        <TableCell colSpan={8} className="text-center py-8">
                                             <div className="flex flex-col items-center gap-2">
                                                 <Users className="h-8 w-8 text-muted-foreground" />
                                                 <p className="text-muted-foreground">
@@ -235,6 +238,7 @@ export default function VendorsTable({ vendors, filters = {} }) {
             {selectedVendor && (
                 <Suspense fallback={null}>
                     <EditVendorDialog
+                        key={selectedVendor.id}
                         vendor={selectedVendor}
                         isOpen={editDialogOpen}
                         onOpenChange={setEditDialogOpen}
@@ -290,6 +294,7 @@ function VendorRow({ vendor, onEdit }) {
                     </div>
                 </div>
             </TableCell>
+            <TableCell>{vendor.contact_person}</TableCell>
             <TableCell className="px-3 py-4 text-xs">
                 {vendor.email ? (
                     <a

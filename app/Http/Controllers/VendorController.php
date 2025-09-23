@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Vendor;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class VendorController extends Controller
 {
@@ -72,7 +73,7 @@ class VendorController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'name' => 'required|string|max:255',
+            'name' => 'required|string|max:255|unique:vendors,name',
             'email' => 'nullable|email|max:255',
             'phone' => 'nullable|string|max:255',
             'address' => 'nullable|string|max:1000',
@@ -83,6 +84,7 @@ class VendorController extends Controller
 
         $vendor = Vendor::create([
             'name' => $request->name,
+            'contact_person' => $request->contact_person,
             'email' => $request->email,
             'phone' => $request->phone,
             'address' => $request->address,
@@ -124,7 +126,12 @@ class VendorController extends Controller
     public function update(Request $request, Vendor $vendor)
     {
         $request->validate([
-            'name' => 'required|string|max:255',
+            'name' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('vendors','name')->ignore($vendor->id,'id'),
+            ],
             'email' => 'nullable|email|max:255',
             'phone' => 'nullable|string|max:255',
             'address' => 'nullable|string|max:1000',
@@ -136,6 +143,7 @@ class VendorController extends Controller
         // Update the vendor details
         $vendor->update([
             'name' => $request->name,
+            'contact_person' => $request->contact_person,
             'email' => $request->email,
             'phone' => $request->phone,
             'address' => $request->address,

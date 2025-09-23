@@ -35,8 +35,8 @@ export default function ProjectsPage({ projects,filters }: ProjectsPageProps) {
                 {/*<div className="relative min-h-[100vh] flex-1 overflow-hidden rounded-xl border border-sidebar-border/70 md:min-h-min dark:border-sidebar-border">*/}
                 {/*    <ProjectsTable projects={projects} filters={filters} />*/}
                 {/*</div>*/}
-                <div className="py-12">
-                    <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
+                <div className="py-6">
+                    <div className="mx-auto sm:px-6 lg:px-8">
                         <ProjectsTable projects={projects} filters={filters} />
                     </div>
                 </div>

@@ -220,6 +220,15 @@ export default function ShowVendor({vendor,backUrl}){
                                     </CardHeader>
                                     <CardContent>
                                         <div className="space-y-4">
+                                            <div className="flex items-center gap-3">
+                                                <User className="h-4 w-4 text-blue-600" />
+                                                <div>
+                                                    <p className="text-sm font-medium">Contact Person</p>
+                                                    <p className="text-sm text-gray-600">
+                                                        {vendor.contact_person || "N/A"}
+                                                    </p>
+                                                </div>
+                                            </div>
                                             {/* Email */}
                                             <div className="flex items-center gap-3">
                                                 <Mail className="h-4 w-4 text-blue-600" />
