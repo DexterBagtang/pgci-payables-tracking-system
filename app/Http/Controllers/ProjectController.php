@@ -84,6 +84,7 @@ class ProjectController extends Controller
             'project_type' => 'nullable|in:sm_project,philcom_project',
             'smpo_number' => 'required_if:project_type,sm_project|nullable|string|max:255',
             'philcom_category' => 'required_if:project_type,philcom_project|nullable|in:profit_and_loss,capital_expenditure,others',
+            'team' => 'required_if:project_type,philcom_project',
         ]);
 
         $validated['created_by'] = auth()->id();
@@ -95,8 +96,8 @@ class ProjectController extends Controller
 
     public function show(Project $project)
     {
-        return Inertia::render('Projects/Show', [
-            'project' => $project->load('creator:id,name'),
+        return Inertia::render('projects/show', [
+            'project' => $project->load('creator:id,name','purchaseOrders.vendor','purchaseOrders.invoices'),
         ]);
     }
 
@@ -122,6 +123,7 @@ class ProjectController extends Controller
             'project_type' => 'required|in:sm_project,philcom_project', // Made required
             'smpo_number' => 'required_if:project_type,sm_project|nullable|string|max:255',
             'philcom_category' => 'required_if:project_type,philcom_project|nullable|in:profit_and_loss,capital_expenditure,others',
+            'team' => 'required_if:project_type,philcom_project',
             'description' => 'nullable|string|max:1000', // Added max length for description
         ]);
 

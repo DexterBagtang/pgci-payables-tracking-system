@@ -21,6 +21,7 @@ class Project extends Model
         'project_type',
         'smpo_number',
         'philcom_category',
+        'team',
         'created_by',
     ];
 

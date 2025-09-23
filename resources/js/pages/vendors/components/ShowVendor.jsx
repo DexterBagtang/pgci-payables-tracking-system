@@ -38,6 +38,7 @@ import {
 } from 'lucide-react';
 import {getUniqueProjectsWithFormattedDate} from "@/components/custom/helpers.jsx";
 import {Link} from "@inertiajs/react";
+import BackButton from '@/components/custom/BackButton.jsx';
 const VendorProjects = lazy(()=> import('@/pages/vendors/components/VendorProjects.jsx'));
 const EditVendorDialog = lazy(()=> import("@/pages/vendors/components/EditVendorDialog.jsx"));
 const VendorPO = lazy(()=> import('@/pages/vendors/components/VendorPO.jsx'));
@@ -125,12 +126,7 @@ export default function ShowVendor({vendor,backUrl}){
                                 </div>
                             </div>
                             <div className="flex gap-2">
-                                <Link href={backUrl}>
-                                    <Button variant="outline" >
-                                        <ArrowLeft className="mr-2 h-4 w-4" />
-                                        Back
-                                    </Button>
-                                </Link>
+                                <BackButton />
                                 <Button variant="outline" onClick={()=>setEditDialogOpen(true)}>
                                     <Edit className="mr-2 h-4 w-4" />
                                     Edit Vendor

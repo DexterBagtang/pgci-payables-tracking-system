@@ -25,6 +25,8 @@ return new class extends Migration
             $table->enum('philcom_category', ['profit_and_loss', 'capital_expenditure', 'others'])
                 ->nullable()->comment('For Philcom Project type');
 
+            $table->string('team')->nullable();
+
             $table->foreignId('created_by')->constrained('users');
             $table->timestamps();
 

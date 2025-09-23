@@ -64,3 +64,22 @@ export const formatCurrency = (amount) => {
     }).format(amount);
 };
 
+// Helper function to format number with commas
+export const formatNumberWithCommas = (value) => {
+    if (!value) return '';
+    // Remove any existing commas and non-numeric characters except decimal point
+    const numericValue = value.toString().replace(/[^\d.]/g, '');
+    // Split by decimal point
+    const parts = numericValue.split('.');
+    // Add commas to the integer part
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    // Join back with decimal if it exists
+    return parts.length > 1 ? parts[0] + '.' + parts[1] : parts[0];
+};
+
+// Helper function to parse formatted number back to numeric value
+export const parseFormattedNumber = (value) => {
+    if (!value) return '';
+    return value.toString().replace(/,/g, '');
+};
+

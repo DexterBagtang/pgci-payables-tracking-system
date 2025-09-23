@@ -5,9 +5,7 @@ erDiagram
         varchar username UK
         varchar role
         varchar email UK
-        datetime email_verified_at
         varchar password
-        varchar remember_token
         datetime created_at
         datetime updated_at
     }
@@ -15,6 +13,7 @@ erDiagram
     vendors {
         int id PK
         varchar name
+        varchar contact_person
         varchar email
         varchar phone
         text address
@@ -38,6 +37,7 @@ erDiagram
         varchar project_type
         varchar smpo_number
         varchar philcom_category
+        varchar team
         int created_by FK
         datetime created_at
         datetime updated_at
@@ -75,20 +75,17 @@ erDiagram
 
     invoices {
         int id PK
-        int po_id FK
+        int purchase_order_id FK
         varchar si_number
         date si_date
-        date si_received_at
-        date received_date
-        varchar payment_type
         numeric invoice_amount
         numeric tax_amount
         numeric discount_amount
-        numeric net_amount "GENERATED"
+        numeric net_amount
         varchar invoice_status
+        varchar payment_type
         date due_date
         text notes
-        date submitted_at
         varchar submitted_to
         int created_by FK
         datetime created_at
@@ -104,97 +101,31 @@ erDiagram
         date request_date
         varchar payee_name
         text purpose
-        text payment_for
         varchar po_number
         varchar cer_number
         varchar si_number
         varchar account_charge
-        varchar budget_code
         varchar service_line_dist
         text amount_in_words
         varchar requested_by
         varchar reviewed_by
         varchar approved_by
-        varchar payment_method
         int generated_by FK
-        datetime approved_at
         int processed_by FK
+        datetime approved_at
         datetime processed_at
         datetime created_at
         datetime updated_at
     }
 
-%% REMARKS TABLES
-    vendor_remarks {
+    remarks {
         int id PK
-        int vendor_id FK
-        varchar remark_type
+        varchar remarkable_type
+        int remarkable_id
         text remark_text
-        varchar priority
-        boolean is_internal
         int created_by FK
         datetime created_at
         datetime updated_at
-    }
-
-    project_remarks {
-        int id PK
-        int project_id FK
-        varchar remark_type
-        text remark_text
-        varchar priority
-        boolean is_internal
-        int created_by FK
-        datetime created_at
-        datetime updated_at
-    }
-
-    po_remarks {
-        int id PK
-        int po_id FK
-        varchar remark_type
-        text remark_text
-        varchar priority
-        boolean is_internal
-        int created_by FK
-        datetime created_at
-        datetime updated_at
-    }
-
-    invoice_remarks {
-        int id PK
-        int invoice_id FK
-        varchar remark_type
-        text remark_text
-        varchar priority
-        boolean is_internal
-        int created_by FK
-        datetime created_at
-        datetime updated_at
-    }
-
-    requisition_remarks {
-        int id PK
-        int requisition_id FK
-        varchar remark_type
-        text remark_text
-        varchar priority
-        boolean is_internal
-        int created_by FK
-        datetime created_at
-        datetime updated_at
-    }
-
-    audit_trails {
-        int id PK
-        varchar table_name
-        int record_id
-        varchar action
-        text changes
-        int user_id FK
-        datetime performed_at
-        varchar ip_address
-        text user_agent
     }
 
     files {
@@ -215,20 +146,32 @@ erDiagram
         datetime updated_at
     }
 
-    reviews {
+    activity_logs {
         int id PK
-        varchar reviewable_type
-        int reviewable_id
-        int reviewer_id FK
-        varchar status
-        text comments
-        datetime reviewed_at
+        varchar loggable_type
+        int loggable_id
+        varchar action
+        text changes
+        int user_id FK
+        varchar ip_address
+        text notes
         datetime created_at
         datetime updated_at
     }
 
+    audit_trails {
+        int id PK
+        varchar table_name
+        int record_id
+        varchar action
+        text changes
+        int user_id FK
+        datetime performed_at
+        varchar ip_address
+        text user_agent
+    }
 
-%% Core Entity Relationships
+%% Core Relationships
     users ||--o{ vendors : "created_by"
     users ||--o{ projects : "created_by"
     users ||--o{ purchase_orders : "created_by"
@@ -236,8 +179,10 @@ erDiagram
     users ||--o{ invoices : "created_by"
     users ||--o{ check_requisitions : "generated_by"
     users ||--o{ check_requisitions : "processed_by"
-    users ||--o{ audit_trails : "user_id"
+    users ||--o{ remarks : "created_by"
     users ||--o{ files : "uploaded_by"
+    users ||--o{ activity_logs : "user_id"
+    users ||--o{ audit_trails : "user_id"
 
     vendors ||--o{ purchase_orders : "has"
     projects ||--o{ purchase_orders : "has"
@@ -245,29 +190,23 @@ erDiagram
     purchase_orders ||--o{ invoices : "has"
     invoices ||--o{ check_requisitions : "generates"
 
-%% Remarks Relationships
-    vendors ||--o{ vendor_remarks : "has"
-    projects ||--o{ project_remarks : "has"
-    purchase_orders ||--o{ po_remarks : "has"
-    invoices ||--o{ invoice_remarks : "has"
-    check_requisitions ||--o{ requisition_remarks : "has"
+%% Polymorphic
+    remarks }o--o{ vendors : "remarkable"
+    remarks }o--o{ projects : "remarkable"
+    remarks }o--o{ purchase_orders : "remarkable"
+    remarks }o--o{ invoices : "remarkable"
+    remarks }o--o{ check_requisitions : "remarkable"
 
-    users ||--o{ vendor_remarks : "created_by"
-    users ||--o{ project_remarks : "created_by"
-    users ||--o{ po_remarks : "created_by"
-    users ||--o{ invoice_remarks : "created_by"
-    users ||--o{ requisition_remarks : "created_by"
-
-%% File relationships (polymorphic)
-    files }|--|| users : "uploaded_by"
-    files }o--o{ projects : "fileable"
+    files }o--o{ users : "fileable"
     files }o--o{ vendors : "fileable"
+    files }o--o{ projects : "fileable"
     files }o--o{ purchase_orders : "fileable"
     files }o--o{ invoices : "fileable"
     files }o--o{ check_requisitions : "fileable"
 
-    users ||--o{ reviews : "reviewer_id"
-
-    invoices ||--o{ reviews : "reviewable"
-
-    check_requisitions ||--o{ reviews : "reviewable"
+    activity_logs }o--o{ users : "loggable"
+    activity_logs }o--o{ vendors : "loggable"
+    activity_logs }o--o{ projects : "loggable"
+    activity_logs }o--o{ purchase_orders : "loggable"
+    activity_logs }o--o{ invoices : "loggable"
+    activity_logs }o--o{ check_requisitions : "loggable"

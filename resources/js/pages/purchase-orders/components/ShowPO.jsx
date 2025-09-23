@@ -21,6 +21,7 @@ import {
 
 } from 'lucide-react';
 import { lazy, Suspense, useState } from 'react';
+import BackButton from '@/components/custom/BackButton.jsx';
 const EditPOForm = lazy(() => import('@/pages/purchase-orders/components/EditPOForm.jsx'));
 const ActivityTimeline = lazy(()=> import('@/components/custom/ActivityTimeline.jsx'));
 const AttachmentsCard = lazy(()=> import('@/components/custom/AttachmentsCard.jsx')) ;
@@ -126,12 +127,7 @@ export default function ShowPO({ purchaseOrder, vendors, projects , backUrl}) {
                             </div>
                             {/* Action Buttons */}
                             <div className="flex flex-shrink-0 gap-2">
-                                <Link href={backUrl}>
-                                    <Button variant="outline" size="sm">
-                                        <ArrowLeft className="mr-2 h-4 w-4" />
-                                        Back
-                                    </Button>
-                                </Link>
+                                <BackButton />
                                 <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
                                     <Edit className="mr-2 h-4 w-4" />
                                     Edit

@@ -36,7 +36,6 @@ import PaginationServerSide from '@/components/custom/Pagination.jsx';
 
 // Lazy load the heavy dialog components
 const AddProjectDialog = lazy(() => import('@/pages/projects/components/AddProjectDialog.jsx'));
-const EditProjectDialog = lazy(() => import('@/pages/projects/components/EditProjectDialog.jsx'));
 
 export default function ProjectsTable({ projects, filters = {} }) {
     const [searchTerm, setSearchTerm] = useState(filters.search || '');
@@ -44,6 +43,8 @@ export default function ProjectsTable({ projects, filters = {} }) {
     const [projectStatus, setProjectStatus] = useState(filters.project_status || '');
     const [sortField, setSortField] = useState(filters.sort_field || '');
     const [sortDirection, setSortDirection] = useState(filters.sort_direction || 'asc');
+
+    const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
     const [selectedProject, setSelectedProject] = useState(null);
 
@@ -118,6 +119,12 @@ export default function ProjectsTable({ projects, filters = {} }) {
         setIsEditDialogOpen(true);
     }
 
+    useEffect(() => {
+        if(!isEditDialogOpen){
+            setSelectedProject(null);
+        }
+    }, [isEditDialogOpen]);
+
     const hasActiveFilters = searchTerm || projectType || projectStatus || sortField;
 
     return (
@@ -131,14 +138,10 @@ export default function ProjectsTable({ projects, filters = {} }) {
                         </CardTitle>
 
                         <Suspense fallback={<Button className="gap-2" disabled><Plus className="h-4 w-4" />Add Project</Button>}>
-                            <AddProjectDialog
-                                trigger={
-                                    <Button className="gap-2">
-                                        <Plus className="h-4 w-4" />
-                                        Add Project
-                                    </Button>
-                                }
-                            />
+                            <Button className="gap-2" onClick={() => setIsAddDialogOpen(true)}>
+                                <Plus className="h-4 w-4" />
+                                Add Project
+                            </Button>
                         </Suspense>
                     </div>
                 </CardHeader>
@@ -245,13 +248,21 @@ export default function ProjectsTable({ projects, filters = {} }) {
                 </CardContent>
             </Card>
 
-            {/* Lazy-loaded Edit Dialog */}
+            {/* Add Project Dialog */}
+            <Suspense fallback={null}>
+                <AddProjectDialog
+                    open={isAddDialogOpen}
+                    onOpenChange={setIsAddDialogOpen}
+                />
+            </Suspense>
+
+            {/* Edit Project Dialog */}
             {selectedProject && (
                 <Suspense fallback={null}>
-                    <EditProjectDialog
+                    <AddProjectDialog
                         key={selectedProject.id}
                         open={isEditDialogOpen}
-                        setOpen={setIsEditDialogOpen}
+                        onOpenChange={setIsEditDialogOpen}
                         project={selectedProject}
                     />
                 </Suspense>
@@ -291,7 +302,7 @@ function ProjectRow({ project, onEdit }) {
     return (
         <TableRow className="group transition-all hover:bg-muted/30 border-b border-gray-100 dark:border-gray-800">
             {/* Project Details */}
-            <TableCell className="py-4 pl-4 pr-3 max-w-[500px]">
+            <TableCell className="py-4 pl-4 pr-3 max-w-[500px]" onClick={() => router.get('/projects/' + project.id)}>
                 <div className="flex items-start">
                     <div className="h-10 w-10 flex-shrink-0 rounded-lg bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900 dark:to-blue-800 flex items-center justify-center mr-3">
                         <Building className="h-5 w-5 text-blue-700 dark:text-blue-300" />
@@ -335,8 +346,8 @@ function ProjectRow({ project, onEdit }) {
                     </Badge>
                     <div className="text-xs text-muted-foreground">
                         {project.project_type === 'sm_project'
-                            ? project.smpo_number
-                            : project.philcom_category?.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())
+                            ? 'SMPO#: ' +  project.smpo_number
+                            : 'Category: '+ project.philcom_category?.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())
                         }
                     </div>
                 </div>
