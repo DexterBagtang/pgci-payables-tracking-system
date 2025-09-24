@@ -11,19 +11,20 @@ import { Head, Link, useForm } from '@inertiajs/react';
 import { ArrowLeft, FileText, Save } from 'lucide-react';
 import { lazy, Suspense, useState } from 'react';
 import { toast } from 'sonner';
+import BackButton from '@/components/custom/BackButton.jsx';
 
 const PoDateSelection = lazy(()=> import('@/pages/purchase-orders/components/create/PoDateSelection.jsx'));
 const ExpectedDateSelectionButton = lazy(()=> import('@/pages/purchase-orders/components/create/ExpectedDateSelection.jsx'));
 const ProjectSelection = lazy(() => import('@/pages/purchase-orders/components/create/ProjectSelection.jsx'));
 const VendorSelection = lazy(()=> import('@/pages/purchase-orders/components/create/VendorSelection.jsx'));
 
-export default function CreatePOForm({ vendors, projects }) {
+export default function CreatePOForm({ vendors, projects,project_id }) {
     const [isDraft, setIsDraft] = useState(false);
     const [files, setFiles] = useState([]);
 
     const { data, setData, post, processing, errors, reset } = useForm({
         po_number: '',
-        project_id: '',
+        project_id: project_id || '',
         vendor_id: '',
         po_amount: '',
         payment_term: '',
@@ -67,14 +68,6 @@ export default function CreatePOForm({ vendors, projects }) {
                 <div className="mx-auto max-w-4xl sm:px-6 lg:px-8">
                     {/* Header */}
                     <div className="mb-6">
-                        <div className="mb-4 flex items-center gap-4">
-                            <Button variant="outline" asChild>
-                                <Link href="/purchase-orders">
-                                    <ArrowLeft className="mr-2 h-4 w-4" />
-                                    Back to Purchase Orders
-                                </Link>
-                            </Button>
-                        </div>
                         <div>
                             <h1 className="text-2xl font-semibold text-gray-900">Create New Purchase Order</h1>
                             <p className="mt-2 text-sm text-gray-600">Fill out the form below to create a new purchase order</p>
@@ -92,6 +85,17 @@ export default function CreatePOForm({ vendors, projects }) {
                                 <CardDescription>Enter all the details for the purchase order</CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-6">
+                                {/* Project & Vendor Selection */}
+                                <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                                    <Suspense fallback={<div>Loading...</div>}>
+                                        <ProjectSelection projects={projects} data={data} setData={setData} errors={errors} project_id={project_id} />
+                                    </Suspense>
+
+                                    <Suspense fallback={<div>Loading...</div>}>
+                                        <VendorSelection vendors={vendors} data={data} setData={setData} errors={errors} />
+                                    </Suspense>
+                                </div>
+
                                 {/* Top Section: PO Number, Date, Amount */}
                                 <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                                     <div className="space-y-2">
@@ -163,16 +167,6 @@ export default function CreatePOForm({ vendors, projects }) {
                                     {errors.description && <p className="text-sm text-red-600">{errors.description}</p>}
                                 </div>
 
-                                {/* Project & Vendor Selection */}
-                                <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                                    <Suspense fallback={<div>Loading...</div>}>
-                                        <ProjectSelection projects={projects} data={data} setData={setData} errors={errors} />
-                                    </Suspense>
-
-                                    <Suspense fallback={<div>Loading...</div>}>
-                                        <VendorSelection vendors={vendors} data={data} setData={setData} errors={errors} />
-                                    </Suspense>
-                                </div>
 
                                 {/* Financial & Timeline Information */}
                                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -241,9 +235,7 @@ export default function CreatePOForm({ vendors, projects }) {
 
                         {/* Action Buttons */}
                         <div className="flex items-center justify-between pt-6">
-                            <Button variant="outline" type="button" asChild>
-                                <Link href="/purchase-orders">Back</Link>
-                            </Button>
+                           <BackButton />
 
                             <Button type="submit" disabled={processing}>
                                 <Save className="mr-2 h-4 w-4" />

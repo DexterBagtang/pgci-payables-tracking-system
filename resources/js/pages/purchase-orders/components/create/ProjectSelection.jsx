@@ -73,6 +73,7 @@ export default function ProjectSelection({projects,data,setData,errors}) {
                 <div className="mt-2 rounded-md bg-muted p-2">
                     <p className="text-sm font-medium">{selectedProject.project_title}</p>
                     <p className="text-xs text-muted-foreground">CER: {selectedProject.cer_number}</p>
+                    <p className="text-xs text-muted-foreground">Total: {formatCurrency(selectedProject.total_project_cost)}</p>
                 </div>
             )}
         </div>

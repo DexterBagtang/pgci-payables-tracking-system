@@ -6,6 +6,7 @@ use App\Models\PoLineItem;
 use App\Models\Project;
 use App\Models\PurchaseOrder;
 use App\Models\Vendor;
+use Dflydev\DotAccessData\Data;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -102,7 +103,7 @@ class PurchaseOrderController extends Controller
     /**
      * Show the form for creating a new resource.
      */
-    public function create()
+    public function create(Request $request)
     {
         $vendors = Vendor::where('is_active', true)->orderBy('name')->get();
         $projects = Project::all();
@@ -110,6 +111,7 @@ class PurchaseOrderController extends Controller
         return inertia('purchase-orders/create', [
             'vendors' => $vendors,
             'projects' => $projects,
+            'project_id' => $request->get('project_id'),
         ]);
     }
 
@@ -240,11 +242,17 @@ class PurchaseOrderController extends Controller
             'po_status' => 'required|in:draft,open,approved,completed,cancelled',
         ]);
 
+
 //        $validated['updated_by'] = auth()->id();
 
 
 //        $purchaseOrder->update($validated);
-        $purchaseOrder->fill($validated)->save();
+//        dd($validated);
+        $purchaseOrder->fill($validated);
+
+//        dd($purchaseOrder);
+
+        $purchaseOrder->save();
 
         $purchaseOrder->activityLogs()->create([
             'action' => 'updated',

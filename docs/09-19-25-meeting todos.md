@@ -14,18 +14,13 @@
 - [x] **Conditional Field Logic**: Implement conditional field display logic for project types
 - [x] **Project Type Selector**: Move project type selector near project title for better visibility
 - [x] **Team Field**: Add dedicated Team Field for project team assignments
-- [ ] **Project Dashboard**: Create overall project dashboard with financial summary
-- [ ] **Progress Tracking**: Add progress tracking and milestone indicators
-- [ ] **Team Assignments**: Display team member assignments and roles
+- [x] **Project Dashboard**: Create overall project dashboard with financial summary
+- [x] **Progress Tracking**: Add progress tracking and milestone indicators
 - [ ] **Document Integration**: Integrate document management system
 
 ## 3. Purchase Order Management System
-- [ ] **Detailed Financial Breakdown**: Enhance financial breakdown with detailed status indicators
-- [ ] **Budget Comparison**: Add budget vs actual spending comparison feature
-- [ ] **Payment Status Tracking**: Implement payment status tracking with visual indicators
-- [ ] **Outstanding Calculations**: Add outstanding amount calculations
-- [ ] **Enhanced Approval Workflow**: Improve PO approval workflow
-- [ ] **Status Management**: Better status management and notifications system
+- [x] **Detailed Financial Breakdown**: Enhance financial breakdown with detailed status indicators
+- [x] **Budget Comparison**: Add budget vs actual spending comparison feature
 
 ## 4. Invoice Management System
 - [ ] **Due Date Field**: Make due date field optional (remove required validation)
@@ -33,12 +28,14 @@
 - [ ] **Submission Date**: Make submission date mandatory with validation
 - [ ] **Submit To Field**: Make "Submit To" field mandatory with validation
 - [ ] **Amount Percentage Field**: Add calculated field: (Invoice Amount / PO Amount) × 100
-- [ ] **PO Selection Logic**: Show only open POs when selecting PO for invoice creation
 - [ ] **Received Date**: Move "Received Date" to "Filing of SI Details" section
-- [ ] **Submit To Dropdown**: Add dropdown options (Kimberly Usona, Joseph David Maderazo)
-- [ ] **Terms of Payment**: Add dropdown field for payment terms selection
-- [ ] **Bulk Invoice Creation**: Add option to create multiple invoices simultaneously
-- [ ] **Bulk Upload**: Implement bulk upload functionality for 100+ invoices
+- [ ] **Submit To Dropdown**: change input to dropdown options (Kimberly Usona, Joseph David Maderazo)
+- [ ] **Terms of Payment**: Add dropdown field for payment terms selection (a. Downpayment
+b. Progress Billing
+c. Final Payment
+d. Others (manual input)
+)
+- [ ] **Bulk Invoice Creation**: Add option to create multiple invoices simultaneously so user can add hundreds of invoice on single PO
 - [ ] **Batch Processing**: Add batch processing capabilities
 
 ## 5. Check Requisition Management System

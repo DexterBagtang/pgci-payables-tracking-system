@@ -12,6 +12,7 @@ import { FileText, Save, Download, } from 'lucide-react';
 import { useState, useEffect, Suspense, lazy } from 'react';
 import { toast } from 'sonner';
 import { getFileIcon } from '@/components/custom/helpers.jsx';
+import BackButton from '@/components/custom/BackButton.jsx';
 
 const PoDateSelection = lazy(()=> import('@/pages/purchase-orders/components/create/PoDateSelection.jsx'));
 const ExpectedDateSelectionButton = lazy(()=> import('@/pages/purchase-orders/components/create/ExpectedDateSelection.jsx'));
@@ -57,7 +58,7 @@ export default function EditPOForm({ purchaseOrder, vendors, projects, onCancel,
             forceFormData: true, // Enable file uploads
             onSuccess: () => {
                 toast.success('Purchase Order updated successfully.');
-                reset();
+                // reset();
                 setFiles([]);
                 onSuccess?.();
             },
@@ -124,6 +125,16 @@ export default function EditPOForm({ purchaseOrder, vendors, projects, onCancel,
                                 <CardDescription>Update the details for the purchase order</CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-6">
+                                {/* Project & Vendor Selection */}
+                                <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                                    <Suspense fallback={<div>Loading...</div>}>
+                                        <ProjectSelection projects={projects} data={data} setData={setData} errors={errors} />
+                                    </Suspense>
+
+                                    <Suspense fallback={<div>Loading...</div>}>
+                                        <VendorSelection vendors={vendors} data={data} setData={setData} errors={errors} />
+                                    </Suspense>
+                                </div>
                                 {/* Top Section: PO Number, Date, Amount */}
                                 <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                                     <div className="space-y-2">
@@ -199,16 +210,6 @@ export default function EditPOForm({ purchaseOrder, vendors, projects, onCancel,
                                     {errors.description && <p className="text-sm text-red-600">{errors.description}</p>}
                                 </div>
 
-                                {/* Project & Vendor Selection */}
-                                <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                                    <Suspense fallback={<div>Loading...</div>}>
-                                        <ProjectSelection projects={projects} data={data} setData={setData} errors={errors} />
-                                    </Suspense>
-
-                                    <Suspense fallback={<div>Loading...</div>}>
-                                        <VendorSelection vendors={vendors} data={data} setData={setData} errors={errors} />
-                                    </Suspense>
-                                </div>
 
                                 {/* Financial & Timeline Information */}
                                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -315,13 +316,7 @@ export default function EditPOForm({ purchaseOrder, vendors, projects, onCancel,
 
                         {/* Action Buttons */}
                         <div className="flex items-center justify-between pt-6">
-                            <Button
-                                variant="outline"
-                                type="button"
-                                onClick={() => (onCancel ?? (() => router.get('/purchase-orders')))()}
-                            >
-                                Cancel
-                            </Button>
+                            <BackButton />
 
                             <Button type="submit" disabled={processing}>
                                 <Save className="mr-2 h-4 w-4" />

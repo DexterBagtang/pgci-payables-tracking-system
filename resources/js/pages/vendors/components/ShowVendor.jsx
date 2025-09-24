@@ -127,7 +127,7 @@ export default function ShowVendor({vendor,backUrl}){
                             </div>
                             <div className="flex gap-2">
                                 <BackButton />
-                                <Button variant="outline" onClick={()=>setEditDialogOpen(true)}>
+                                <Button size="sm" variant="" onClick={()=>setEditDialogOpen(true)}>
                                     <Edit className="mr-2 h-4 w-4" />
                                     Edit Vendor
                                 </Button>
