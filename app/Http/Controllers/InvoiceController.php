@@ -111,68 +111,138 @@ class InvoiceController extends Controller
     /**
      * Store a newly created resource in storage.
      */
+//    public function store(Request $request)
+//    {
+//
+//        $validated = $request->validate([
+//            'purchase_order_id' => 'required|exists:purchase_orders,id',
+//            'si_number' => 'required|string|max:255|unique:invoices',
+//            'si_date' => 'required|date',
+//            'received_date' => 'nullable|date',
+//            'invoice_amount' => 'required|numeric|min:0',
+//            'tax_amount' => 'nullable|numeric|min:0',
+//            'discount_amount' => 'nullable|numeric|min:0',
+//            'due_date' => 'required|date',
+//            'notes' => 'nullable|string',
+//            'submitted_at' => 'nullable|date',
+//            'submitted_to' => 'nullable|string|max:255',
+//            'files.*' => 'file|max:10240|mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png',
+//        ]);
+//
+//        unset($validated['files']);
+//
+//        $validated['net_amount'] = $validated['invoice_amount'];
+//
+//        // Create invoice
+//        $invoice = Invoice::create([
+//            ...$validated,
+//            'si_received_at' => now(),
+//            'created_by' => auth()->id(),
+//        ]);
+//
+//        $invoice->activityLogs()->create([
+//           'action' => 'created',
+//           'user_id' => auth()->id(),
+//            'ip_address' => $request->ip(),
+//            'changes' => json_encode($invoice->toArray()),
+//            'notes' => $validated['notes'],
+//        ]);
+//
+//        // Handle file uploads
+//        if ($request->hasFile('files')) {
+//            foreach ($request->file('files') as $file) {
+//                $filePath = $file->store('invoices/files', 'public');
+//
+//                $invoice->files()->create([
+//                    'file_name' => $file->getClientOriginalName(),
+//                    'file_path' => $filePath,
+//                    'file_type' => $file->getClientMimeType(),
+//                    'file_category' => 'invoice',
+//                    'file_purpose' => 'documentation',
+//                    'file_size' => $file->getSize(),
+//                    'disk' => 'public',
+//                    'uploaded_by' => auth()->id(),
+//                    'is_active' => true,
+//                ]);
+//            }
+//        }
+//
+//        return back()->with('success', 'Invoice created successfully!');
+//
+//    }
+
     public function store(Request $request)
     {
+//        dd($request->all());
         $validated = $request->validate([
-            'purchase_order_id' => 'required|exists:purchase_orders,id',
-            'si_number' => 'required|string|max:255|unique:invoices',
-            'si_date' => 'required|date',
-            'received_date' => 'nullable|date',
-            'invoice_amount' => 'required|numeric|min:0',
-            'tax_amount' => 'nullable|numeric|min:0',
-            'discount_amount' => 'nullable|numeric|min:0',
-            'due_date' => 'required|date',
-            'notes' => 'nullable|string',
-            'submitted_at' => 'nullable|date',
-            'submitted_to' => 'nullable|string|max:255',
-            'files.*' => 'file|max:10240|mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png',
+            'invoices' => 'required|array|min:1',
+            'invoices.*.purchase_order_id' => 'required|exists:purchase_orders,id',
+            'invoices.*.si_number' => 'required|string|max:255|unique:invoices,si_number',
+            'invoices.*.si_date' => 'required|date',
+            'invoices.*.received_date' => 'nullable|date',
+            'invoices.*.invoice_amount' => 'required|numeric|min:0',
+            'invoices.*.tax_amount' => 'nullable|numeric|min:0',
+            'invoices.*.discount_amount' => 'nullable|numeric|min:0',
+            'invoices.*.due_date' => 'nullable|date',
+            'invoices.*.notes' => 'nullable|string',
+            'invoices.*.submitted_at' => 'nullable|date',
+            'invoices.*.submitted_to' => 'nullable|string|max:255',
+            'invoices.*.files.*' => 'file|max:10240|mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png',
         ]);
 
-        unset($validated['files']);
+        $createdInvoices = [];
 
-        $validated['net_amount'] = $validated['invoice_amount'];
+        foreach ($validated['invoices'] as $invoiceData) {
+            // Extract and remove files from validation
+            $files = $invoiceData['files'] ?? [];
+            unset($invoiceData['files']);
 
-        // Create invoice
-        $invoice = Invoice::create([
-            ...$validated,
-            'si_received_at' => now(),
-            'created_by' => auth()->id(),
-        ]);
+            // Add computed fields
+            $invoiceData['net_amount'] = $invoiceData['invoice_amount'];
 
-        $invoice->activityLogs()->create([
-           'action' => 'created',
-           'user_id' => auth()->id(),
-            'ip_address' => $request->ip(),
-            'changes' => json_encode($invoice->toArray()),
-            'notes' => $validated['notes'],
-        ]);
+            // Create invoice
+            $invoice = Invoice::create([
+                ...$invoiceData,
+                'si_received_at' => now(),
+                'created_by' => auth()->id(),
+            ]);
 
-        // Handle file uploads
-        if ($request->hasFile('files')) {
-            foreach ($request->file('files') as $file) {
-                $filePath = $file->store('invoices/files', 'public');
+            // Log activity
+            $invoice->activityLogs()->create([
+                'action' => 'created',
+                'user_id' => auth()->id(),
+                'ip_address' => $request->ip(),
+                'changes' => json_encode($invoice->toArray()),
+                'notes' => $invoiceData['notes'] ?? null,
+            ]);
 
-                $invoice->files()->create([
-                    'file_name' => $file->getClientOriginalName(),
-                    'file_path' => $filePath,
-                    'file_type' => $file->getClientMimeType(),
-                    'file_category' => 'invoice',
-                    'file_purpose' => 'documentation',
-                    'file_size' => $file->getSize(),
-                    'disk' => 'public',
-                    'uploaded_by' => auth()->id(),
-                    'is_active' => true,
-                ]);
+            // Handle file uploads
+            if (!empty($files)) {
+                foreach ($files as $file) {
+                    if ($file && $file->isValid()) {
+                        $filePath = $file->store('invoices/files', 'public');
+
+                        $invoice->files()->create([
+                            'file_name' => $file->getClientOriginalName(),
+                            'file_path' => $filePath,
+                            'file_type' => $file->getClientMimeType(),
+                            'file_category' => 'invoice',
+                            'file_purpose' => 'documentation',
+                            'file_size' => $file->getSize(),
+                            'disk' => 'public',
+                            'uploaded_by' => auth()->id(),
+                            'is_active' => true,
+                        ]);
+                    }
+                }
             }
+
+            $createdInvoices[] = $invoice;
         }
 
-        return back()->with('success', 'Invoice created successfully!');
-
-//        return redirect()
-//            ->route('invoices.show', $invoice)
-//            ->with('success', 'Invoice created successfully!');
-
+        return back()->with('success', count($createdInvoices) . ' invoice(s) created successfully!');
     }
+
 
     /**
      * Display the specified resource.
