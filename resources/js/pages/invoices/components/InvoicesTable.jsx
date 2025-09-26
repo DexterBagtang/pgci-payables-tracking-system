@@ -326,7 +326,7 @@ const InvoicesTable = ({ invoices, filters, filterOptions }) => {
                                                     <span>{formatDate(invoice.si_date)}</span>
 
                                                     <span className="text-gray-500">Received:</span>
-                                                    <span>{formatDate(invoice.received_date)}</span>
+                                                    <span>{formatDate(invoice.si_received_at)}</span>
 
                                                     <span className="text-gray-500">Due:</span>
                                                     <span className={isOverdue(invoice.due_date, invoice.invoice_status) ? 'font-medium text-red-600' : ''}>

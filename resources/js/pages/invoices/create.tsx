@@ -16,7 +16,6 @@ interface CreatePageProps{
 
 
 export default function CreatePoPage({purchaseOrders}: CreatePageProps) {
-    console.log(purchaseOrders);
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Create Invoice" />

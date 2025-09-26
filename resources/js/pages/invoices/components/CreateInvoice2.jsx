@@ -1,8 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,19 +9,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table.js';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
+import BulkConfiguration from '@/pages/invoices/components/create/BulkConfiguration.jsx';
+import PurchaseOrderSelection from '@/pages/invoices/components/create/PurchaseOrderSelection.jsx';
+import { router } from '@inertiajs/react';
 import { format } from 'date-fns';
 import {
     AlertCircle,
-    Building2,
     Calculator,
     CalendarIcon,
     Check,
-    ChevronsUpDown,
     Copy,
     Eye,
     FileStack,
     FileText,
-    PlayCircle,
     Plus,
     Receipt,
     Settings,
@@ -32,11 +30,8 @@ import {
     X,
 } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
-import useDebounce from '@/hooks/custom/useDebounce.jsx';
-import { router, useForm } from '@inertiajs/react';
 
 const CreateInvoice = ({ purchaseOrders = [] }) => {
-    const [poComboboxOpen, setPoComboboxOpen] = useState(false);
     const [selectedFiles, setSelectedFiles] = useState([]);
     const [showConfirmation, setShowConfirmation] = useState(false);
     const [isBulkMode, setBulkMode] = useState(false);
@@ -48,17 +43,17 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
     // Bulk configuration
     const [bulkConfig, setBulkConfig] = useState({
         count: 2,
-        siPrefix: 'SI-',
+        siPrefix: '',
         sharedFields: {
             purchase_order_id: true,
             si_date: false,
             si_received_at: false,
-            terms_of_payment: true,
+            terms_of_payment: false,
             other_payment_terms: false,
             submitted_to: true,
             submitted_at: true,
             due_date: false,
-            notes: true,
+            notes: false,
         },
         sharedValues: {
             purchase_order_id: '',
@@ -179,8 +174,6 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
         if (po === 0) return 0;
         return (invoice / po) * 100;
     };
-
-
 
     // Submit To options
     const submitToOptions = ['Kimberly Usona', 'Joseph David Maderazo'];
@@ -314,6 +307,12 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
             if (bulkConfig.sharedFields.purchase_order_id && !bulkConfig.sharedValues.purchase_order_id) {
                 newErrors.purchase_order_id = 'Purchase order is required';
             }
+            if (bulkConfig.sharedFields.si_date && !bulkConfig.sharedValues.si_date) {
+                newErrors.si_date = 'SI Date is required';
+            }
+            if (bulkConfig.sharedFields.si_received_at && !bulkConfig.sharedValues.si_received_at) {
+                newErrors.si_received_at = 'SI Received Date is required';
+            }
             if (bulkConfig.sharedFields.submitted_to && !bulkConfig.sharedValues.submitted_to) {
                 newErrors.submitted_to = 'Submit to is required';
             }
@@ -361,7 +360,7 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
         setProcessing(true);
 
         // Join the shared values to each bulk invoice
-        const invoicesWithSharedData = bulkInvoices.map(invoice => {
+        const invoicesWithSharedData = bulkInvoices.map((invoice) => {
             const mergedInvoice = { ...invoice };
 
             // Add shared values for fields that are configured as shared
@@ -374,11 +373,13 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
             return mergedInvoice;
         });
 
-        console.log(invoicesWithSharedData);
+
 
         router.post(
             '/invoices',
-            { invoices:{...invoicesWithSharedData,singleData} },
+            {
+                invoices: isBulkMode ?  [ ...invoicesWithSharedData] : [singleData],
+            },
             {
                 onSuccess: () => {
                     // setProcessing(false);
@@ -429,6 +430,9 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
                     setBulkInvoices([]);
                     setBulkConfigured(false);
                 },
+                onError: (error) => {
+                    console.log(error);
+                }
             },
         );
     };
@@ -469,342 +473,27 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
                         {/* Main Form */}
                         <div className={cn('space-y-4', isBulkMode ? 'col-span-1' : 'lg:col-span-3')}>
                             {/* Purchase Order Selection */}
-                            <Card className="shadow-sm">
-                                <CardHeader className="pb-3">
-                                    <CardTitle className="flex items-center text-lg">
-                                        <Building2 className="mr-2 h-4 w-4 text-blue-600" />
-                                        Purchase Order
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <div>
-                                        <Label className="text-sm font-medium">Purchase Order *</Label>
-                                        <Popover open={poComboboxOpen} onOpenChange={setPoComboboxOpen}>
-                                            <PopoverTrigger asChild>
-                                                <Button
-                                                    variant="outline"
-                                                    role="combobox"
-                                                    className={cn('mt-1 w-full justify-between text-left', !selectedPO && 'text-slate-500')}
-                                                >
-                                                    {selectedPO ? (
-                                                        <div className="flex flex-col items-start py-1">
-                                                            <div className="text-sm font-medium">{selectedPO.po_number}</div>
-                                                            <div className="truncate text-xs text-slate-600">
-                                                                {selectedPO.vendor_name} • ₱{Number(selectedPO.po_amount).toLocaleString()}
-                                                            </div>
-                                                        </div>
-                                                    ) : (
-                                                        'Select purchase order...'
-                                                    )}
-                                                    <ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
-                                                </Button>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="w-full p-0">
-                                                <Command>
-                                                    <CommandInput placeholder="Search purchase orders..." />
-                                                    <CommandEmpty>No purchase order found.</CommandEmpty>
-                                                    <CommandList>
-                                                        <CommandGroup>
-                                                            {poOptions.map((po) => (
-                                                                <CommandItem
-                                                                    key={po.value}
-                                                                    value={po.label}
-                                                                    onSelect={() => {
-                                                                        if (isBulkMode) {
-                                                                            setBulkConfig((prev) => ({
-                                                                                ...prev,
-                                                                                sharedValues: {
-                                                                                    ...prev.sharedValues,
-                                                                                    purchase_order_id: po.value,
-                                                                                },
-                                                                            }));
-                                                                        } else {
-                                                                            setSingleData((prev) => ({
-                                                                                ...prev,
-                                                                                purchase_order_id: po.value,
-                                                                            }));
-                                                                        }
-                                                                        setPoComboboxOpen(false);
-                                                                    }}
-                                                                    className="flex flex-col items-start py-2"
-                                                                >
-                                                                    <Check
-                                                                        className={cn(
-                                                                            'mr-2 h-4 w-4',
-                                                                            selectedPO?.value === po.value ? 'opacity-100' : 'opacity-0',
-                                                                        )}
-                                                                    />
-                                                                    <div>
-                                                                        <div className="text-sm font-medium">{po.po_number}</div>
-                                                                        <div className="text-xs text-slate-600">{po.vendor_name}</div>
-                                                                        <div className="text-xs text-slate-500">
-                                                                            ₱{Number(po.po_amount).toLocaleString()}
-                                                                        </div>
-                                                                    </div>
-                                                                </CommandItem>
-                                                            ))}
-                                                        </CommandGroup>
-                                                    </CommandList>
-                                                </Command>
-                                            </PopoverContent>
-                                        </Popover>
-                                        {errors.purchase_order_id && <p className="mt-1 text-xs text-red-600">{errors.purchase_order_id}</p>}
-                                    </div>
-                                </CardContent>
-                            </Card>
+                            <PurchaseOrderSelection
+                                setBulkConfig={setBulkConfig}
+                                selectedPO={selectedPO}
+                                poOptions={poOptions}
+                                isBulkMode={isBulkMode}
+                                setSingleData={setSingleData}
+                                errors={errors}
+                            />
 
                             {/* Bulk Mode - Configuration or Invoice List */}
                             {isBulkMode && (
-
-                                <Card className="border-blue-200 shadow-sm">
-                                    <CardHeader className="">
-                                        <CardTitle className="flex items-center text-lg">
-                                            <Settings className="mr-2 h-4 w-4 text-blue-600" />
-                                            Bulk Invoice Configuration
-                                        </CardTitle>
-                                        <CardDescription className="text-sm">Configure shared fields and generate invoice templates</CardDescription>
-                                    </CardHeader>
-
-                                    <CardContent className="space-y-4">
-                                        {/* Compact Configuration Section */}
-                                        <div className="grid grid-cols-1 gap-3 rounded border bg-slate-50 p-3 text-sm md:grid-cols-4">
-                                            <div className="md:col-span-1">
-                                                <Label className="mb-1 block text-xs font-medium">Number of Invoices *</Label>
-                                                <Input
-                                                    type="number"
-                                                    min="1"
-                                                    max="100"
-                                                    value={bulkConfig.count}
-                                                    onChange={(e) =>
-                                                        setBulkConfig((prev) => ({
-                                                            ...prev,
-                                                            count: parseInt(e.target.value) || 1,
-                                                        }))
-                                                    }
-                                                    className="h-8 text-sm"
-                                                />
-                                            </div>
-                                            <div className="md:col-span-3">
-                                                <Label className="mb-1 block text-xs font-medium">SI Number Prefix</Label>
-                                                <div className="flex items-end gap-2">
-                                                    <Input
-                                                        value={bulkConfig.siPrefix}
-                                                        onChange={(e) =>
-                                                            setBulkConfig((prev) => ({
-                                                                ...prev,
-                                                                siPrefix: e.target.value,
-                                                            }))
-                                                        }
-                                                        placeholder="e.g., SI-2024-"
-                                                        className="h-8 flex-1 text-sm"
-                                                    />
-                                                    <span className="text-xs whitespace-nowrap text-slate-500">
-                                                        Example: {bulkConfig.siPrefix}001, {bulkConfig.siPrefix}002...
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {/* Shared Fields - Compact Grid */}
-                                        <div className="space-y-1">
-                                            <div className="flex items-center justify-between">
-                                                <div>
-                                                    <h4 className="text-sm font-medium text-slate-900">Shared Fields Configuration</h4>
-                                                    <p className="text-xs text-slate-600">Select fields with same value across all invoices</p>
-                                                </div>
-                                            </div>
-
-                                            {/* Compact Checkbox Grid */}
-                                            <div className="grid grid-cols-2 gap-1 sm:grid-cols-3 md:grid-cols-4">
-                                                {sharedFieldOptions.map((field) => (
-                                                    <div
-                                                        key={field.key}
-                                                        className="flex min-h-[40px] items-center space-x-2 rounded border p-2 text-xs"
-                                                    >
-                                                        <Checkbox
-                                                            id={field.key}
-                                                            checked={bulkConfig.sharedFields[field.key]}
-                                                            onCheckedChange={(checked) =>
-                                                                setBulkConfig((prev) => ({
-                                                                    ...prev,
-                                                                    sharedFields: {
-                                                                        ...prev.sharedFields,
-                                                                        [field.key]: checked,
-                                                                    },
-                                                                }))
-                                                            }
-                                                            disabled={field.required}
-                                                            className="h-3 w-3"
-                                                        />
-                                                        <Label htmlFor={field.key} className="text-xs leading-none font-medium">
-                                                            {field.label} {field.required && <span className="text-red-500">*</span>}
-                                                        </Label>
-                                                    </div>
-                                                ))}
-                                            </div>
-
-                                            {/* Compact Shared Values */}
-                                            <div className="space-y-3 rounded border bg-blue-50 p-3">
-                                                <h5 className="mb-2 text-sm font-medium text-slate-900">Configure Shared Values</h5>
-                                                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
-                                                    {Object.entries(bulkConfig.sharedFields).map(([fieldKey, isShared]) => {
-                                                        if (!isShared) return null;
-                                                        const fieldConfig = sharedFieldOptions.find((f) => f.key === fieldKey);
-                                                        if (fieldKey === 'purchase_order_id') return null;
-
-                                                        // Compact Date Fields
-                                                        if (['si_date', 'si_received_at', 'submitted_at', 'due_date'].includes(fieldKey)) {
-                                                            return (
-                                                                <div key={fieldKey} className="space-y-1">
-                                                                    <Label className="text-xs font-medium">{fieldConfig.label}</Label>
-                                                                    <Popover>
-                                                                        <PopoverTrigger asChild>
-                                                                            <Button
-                                                                                variant="outline"
-                                                                                className={cn(
-                                                                                    'h-8 w-full justify-start text-left text-xs font-normal',
-                                                                                    !bulkConfig.sharedValues[fieldKey] && 'text-slate-500',
-                                                                                )}
-                                                                            >
-                                                                                <CalendarIcon className="mr-1 h-3 w-3" />
-                                                                                {bulkConfig.sharedValues[fieldKey]
-                                                                                    ? format(
-                                                                                          new Date(bulkConfig.sharedValues[fieldKey]),
-                                                                                          'MMM dd, yyyy',
-                                                                                      )
-                                                                                    : 'Select date'}
-                                                                            </Button>
-                                                                        </PopoverTrigger>
-                                                                        <PopoverContent className="w-auto p-0">
-                                                                            <Calendar
-                                                                                mode="single"
-                                                                                selected={
-                                                                                    bulkConfig.sharedValues[fieldKey]
-                                                                                        ? new Date(bulkConfig.sharedValues[fieldKey])
-                                                                                        : undefined
-                                                                                }
-                                                                                onSelect={(date) => handleBulkConfigDateSelect(fieldKey, date)}
-                                                                            />
-                                                                        </PopoverContent>
-                                                                    </Popover>
-                                                                </div>
-                                                            );
-                                                        }
-
-                                                        // Compact Select Fields
-                                                        if (fieldKey === 'submitted_to') {
-                                                            return (
-                                                                <div key={fieldKey} className="space-y-1">
-                                                                    <Label className="text-xs font-medium">{fieldConfig.label}</Label>
-                                                                    <Select
-                                                                        value={bulkConfig.sharedValues[fieldKey]}
-                                                                        onValueChange={(value) =>
-                                                                            setBulkConfig((prev) => ({
-                                                                                ...prev,
-                                                                                sharedValues: {
-                                                                                    ...prev.sharedValues,
-                                                                                    [fieldKey]: value,
-                                                                                },
-                                                                            }))
-                                                                        }
-                                                                    >
-                                                                        <SelectTrigger className="h-8 text-xs">
-                                                                            <SelectValue placeholder="Select recipient" />
-                                                                        </SelectTrigger>
-                                                                        <SelectContent>
-                                                                            {submitToOptions.map((option) => (
-                                                                                <SelectItem key={option} value={option} className="text-xs">
-                                                                                    {option}
-                                                                                </SelectItem>
-                                                                            ))}
-                                                                        </SelectContent>
-                                                                    </Select>
-                                                                </div>
-                                                            );
-                                                        }
-
-                                                        if (fieldKey === 'terms_of_payment') {
-                                                            return (
-                                                                <div key={fieldKey} className="space-y-1">
-                                                                    <Label className="text-xs font-medium">{fieldConfig.label}</Label>
-                                                                    <Select
-                                                                        value={bulkConfig.sharedValues[fieldKey]}
-                                                                        onValueChange={(value) =>
-                                                                            setBulkConfig((prev) => ({
-                                                                                ...prev,
-                                                                                sharedValues: {
-                                                                                    ...prev.sharedValues,
-                                                                                    [fieldKey]: value,
-                                                                                },
-                                                                            }))
-                                                                        }
-                                                                    >
-                                                                        <SelectTrigger className="h-8 text-xs">
-                                                                            <SelectValue placeholder="Select terms" />
-                                                                        </SelectTrigger>
-                                                                        <SelectContent>
-                                                                            {paymentTermsOptions.map((option) => (
-                                                                                <SelectItem
-                                                                                    key={option.value}
-                                                                                    value={option.value}
-                                                                                    className="text-xs"
-                                                                                >
-                                                                                    {option.label}
-                                                                                </SelectItem>
-                                                                            ))}
-                                                                        </SelectContent>
-                                                                    </Select>
-                                                                </div>
-                                                            );
-                                                        }
-
-                                                        // Compact Notes Field
-                                                        if (fieldKey === 'notes') {
-                                                            return (
-                                                                <div key={fieldKey} className="space-y-1 sm:col-span-2 md:col-span-3">
-                                                                    <Label className="text-xs font-medium">{fieldConfig.label}</Label>
-                                                                    <Textarea
-                                                                        value={bulkConfig.sharedValues[fieldKey]}
-                                                                        onChange={(e) =>
-                                                                            setBulkConfig((prev) => ({
-                                                                                ...prev,
-                                                                                sharedValues: {
-                                                                                    ...prev.sharedValues,
-                                                                                    [fieldKey]: e.target.value,
-                                                                                },
-                                                                            }))
-                                                                        }
-                                                                        placeholder="Shared notes for all invoices..."
-                                                                        rows={2}
-                                                                        className="min-h-[60px] resize-none text-xs"
-                                                                    />
-                                                                </div>
-                                                            );
-                                                        }
-
-                                                        return null;
-                                                    })}
-                                                </div>
-                                            </div>
-
-                                            {/* Compact Generate Button */}
-                                            <div className="flex justify-end pt-2">
-                                                <Button
-                                                    type="button"
-                                                    onClick={() => {
-                                                        generateBulkInvoices();
-                                                        // Optionally scroll to the invoice table after generation
-                                                    }}
-                                                    className="h-8 bg-blue-600 px-3 text-sm text-white hover:bg-blue-700"
-                                                >
-                                                    <PlayCircle className="mr-1 h-3 w-3" />
-                                                    Generate {bulkConfig.count} Templates
-                                                </Button>
-                                            </div>
-                                        </div>
-                                    </CardContent>
-                                </Card>
-
+                                <BulkConfiguration
+                                    bulkConfig={bulkConfig}
+                                    setBulkConfig={setBulkConfig}
+                                    generateBulkInvoices={generateBulkInvoices}
+                                    sharedFieldOptions={sharedFieldOptions}
+                                    handleBulkConfigDateSelect={handleBulkConfigDateSelect}
+                                    submitToOptions={submitToOptions}
+                                    paymentTermsOptions={paymentTermsOptions}
+                                    errors={errors}
+                                />
                             )}
 
                             {/* Bulk Mode - Invoice Details Table */}
@@ -931,13 +620,13 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
                                                                             />
                                                                             <span className="absolute inset-y-0 right-2 flex items-center text-xs text-slate-500">
                                                                                 {selectedPO && (
-                                                                                        <span className="font-semibold text-blue-700">
-                                                                                            {calculatePOPercentage(
-                                                                                                invoice.invoice_amount,
-                                                                                                selectedPO.po_amount,
-                                                                                            ).toFixed(0)}
-                                                                                            %
-                                                                                        </span>
+                                                                                    <span className="font-semibold text-blue-700">
+                                                                                        {calculatePOPercentage(
+                                                                                            invoice.invoice_amount,
+                                                                                            selectedPO.po_amount,
+                                                                                        ).toFixed(0)}
+                                                                                        %
+                                                                                    </span>
                                                                                 )}
                                                                             </span>
                                                                         </div>
@@ -1154,7 +843,6 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
                                             </div>
                                         </CardContent>
                                     </Card>
-
                                     <Card className="shadow-sm">
                                         <CardHeader className="pb-3">
                                             <CardTitle className="flex items-center text-lg">
@@ -1282,55 +970,52 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
 
                                                 <div>
                                                     <Label className="text-sm font-medium">Invoice Amount *</Label>
-                                                    <div className="relative mt-1">
-                                                        <Input
-                                                            type="number"
-                                                            step="0.01"
-                                                            min="0"
-                                                            value={singleData.invoice_amount}
-                                                            onChange={(e) =>
-                                                                setSingleData((prev) => ({
-                                                                    ...prev,
-                                                                    invoice_amount: e.target.value,
-                                                                }))
-                                                            }
-                                                            placeholder="0.00"
-                                                            className="pr-16"
-                                                        />
+                                                    <div className="mt-1 space-y-2">
+                                                        <div className="relative">
+                                                            <Input
+                                                                type="number"
+                                                                step="0.01"
+                                                                min="0"
+                                                                value={singleData.invoice_amount}
+                                                                onChange={(e) =>
+                                                                    setSingleData((prev) => ({
+                                                                        ...prev,
+                                                                        invoice_amount: e.target.value,
+                                                                    }))
+                                                                }
+                                                                placeholder="0.00"
+                                                                className="pr-16"
+                                                            />
+                                                            {selectedPO && singleData.invoice_amount && (
+                                                                <div className="absolute top-0 right-1 flex h-10 items-center">
+                                <span className="rounded bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700">
+                                    {calculatePOPercentage(singleData.invoice_amount, selectedPO.po_amount).toFixed(0)}%
+                                </span>
+                                                                </div>
+                                                            )}
+                                                        </div>
+
+                                                        {/* VAT Breakdown */}
                                                         {singleData.invoice_amount && (
-                                                            <div className="absolute top-0 right-1 flex h-10 items-center">
-                                                                <span className="rounded bg-slate-50 px-2 py-1 text-xs text-slate-500">
-                                                                    VAT: ₱{calculateVAT(singleData.invoice_amount).vatAmount.toFixed(0)}
-                                                                </span>
+                                                            <div className="rounded-md border bg-slate-50 p-2">
+                                                                <div className="grid grid-cols-2 gap-2 text-xs">
+                                                                    <div className="flex justify-between">
+                                                                        <span className="text-slate-600">Vatable Amount:</span>
+                                                                        <span className="font-medium">
+                                        ₱{calculateVAT(singleData.invoice_amount).vatableAmount.toFixed(2)}
+                                    </span>
+                                                                    </div>
+                                                                    <div className="flex justify-between">
+                                                                        <span className="text-slate-600">VAT (12%):</span>
+                                                                        <span className="font-medium">
+                                        ₱{calculateVAT(singleData.invoice_amount).vatAmount.toFixed(2)}
+                                    </span>
+                                                                    </div>
+                                                                </div>
                                                             </div>
                                                         )}
                                                     </div>
                                                     {errors.invoice_amount && <p className="mt-1 text-xs text-red-600">{errors.invoice_amount}</p>}
-                                                </div>
-
-                                                <div>
-                                                    <Label className="text-sm font-medium">Due Date</Label>
-                                                    <Popover>
-                                                        <PopoverTrigger asChild>
-                                                            <Button
-                                                                variant="outline"
-                                                                className={cn(
-                                                                    'mt-1 w-full justify-start text-left font-normal',
-                                                                    !singleData.due_date && 'text-slate-500',
-                                                                )}
-                                                            >
-                                                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                                                {singleData.due_date ? format(new Date(singleData.due_date), 'PPP') : 'Select date'}
-                                                            </Button>
-                                                        </PopoverTrigger>
-                                                        <PopoverContent className="w-auto p-0">
-                                                            <Calendar
-                                                                mode="single"
-                                                                selected={singleData.due_date ? new Date(singleData.due_date) : undefined}
-                                                                onSelect={(date) => handleDateSelect('due_date', date)}
-                                                            />
-                                                        </PopoverContent>
-                                                    </Popover>
                                                 </div>
 
                                                 <div>
@@ -1361,7 +1046,7 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
                                                 </div>
 
                                                 {singleData.terms_of_payment === 'others' && (
-                                                    <div>
+                                                    <div className="md:col-span-2">
                                                         <Label className="text-sm font-medium">Specify Other Terms *</Label>
                                                         <Input
                                                             value={singleData.other_payment_terms}
@@ -1402,6 +1087,33 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
                                                                 mode="single"
                                                                 selected={singleData.si_received_at ? new Date(singleData.si_received_at) : undefined}
                                                                 onSelect={(date) => handleDateSelect('si_received_at', date)}
+                                                            />
+                                                        </PopoverContent>
+                                                    </Popover>
+                                                </div>
+
+                                                <div>
+                                                    <Label className="text-sm font-medium">Due Date</Label>
+                                                    <Popover>
+                                                        <PopoverTrigger asChild>
+                                                            <Button
+                                                                variant="outline"
+                                                                className={cn(
+                                                                    'mt-1 w-full justify-start text-left font-normal',
+                                                                    !singleData.due_date && 'text-slate-500',
+                                                                )}
+                                                            >
+                                                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                                                {singleData.due_date ? format(new Date(singleData.due_date), 'PPP') : 'Select date'}
+                                                            </Button>
+                                                        </PopoverTrigger>
+                                                        <PopoverContent className="w-auto p-0">
+                                                            <Calendar
+                                                                mode="single"
+                                                                captionLayout="dropdown"
+                                                                className="w-56"
+                                                                selected={singleData.due_date ? new Date(singleData.due_date) : undefined}
+                                                                onSelect={(date) => handleDateSelect('due_date', date)}
                                                             />
                                                         </PopoverContent>
                                                     </Popover>

@@ -6,6 +6,7 @@ use App\Models\Invoice;
 use App\Models\Project;
 use App\Models\PurchaseOrder;
 use App\Models\Vendor;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -179,7 +180,7 @@ class InvoiceController extends Controller
             'invoices.*.purchase_order_id' => 'required|exists:purchase_orders,id',
             'invoices.*.si_number' => 'required|string|max:255|unique:invoices,si_number',
             'invoices.*.si_date' => 'required|date',
-            'invoices.*.received_date' => 'nullable|date',
+            'invoices.*.si_received_at' => 'required|date',
             'invoices.*.invoice_amount' => 'required|numeric|min:0',
             'invoices.*.tax_amount' => 'nullable|numeric|min:0',
             'invoices.*.discount_amount' => 'nullable|numeric|min:0',
@@ -193,17 +194,19 @@ class InvoiceController extends Controller
         $createdInvoices = [];
 
         foreach ($validated['invoices'] as $invoiceData) {
+
             // Extract and remove files from validation
             $files = $invoiceData['files'] ?? [];
             unset($invoiceData['files']);
 
             // Add computed fields
             $invoiceData['net_amount'] = $invoiceData['invoice_amount'];
-
+            if ($invoiceData['due_date'] == null) {
+                $invoiceData['due_date'] = Carbon::parse($invoiceData['si_received_at'])->addDays(30);
+            }
             // Create invoice
             $invoice = Invoice::create([
                 ...$invoiceData,
-                'si_received_at' => now(),
                 'created_by' => auth()->id(),
             ]);
 

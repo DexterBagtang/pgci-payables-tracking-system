@@ -83,3 +83,5 @@ export const parseFormattedNumber = (value) => {
     return value.toString().replace(/,/g, '');
 };
 
+
+
