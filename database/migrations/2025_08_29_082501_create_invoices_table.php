@@ -23,11 +23,16 @@ return new class extends Migration
             $table->decimal('tax_amount', 15, 2)->default(0);
             $table->decimal('discount_amount', 15, 2)->default(0);
             $table->decimal('net_amount', 15, 2);
-            $table->enum('invoice_status', ['received', 'in_progress', 'approved', 'rejected', 'paid', 'overdue'])->default('received');
+            $table->string('terms_of_payment')->nullable();
+            $table->string('other_payment_terms')->nullable();
+            $table->enum('invoice_status', ['pending','received', 'in_progress', 'approved', 'rejected', 'paid', 'overdue'])->default('pending');
             $table->date('due_date')->nullable();
             $table->text('notes')->nullable();
+            $table->date('files_received_at')->nullable();
             $table->date('submitted_at')->nullable();
             $table->string('submitted_to')->nullable();
+            $table->unsignedBigInteger('reviewed_by')->nullable();
+            $table->timestamp('reviewed_at')->nullable();
             $table->foreignId('created_by')->constrained('users')->onDelete('cascade');
             $table->timestamps();
 
