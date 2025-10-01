@@ -29,6 +29,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('invoices', InvoiceController::class)->except(['update']);
     Route::post('invoices/{invoice}', [InvoiceController::class, 'update'])->name('invoices.update');
     Route::post('invoices/{invoice}/review', [InvoiceController::class, 'review'])->name('invoices.review');
+    Route::get('/invoice/bulk-review', [InvoiceController::class, 'bulkReview'])->name('invoices.bulk-review');
+
+    Route::post('/invoice/bulk-mark-received', [InvoiceController::class, 'bulkMarkReceived'])->name('invoices.bulk-mark-received');
+    Route::post('/invoice/bulk-approve', [InvoiceController::class, 'bulkApprove'])->name('invoices.bulk-approve');
+    Route::post('/invoice/bulk-reject', [InvoiceController::class, 'bulkReject'])->name('invoices.bulk-reject');
+
 
 
     Route::resource('check-requisitions', CheckRequisitionController::class);

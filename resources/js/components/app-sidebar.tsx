@@ -5,7 +5,17 @@ import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, Sid
 import { dashboard } from '@/routes';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
-import { BookOpen, Building, Files, Folder, FolderKanban, LayoutGrid, Receipt, Warehouse } from 'lucide-react';
+import {
+    BookOpen,
+    Building,
+    Files,
+    Folder,
+    FolderKanban,
+    LayoutGrid,
+    Receipt,
+    ScanSearch,
+    Warehouse
+} from 'lucide-react';
 import AppLogo from './app-logo';
 
 const mainNavItems: NavItem[] = [
@@ -34,6 +44,11 @@ const mainNavItems: NavItem[] = [
         href: '/invoices',
         icon: Receipt,
     },
+    {
+        title:'Review',
+        href: '/invoice/bulk-review',
+        icon: ScanSearch,
+    }
 ];
 
 const footerNavItems: NavItem[] = [

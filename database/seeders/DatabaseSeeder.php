@@ -33,12 +33,12 @@ class DatabaseSeeder extends Seeder
             'password' => Hash::make('payablesadmin2025'),
         ]);
 
-//        $this->call([
-//            VendorSeeder::class,
-//            ProjectSeeder::class,
-//            PurchaseOrderSeeder::class,
+        $this->call([
+            VendorSeeder::class,
+            ProjectSeeder::class,
+            PurchaseOrderSeeder::class,
 //            InvoiceSeeder::class,
-//        ]);
+        ]);
 
 
 

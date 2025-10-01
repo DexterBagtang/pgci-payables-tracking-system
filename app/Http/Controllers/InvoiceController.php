@@ -2,14 +2,18 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ActivityLog;
 use App\Models\Invoice;
 use App\Models\Project;
 use App\Models\PurchaseOrder;
+use App\Models\Remark;
 use App\Models\Vendor;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class InvoiceController extends Controller
 {
@@ -19,10 +23,11 @@ class InvoiceController extends Controller
     public function index(Request $request)
     {
         $query = Invoice::with([
-            'purchaseOrder.project',
-            'purchaseOrder.vendor'
+            'purchaseOrder' => function ($q) {
+                $q->with(['project', 'vendor']);
+            }
         ])
-            ->select('invoices.*')
+        ->select('invoices.*')
             ->leftJoin('purchase_orders', 'purchase_orders.id', '=', 'invoices.purchase_order_id');
 
         if ($request->has('search')) {
@@ -105,7 +110,7 @@ class InvoiceController extends Controller
     public function create()
     {
         return inertia('invoices/create', [
-            'purchaseOrders' => PurchaseOrder::with(['project', 'vendor'])->get(),
+            'purchaseOrders' => PurchaseOrder::with(['project', 'vendor'])->where('po_status','open')->get(),
         ]);
     }
 
@@ -175,21 +180,64 @@ class InvoiceController extends Controller
     public function store(Request $request)
     {
 //        dd($request->all());
-        $validated = $request->validate([
+//        $validated = $request->validate([
+//            'invoices' => 'required|array|min:1',
+//            'invoices.*.purchase_order_id' => 'required|exists:purchase_orders,id',
+//            'invoices.*.si_number' => 'required|string|max:255|unique:invoices,si_number',
+//            'invoices.*.si_date' => 'required|date',
+//            'invoices.*.si_received_at' => 'required|date',
+//            'invoices.*.invoice_amount' => 'required|numeric|min:0',
+//            'invoices.*.tax_amount' => 'nullable|numeric|min:0',
+//            'invoices.*.discount_amount' => 'nullable|numeric|min:0',
+//            'invoices.*.terms_of_payment' => 'required|string',
+//            'invoices.*.other_payment_terms' => 'nullable|string',
+//            'invoices.*.due_date' => 'nullable|date',
+//            'invoices.*.notes' => 'nullable|string',
+//            'invoices.*.submitted_at' => 'nullable|date',
+//            'invoices.*.submitted_to' => 'nullable|string|max:255',
+//            'invoices.*.files.*' => 'file|max:10240|mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png',
+//        ]);
+
+        $validator = Validator::make($request->all(), [
             'invoices' => 'required|array|min:1',
             'invoices.*.purchase_order_id' => 'required|exists:purchase_orders,id',
-            'invoices.*.si_number' => 'required|string|max:255|unique:invoices,si_number',
+            'invoices.*.si_number' => 'required|string|max:255',
             'invoices.*.si_date' => 'required|date',
             'invoices.*.si_received_at' => 'required|date',
             'invoices.*.invoice_amount' => 'required|numeric|min:0',
             'invoices.*.tax_amount' => 'nullable|numeric|min:0',
             'invoices.*.discount_amount' => 'nullable|numeric|min:0',
+            'invoices.*.terms_of_payment' => 'required|string',
+            'invoices.*.other_payment_terms' => 'nullable|string',
             'invoices.*.due_date' => 'nullable|date',
             'invoices.*.notes' => 'nullable|string',
             'invoices.*.submitted_at' => 'nullable|date',
             'invoices.*.submitted_to' => 'nullable|string|max:255',
             'invoices.*.files.*' => 'file|max:10240|mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png',
         ]);
+
+        $validator->after(function ($validator) use ($request) {
+            $invoices = $request->input('invoices', []);
+
+            foreach ($invoices as $index => $invoice) {
+                $exists = \App\Models\Invoice::where('purchase_order_id', $invoice['purchase_order_id'])
+                    ->where('si_number', $invoice['si_number'])
+                    ->exists();
+
+                if ($exists) {
+                    $validator->errors()->add(
+                        "invoices.{$index}.si_number",
+                        "The SI number already exists for this purchase order."
+                    );
+                }
+            }
+        });
+
+        if ($validator->fails()) {
+            return redirect()->back()->withErrors($validator)->withInput();
+        }
+
+        $validated = $validator->validated();
 
         $createdInvoices = [];
 
@@ -207,6 +255,7 @@ class InvoiceController extends Controller
             // Create invoice
             $invoice = Invoice::create([
                 ...$invoiceData,
+                'invoice_status' => 'pending',
                 'created_by' => auth()->id(),
             ]);
 
@@ -368,5 +417,261 @@ class InvoiceController extends Controller
         ]);
 
         return back()->with('success', 'Invoice reviewed successfully!');
+    }
+
+    public function bulkReview(Request $request)
+    {
+        $query = Invoice::with([
+            'purchaseOrder' => function ($q) {
+                $q->with(['project', 'vendor']);
+            },
+            'files'
+        ])
+            ->select('invoices.*')
+            ->leftJoin('purchase_orders', 'purchase_orders.id', '=', 'invoices.purchase_order_id');
+
+        // Search
+        if ($request->has('search')) {
+            $query->where(function ($query) use ($request) {
+                $query->where('si_number', 'like', '%' . $request->search . '%')
+                    ->orWhereHas('purchaseOrder.project', function ($q) use ($request) {
+                        $q->where('project_title', 'like', '%' . $request->search . '%')
+                            ->orWhere('cer_number', 'like', '%' . $request->search . '%');
+                    })
+                    ->orWhereHas('purchaseOrder.vendor', function ($q) use ($request) {
+                        $q->where('name', 'like', '%' . $request->search . '%');
+                    })
+                    ->orWhereHas('purchaseOrder', function ($q) use ($request) {
+                        $q->where('po_number', 'like', '%' . $request->search . '%');
+                    });
+            });
+        }
+
+        // Vendor filter
+        if ($request->has('vendor') && $request->vendor !== 'all') {
+            $query->whereHas('purchaseOrder', function ($q) use ($request) {
+                $q->where('vendor_id', $request->vendor);
+            });
+        }
+
+        // Status filter
+        if ($request->has('status') && $request->status !== 'all') {
+            $query->where('invoice_status', $request->status);
+        }
+
+        // Date range filter
+        if ($request->has('date_from')) {
+            $query->where('si_date', '>=', $request->date_from);
+        }
+        if ($request->has('date_to')) {
+            $query->where('si_date', '<=', $request->date_to);
+        }
+
+        // Sorting
+        $sortField = $request->get('sort_field', 'created_at');
+        $sortDirection = $request->get('sort_direction', 'desc');
+
+        $sortMapping = [
+            'si_number' => 'si_number',
+            'created_at' => 'invoices.created_at',
+        ];
+
+        if (array_key_exists($sortField, $sortMapping)) {
+            $query->orderBy($sortMapping[$sortField], $sortDirection);
+        } else {
+            $query->orderBy('invoices.created_at', 'desc');
+        }
+
+        $perPage = $request->get('per_page', 10);
+        $perPage = in_array($perPage, [10, 15, 25, 50]) ? $perPage : 10;
+
+        $invoices = $query->paginate($perPage);
+        $invoices->appends($request->query());
+
+        $vendors = Vendor::where('is_active', true)->orderBy('name')->get(['id', 'name']);
+
+        return inertia('invoices/bulk-review', [
+            'invoices' => $invoices,
+            'filters' => [
+                'search' => $request->get('search', ''),
+                'sort_field' => $request->get('sort_field', 'created_at'),
+                'vendor' => $request->vendor !== 'all' ? (int)$request->vendor : 'all',
+                'status' => $request->status !== 'all' ? $request->status : 'all',
+                'sort_direction' => $request->get('sort_direction', 'desc'),
+                'date_from' => $request->get('date_from'),
+                'date_to' => $request->get('date_to'),
+                'per_page' => $request->get('per_page', 10),
+            ],
+            'filterOptions' => [
+                'vendors' => $vendors,
+            ],
+        ]);
+    }
+
+    // Bulk Mark Files Received
+    public function bulkMarkReceived(Request $request)
+    {
+        $request->validate([
+            'invoice_ids' => 'required|array',
+            'invoice_ids.*' => 'exists:invoices,id',
+            'notes' => 'nullable|string|max:1000',
+        ]);
+
+        DB::beginTransaction();
+
+        try {
+            $updated = Invoice::whereIn('id', $request->invoice_ids)
+                ->update([
+                    'files_received_at' => now(),
+                    'invoice_status' => 'received',
+                    'updated_at' => now(),
+                ]);
+
+            // Log activity for each invoice
+            foreach ($request->invoice_ids as $invoiceId) {
+                ActivityLog::create([
+                    'loggable_type' => 'App\Models\Invoice',
+                    'loggable_id' => $invoiceId,
+                    'action' => 'bulk_mark_received',
+                    'changes' => json_encode([
+                        'files_received_at' => now(),
+                        'invoice_status' => 'received',
+                    ]),
+                    'user_id' => auth()->id(),
+                    'ip_address' => $request->ip(),
+                    'notes' => $request->notes,
+                ]);
+            }
+
+            DB::commit();
+
+            return redirect()->back()->with('success', "Successfully marked {$updated} invoice(s) as received.");
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->back()->with('error', 'Failed to update invoices: ' . $e->getMessage());
+        }
+    }
+
+// Bulk Approve
+    public function bulkApprove(Request $request)
+    {
+        $request->validate([
+            'invoice_ids' => 'required|array',
+            'invoice_ids.*' => 'exists:invoices,id',
+            'notes' => 'nullable|string|max:1000',
+        ]);
+
+        DB::beginTransaction();
+
+        try {
+            // Validate all invoices have files received
+            $invalidInvoices = Invoice::whereIn('id', $request->invoice_ids)
+                ->whereNull('files_received_at')
+                ->count();
+
+            if ($invalidInvoices > 0) {
+                throw ValidationException::withMessages([
+                    'invoice_ids' => ["{$invalidInvoices} invoice(s) don't have files received yet. Mark them as received first before approving."],
+                ]);
+            }
+
+            $updated = Invoice::whereIn('id', $request->invoice_ids)
+                ->update([
+                    'invoice_status' => 'approved',
+                    'reviewed_by' => auth()->id(),
+                    'reviewed_at' => now(),
+                    'updated_at' => now(),
+                ]);
+
+            // Add remarks if provided
+            if ($request->notes) {
+                foreach ($request->invoice_ids as $invoiceId) {
+                    Remark::create([
+                        'remarkable_type' => 'App\Models\Invoice',
+                        'remarkable_id' => $invoiceId,
+                        'remark_text' => $request->notes,
+                        'created_by' => auth()->id(),
+                    ]);
+                }
+            }
+
+            // Log activity
+            foreach ($request->invoice_ids as $invoiceId) {
+                ActivityLog::create([
+                    'loggable_type' => 'App\Models\Invoice',
+                    'loggable_id' => $invoiceId,
+                    'action' => 'bulk_approve',
+                    'changes' => json_encode([
+                        'invoice_status' => 'approved',
+                        'reviewed_by' => auth()->id(),
+                        'reviewed_at' => now(),
+                    ]),
+                    'user_id' => auth()->id(),
+                    'ip_address' => $request->ip(),
+                    'notes' => $request->notes,
+                ]);
+            }
+
+            DB::commit();
+
+            return redirect()->back()->with('success', "Successfully approved {$updated} invoice(s).");
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withErrors(['Failed to approve invoices: '. $e->getMessage()]);
+//            return redirect()->back()->with('error', 'Failed to approve invoices: ' . $e->getMessage());
+        }
+    }
+
+// Bulk Reject
+    public function bulkReject(Request $request)
+    {
+        $request->validate([
+            'invoice_ids' => 'required|array',
+            'invoice_ids.*' => 'exists:invoices,id',
+            'notes' => 'required|string|max:1000',
+        ]);
+
+        DB::beginTransaction();
+
+        try {
+            $updated = Invoice::whereIn('id', $request->invoice_ids)
+                ->update([
+                    'invoice_status' => 'rejected',
+                    'reviewed_by' => auth()->id(),
+                    'reviewed_at' => now(),
+                    'updated_at' => now(),
+                ]);
+
+            // Add rejection remarks (required)
+            foreach ($request->invoice_ids as $invoiceId) {
+                Remark::create([
+                    'remarkable_type' => 'App\Models\Invoice',
+                    'remarkable_id' => $invoiceId,
+                    'remark_text' => 'REJECTION: ' . $request->notes,
+                    'created_by' => auth()->id(),
+                ]);
+
+                ActivityLog::create([
+                    'loggable_type' => 'App\Models\Invoice',
+                    'loggable_id' => $invoiceId,
+                    'action' => 'bulk_reject',
+                    'changes' => json_encode([
+                        'invoice_status' => 'rejected',
+                        'reviewed_by' => auth()->id(),
+                        'reviewed_at' => now(),
+                    ]),
+                    'user_id' => auth()->id(),
+                    'ip_address' => $request->ip(),
+                    'notes' => $request->notes,
+                ]);
+            }
+
+            DB::commit();
+
+            return redirect()->back()->with('warning', "Rejected {$updated} invoice(s). Reason: {$request->notes}");
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->back()->with('error', 'Failed to reject invoices: ' . $e->getMessage());
+        }
     }
 }

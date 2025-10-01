@@ -33,8 +33,9 @@ const InvoiceReview = ({
                        }) => {
     const [showReviewDialog, setShowReviewDialog] = useState(false);
 
+    console.log(activityLogs);
     // Filter review logs
-    const reviewLogs = activityLogs ? activityLogs.filter(log => ['approved', 'rejected'].includes(log.action)) : [];
+    const reviewLogs = activityLogs ? activityLogs.filter(log => ['approved', 'rejected','bulk_reject'].includes(log.action)) : [];
     const latestReview = reviewLogs.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
 
     if (!canReviewInvoice) {

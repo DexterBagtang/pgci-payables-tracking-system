@@ -1,13 +1,6 @@
 import { Button } from '@/components/ui/button';
-import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table.js';
-import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import BulkConfiguration from '@/pages/invoices/components/create/BulkConfiguration.jsx';
 import PurchaseOrderSelection from '@/pages/invoices/components/create/PurchaseOrderSelection.jsx';
@@ -21,15 +14,18 @@ import {
     Copy,
     Eye,
     FileStack,
-    FileText,
+    FileText, Loader,
     Plus,
     Receipt,
     Settings,
     Trash2,
     Upload,
-    X,
+    X
 } from 'lucide-react';
-import { useCallback, useMemo, useState } from 'react';
+import { lazy, Suspense, useCallback, useMemo, useState } from 'react';
+import { toast } from 'sonner';
+const BulkMode = lazy(()=> import('@/pages/invoices/components/create/BulkMode.jsx'));
+const SingleMode = lazy(()=> import('@/pages/invoices/components/create/SingleMode.jsx'));
 
 const CreateInvoice = ({ purchaseOrders = [] }) => {
     const [selectedFiles, setSelectedFiles] = useState([]);
@@ -175,8 +171,8 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
         return (invoice / po) * 100;
     };
 
-    // Submit To options
     const submitToOptions = ['Kimberly Usona', 'Joseph David Maderazo'];
+
 
     // Terms of Payment options
     const paymentTermsOptions = [
@@ -313,6 +309,12 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
             if (bulkConfig.sharedFields.si_received_at && !bulkConfig.sharedValues.si_received_at) {
                 newErrors.si_received_at = 'SI Received Date is required';
             }
+            if (bulkConfig.sharedFields.terms_of_payment && !bulkConfig.sharedValues.terms_of_payment) {
+                newErrors.terms_of_payment = 'Payment terms is required';
+            }
+            if (bulkConfig.sharedValues.terms_of_payment === 'others' && !bulkConfig.sharedValues.other_payment_terms) {
+                newErrors.other_payment_terms = 'Please specify other payment terms';
+            }
             if (bulkConfig.sharedFields.submitted_to && !bulkConfig.sharedValues.submitted_to) {
                 newErrors.submitted_to = 'Submit to is required';
             }
@@ -328,7 +330,7 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
                 if (!invoice.invoice_amount) newErrors[`bulk_${index}_invoice_amount`] = `Invoice ${index + 1}: Amount is required`;
                 if (!bulkConfig.sharedFields.terms_of_payment && !invoice.terms_of_payment)
                     newErrors[`bulk_${index}_terms_of_payment`] = `Invoice ${index + 1}: Payment terms are required`;
-                if (invoice.terms_of_payment === 'others' && !invoice.other_payment_terms) {
+                if (invoice.terms_of_payment === 'others' && !bulkConfig.sharedFields.terms_of_payment && !invoice.other_payment_terms) {
                     newErrors[`bulk_${index}_other_payment_terms`] = `Invoice ${index + 1}: Please specify other payment terms`;
                 }
             });
@@ -337,6 +339,7 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
             if (!singleData.purchase_order_id) newErrors.purchase_order_id = 'Purchase order is required';
             if (!singleData.si_number) newErrors.si_number = 'SI Number is required';
             if (!singleData.si_date) newErrors.si_date = 'SI Date is required';
+            if (!singleData.si_received_at) newErrors.si_received_at = 'SI Received Date is required';
             if (!singleData.invoice_amount) newErrors.invoice_amount = 'Invoice amount is required';
             if (!singleData.submitted_at) newErrors.submitted_at = 'Submission date is required';
             if (!singleData.submitted_to) newErrors.submitted_to = 'Submit to is required';
@@ -383,7 +386,7 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
             {
                 onSuccess: () => {
                     // setProcessing(false);
-                    alert(`${isBulkMode ? bulkInvoices.length : '1'} invoice(s) created successfully!`);
+                    toast.success(`${isBulkMode ? bulkInvoices.length : '1'} invoice(s) created successfully!`);
                     // Reset forms
                     setSingleData({
                         purchase_order_id: '',
@@ -401,7 +404,7 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
                     });
                     setBulkConfig({
                         count: 2,
-                        siPrefix: 'SI-',
+                        siPrefix: '',
                         sharedFields: {
                             purchase_order_id: true,
                             si_date: false,
@@ -429,9 +432,13 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
                     setSelectedFiles([]);
                     setBulkInvoices([]);
                     setBulkConfigured(false);
+                    setProcessing(false);
+
                 },
-                onError: (error) => {
-                    console.log(error);
+                onError: (errors) => {
+                    console.log(errors);
+                    setErrors(errors);
+                    setProcessing(false);
                 }
             },
         );
@@ -498,763 +505,48 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
 
                             {/* Bulk Mode - Invoice Details Table */}
                             {isBulkMode && bulkConfigured && (
-                                <>
-                                    <Card className="shadow-sm">
-                                        <CardHeader className="flex flex-row items-center justify-between pb-3">
-                                            <div>
-                                                <CardTitle className="flex items-center text-lg">
-                                                    <Receipt className="mr-2 h-4 w-4 text-green-600" />
-                                                    Invoice Details ({bulkInvoices.length} items)
-                                                </CardTitle>
-                                                <CardDescription className="text-xs">
-                                                    Enter invoice details. Shared fields are pre-filled.
-                                                </CardDescription>
-                                            </div>
-                                            <Button
-                                                type="button"
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={resetBulkMode}
-                                                className="border-blue-200 text-blue-600 hover:bg-blue-50"
-                                            >
-                                                <Settings className="mr-1 h-3 w-3" />
-                                                Reconfigure
-                                            </Button>
-                                        </CardHeader>
-                                        <CardContent className="p-3">
-                                            {/* Table Container */}
-                                            <div className="rounded-md border">
-                                                <Table>
-                                                    <TableHeader>
-                                                        <TableRow className="bg-slate-100 hover:bg-slate-100">
-                                                            <TableHead className="w-[50px] text-xs font-medium">#</TableHead>
-                                                            <TableHead className="w-[180px] text-xs font-medium">SI Number *</TableHead>
-                                                            {!bulkConfig.sharedFields.si_date && (
-                                                                <TableHead className="text-xs font-medium">SI Date *</TableHead>
-                                                            )}
-                                                            <TableHead className="text-xs font-medium">Amount *</TableHead>
-                                                            <TableHead className="text-center text-xs font-medium">VAT</TableHead>
-                                                            {!bulkConfig.sharedFields.terms_of_payment && (
-                                                                <TableHead className="text-xs font-medium">Payment Terms *</TableHead>
-                                                            )}
-                                                            {!bulkConfig.sharedFields.si_received_at && (
-                                                                <TableHead className="text-xs font-medium">Received Date</TableHead>
-                                                            )}
-                                                            {!bulkConfig.sharedFields.due_date && (
-                                                                <TableHead className="text-xs font-medium">Due Date</TableHead>
-                                                            )}
-                                                            {!bulkConfig.sharedFields.notes && (
-                                                                <TableHead className="text-xs font-medium">Notes</TableHead>
-                                                            )}
-                                                            <TableHead className="w-[80px] text-xs font-medium">Actions</TableHead>
-                                                        </TableRow>
-                                                    </TableHeader>
-                                                    <TableBody>
-                                                        {bulkInvoices.map((invoice, index) => (
-                                                            <TableRow key={index} className="hover:bg-slate-50">
-                                                                {/* Index */}
-                                                                <TableCell className="text-xs font-medium text-slate-600">{index + 1}</TableCell>
+                                <Suspense fallback={<Loader className="animate-spin text-center" />}>
+                                    <BulkMode
+                                        bulkInvoices={bulkInvoices}
+                                        resetBulkMode={resetBulkMode}
+                                        bulkConfig={bulkConfig}
+                                        updateBulkInvoice={updateBulkInvoice}
+                                        errors={errors}
+                                        handleBulkInvoiceFileChange={handleBulkInvoiceFileChange}
+                                        handleBulkDateSelect={handleBulkDateSelect}
+                                        paymentTermsOptions={paymentTermsOptions}
+                                        duplicateBulkInvoice={duplicateBulkInvoice}
+                                        deleteBulkInvoice={deleteBulkInvoice}
+                                        createEmptyInvoice={createEmptyInvoice}
+                                        setBulkInvoices={setBulkInvoices}
+                                        sharedFieldOptions={sharedFieldOptions}
+                                        selectedPO={selectedPO}
+                                        calculatePOPercentage={calculatePOPercentage}
+                                        calculateVAT={calculateVAT}
+                                    />
+                                </Suspense>
 
-                                                                {/* SI Number */}
-                                                                <TableCell>
-                                                                    <Input
-                                                                        value={invoice.si_number}
-                                                                        onChange={(e) => updateBulkInvoice(index, 'si_number', e.target.value)}
-                                                                        placeholder={`${bulkConfig.siPrefix}${String(index + 1).padStart(3, '0')}`}
-                                                                        className="h-8 text-xs"
-                                                                    />
-                                                                    {errors[`bulk_${index}_si_number`] && (
-                                                                        <p className="mt-1 text-xs text-red-600">
-                                                                            {errors[`bulk_${index}_si_number`]}
-                                                                        </p>
-                                                                    )}
-                                                                </TableCell>
-
-                                                                {/* SI Date */}
-                                                                {!bulkConfig.sharedFields.si_date && (
-                                                                    <TableCell>
-                                                                        <Popover>
-                                                                            <PopoverTrigger asChild>
-                                                                                <Button
-                                                                                    variant="outline"
-                                                                                    className={cn(
-                                                                                        'h-8 w-full justify-start text-xs',
-                                                                                        !invoice.si_date && 'text-slate-400',
-                                                                                    )}
-                                                                                >
-                                                                                    <CalendarIcon className="mr-1 h-3 w-3" />
-                                                                                    {invoice.si_date
-                                                                                        ? format(new Date(invoice.si_date), 'MMM d')
-                                                                                        : 'Date'}
-                                                                                </Button>
-                                                                            </PopoverTrigger>
-                                                                            <PopoverContent className="w-auto p-0">
-                                                                                <Calendar
-                                                                                    mode="single"
-                                                                                    selected={invoice.si_date ? new Date(invoice.si_date) : undefined}
-                                                                                    onSelect={(date) => handleBulkDateSelect(index, 'si_date', date)}
-                                                                                />
-                                                                            </PopoverContent>
-                                                                        </Popover>
-                                                                        {errors[`bulk_${index}_si_date`] && (
-                                                                            <p className="mt-1 text-xs text-red-600">
-                                                                                {errors[`bulk_${index}_si_date`]}
-                                                                            </p>
-                                                                        )}
-                                                                    </TableCell>
-                                                                )}
-
-                                                                {/* Invoice Amount */}
-                                                                <TableCell>
-                                                                    <div className="space-y-1">
-                                                                        <div className="relative">
-                                                                            <Input
-                                                                                type="number"
-                                                                                step="0.01"
-                                                                                value={invoice.invoice_amount}
-                                                                                onChange={(e) =>
-                                                                                    updateBulkInvoice(index, 'invoice_amount', e.target.value)
-                                                                                }
-                                                                                placeholder="0.00"
-                                                                                className="h-8 pr-9 text-xs" // add padding-right so text doesn't overlap
-                                                                            />
-                                                                            <span className="absolute inset-y-0 right-2 flex items-center text-xs text-slate-500">
-                                                                                {selectedPO && (
-                                                                                    <span className="font-semibold text-blue-700">
-                                                                                        {calculatePOPercentage(
-                                                                                            invoice.invoice_amount,
-                                                                                            selectedPO.po_amount,
-                                                                                        ).toFixed(0)}
-                                                                                        %
-                                                                                    </span>
-                                                                                )}
-                                                                            </span>
-                                                                        </div>
-                                                                    </div>
-                                                                    {errors[`bulk_${index}_invoice_amount`] && (
-                                                                        <p className="mt-1 text-xs text-red-600">
-                                                                            {errors[`bulk_${index}_invoice_amount`]}
-                                                                        </p>
-                                                                    )}
-                                                                </TableCell>
-                                                                <TableCell className="align-top">
-                                                                    <div className="space-y-0.5 rounded-md border bg-slate-50 p-1 text-[11px] leading-tight text-slate-700">
-                                                                        <div className="flex justify-between">
-                                                                            <span className="text-slate-500">Ex:</span>
-                                                                            <span className="font-medium">
-                                                                                ₱{calculateVAT(invoice.invoice_amount).vatableAmount.toFixed(2)}
-                                                                            </span>
-                                                                        </div>
-                                                                        <div className="flex justify-between">
-                                                                            <span className="text-slate-500">VAT:</span>
-                                                                            <span className="font-medium">
-                                                                                ₱{calculateVAT(invoice.invoice_amount).vatAmount.toFixed(2)}
-                                                                            </span>
-                                                                        </div>
-                                                                    </div>
-                                                                </TableCell>
-
-                                                                {/* Payment Terms */}
-                                                                {!bulkConfig.sharedFields.terms_of_payment && (
-                                                                    <TableCell>
-                                                                        <Select
-                                                                            value={invoice.terms_of_payment}
-                                                                            onValueChange={(value) =>
-                                                                                updateBulkInvoice(index, 'terms_of_payment', value)
-                                                                            }
-                                                                        >
-                                                                            <SelectTrigger className="h-8 text-xs">
-                                                                                <SelectValue placeholder="Terms" />
-                                                                            </SelectTrigger>
-                                                                            <SelectContent>
-                                                                                {paymentTermsOptions.map((option) => (
-                                                                                    <SelectItem
-                                                                                        key={option.value}
-                                                                                        value={option.value}
-                                                                                        className="text-xs"
-                                                                                    >
-                                                                                        {option.label}
-                                                                                    </SelectItem>
-                                                                                ))}
-                                                                            </SelectContent>
-                                                                        </Select>
-                                                                        {invoice.terms_of_payment === 'others' && (
-                                                                            <Input
-                                                                                value={invoice.other_payment_terms}
-                                                                                onChange={(e) =>
-                                                                                    updateBulkInvoice(index, 'other_payment_terms', e.target.value)
-                                                                                }
-                                                                                placeholder="Specify terms"
-                                                                                className="mt-1 h-6 text-xs"
-                                                                            />
-                                                                        )}
-                                                                        {errors[`bulk_${index}_terms_of_payment`] && (
-                                                                            <p className="mt-1 text-xs text-red-600">
-                                                                                {errors[`bulk_${index}_terms_of_payment`]}
-                                                                            </p>
-                                                                        )}
-                                                                    </TableCell>
-                                                                )}
-
-                                                                {/* SI Received Date */}
-                                                                {!bulkConfig.sharedFields.si_received_at && (
-                                                                    <TableCell>
-                                                                        <Popover>
-                                                                            <PopoverTrigger asChild>
-                                                                                <Button
-                                                                                    variant="outline"
-                                                                                    className={cn(
-                                                                                        'h-8 w-full justify-start text-xs',
-                                                                                        !invoice.si_received_at && 'text-slate-400',
-                                                                                    )}
-                                                                                >
-                                                                                    <CalendarIcon className="mr-1 h-3 w-3" />
-                                                                                    {invoice.si_received_at
-                                                                                        ? format(new Date(invoice.si_received_at), 'MMM d')
-                                                                                        : 'Received'}
-                                                                                </Button>
-                                                                            </PopoverTrigger>
-                                                                            <PopoverContent className="w-auto p-0">
-                                                                                <Calendar
-                                                                                    mode="single"
-                                                                                    selected={
-                                                                                        invoice.si_received_at
-                                                                                            ? new Date(invoice.si_received_at)
-                                                                                            : undefined
-                                                                                    }
-                                                                                    onSelect={(date) =>
-                                                                                        handleBulkDateSelect(index, 'si_received_at', date)
-                                                                                    }
-                                                                                />
-                                                                            </PopoverContent>
-                                                                        </Popover>
-                                                                    </TableCell>
-                                                                )}
-
-                                                                {/* Due Date */}
-                                                                {!bulkConfig.sharedFields.due_date && (
-                                                                    <TableCell>
-                                                                        <Popover>
-                                                                            <PopoverTrigger asChild>
-                                                                                <Button
-                                                                                    variant="outline"
-                                                                                    className={cn(
-                                                                                        'h-8 w-full justify-start text-xs',
-                                                                                        !invoice.due_date && 'text-slate-400',
-                                                                                    )}
-                                                                                >
-                                                                                    <CalendarIcon className="mr-1 h-3 w-3" />
-                                                                                    {invoice.due_date
-                                                                                        ? format(new Date(invoice.due_date), 'MMM d')
-                                                                                        : 'Due'}
-                                                                                </Button>
-                                                                            </PopoverTrigger>
-                                                                            <PopoverContent className="w-auto p-0">
-                                                                                <Calendar
-                                                                                    mode="single"
-                                                                                    selected={
-                                                                                        invoice.due_date ? new Date(invoice.due_date) : undefined
-                                                                                    }
-                                                                                    onSelect={(date) => handleBulkDateSelect(index, 'due_date', date)}
-                                                                                />
-                                                                            </PopoverContent>
-                                                                        </Popover>
-                                                                    </TableCell>
-                                                                )}
-
-                                                                {/* Notes */}
-                                                                {!bulkConfig.sharedFields.notes && (
-                                                                    <TableCell>
-                                                                        <Input
-                                                                            value={invoice.notes || ''}
-                                                                            onChange={(e) => updateBulkInvoice(index, 'notes', e.target.value)}
-                                                                            placeholder="Invoice notes..."
-                                                                            className="h-8 text-xs"
-                                                                        />
-                                                                    </TableCell>
-                                                                )}
-
-                                                                {/* Actions */}
-                                                                <TableCell>
-                                                                    <div className="flex items-center gap-1">
-                                                                        <Button
-                                                                            type="button"
-                                                                            variant="ghost"
-                                                                            size="sm"
-                                                                            onClick={() => duplicateBulkInvoice(index)}
-                                                                            className="h-6 w-6 p-0"
-                                                                            title="Duplicate"
-                                                                        >
-                                                                            <Copy className="h-3 w-3 text-blue-600" />
-                                                                        </Button>
-                                                                        {bulkInvoices.length > 1 && (
-                                                                            <Button
-                                                                                type="button"
-                                                                                variant="ghost"
-                                                                                size="sm"
-                                                                                onClick={() => deleteBulkInvoice(index)}
-                                                                                className="h-6 w-6 p-0"
-                                                                                title="Delete"
-                                                                            >
-                                                                                <Trash2 className="h-3 w-3 text-red-600" />
-                                                                            </Button>
-                                                                        )}
-                                                                    </div>
-                                                                </TableCell>
-                                                            </TableRow>
-                                                        ))}
-                                                    </TableBody>
-                                                </Table>
-                                            </div>
-
-                                            {/* Add Invoice Button */}
-                                            <div className="mt-3 flex justify-center">
-                                                <Button
-                                                    type="button"
-                                                    variant="outline"
-                                                    size="sm"
-                                                    onClick={() => {
-                                                        setBulkInvoices((prev) => [...prev, createEmptyInvoice(prev.length)]);
-                                                    }}
-                                                    className="border-blue-200 text-blue-600 hover:bg-blue-50"
-                                                >
-                                                    <Plus className="mr-1 h-3 w-3" />
-                                                    Add Row
-                                                </Button>
-                                            </div>
-
-                                            {/* Shared Configuration Summary */}
-                                            <div className="mt-4 rounded border bg-blue-50 p-3">
-                                                <h4 className="mb-2 text-sm font-medium text-blue-800">Shared Configuration Summary</h4>
-                                                <div className="grid grid-cols-2 gap-2 text-xs text-blue-700 md:grid-cols-4">
-                                                    {Object.entries(bulkConfig.sharedFields)
-                                                        .filter(([_, isShared]) => isShared)
-                                                        .map(([field, _]) => {
-                                                            const fieldConfig = sharedFieldOptions.find((f) => f.key === field);
-                                                            if (!fieldConfig) return null;
-                                                            return (
-                                                                <div key={field} className="flex items-center">
-                                                                    <Check className="mr-1 h-3 w-3 text-green-600" />
-                                                                    <span>{fieldConfig.label}</span>
-                                                                </div>
-                                                            );
-                                                        })}
-                                                </div>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-                                    <Card className="shadow-sm">
-                                        <CardHeader className="pb-3">
-                                            <CardTitle className="flex items-center text-lg">
-                                                <Upload className="mr-2 h-4 w-4 text-orange-600" />
-                                                Individual Invoice Attachments
-                                            </CardTitle>
-                                            <CardDescription className="text-sm">Each invoice can have separate attachments</CardDescription>
-                                        </CardHeader>
-                                        <CardContent>
-                                            <div className="max-h-96 space-y-4 overflow-y-auto">
-                                                {bulkInvoices.map((invoice, index) => (
-                                                    <div key={index} className="rounded border p-3">
-                                                        <div className="mb-2 flex items-center justify-between">
-                                                            <Label className="text-sm font-medium">
-                                                                {invoice.si_number || `Invoice ${index + 1}`} Files
-                                                            </Label>
-                                                            <label
-                                                                htmlFor={`bulk-files-${index}`}
-                                                                className="cursor-pointer rounded bg-blue-50 px-3 py-1 text-xs text-blue-700 hover:bg-blue-100"
-                                                            >
-                                                                <Upload className="mr-1 inline h-3 w-3" />
-                                                                Upload
-                                                            </label>
-                                                            <input
-                                                                id={`bulk-files-${index}`}
-                                                                type="file"
-                                                                multiple
-                                                                onChange={(e) => handleBulkInvoiceFileChange(index, e)}
-                                                                accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.txt"
-                                                                className="hidden"
-                                                            />
-                                                        </div>
-
-                                                        {invoice.files && invoice.files.length > 0 && (
-                                                            <div className="space-y-1">
-                                                                {invoice.files.map((file, fileIndex) => (
-                                                                    <div
-                                                                        key={fileIndex}
-                                                                        className="flex items-center justify-between rounded bg-slate-50 p-2 text-xs"
-                                                                    >
-                                                                        <div className="min-w-0 flex-1">
-                                                                            <p className="truncate font-medium text-slate-900">{file.name}</p>
-                                                                            <p className="text-slate-500">
-                                                                                {(file.size / 1024 / 1024).toFixed(2)} MB
-                                                                            </p>
-                                                                        </div>
-                                                                        <Button
-                                                                            type="button"
-                                                                            variant="ghost"
-                                                                            size="sm"
-                                                                            onClick={() => removeBulkInvoiceFile(index, fileIndex)}
-                                                                            className="h-6 w-6 p-0 text-red-600 hover:bg-red-50 hover:text-red-800"
-                                                                        >
-                                                                            <X className="h-3 w-3" />
-                                                                        </Button>
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        )}
-
-                                                        {(!invoice.files || invoice.files.length === 0) && (
-                                                            <p className="py-2 text-center text-xs text-slate-500">No files selected</p>
-                                                        )}
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-                                </>
                             )}
 
-                            {/* Single Invoice Mode */}
-                            {!isBulkMode && (
-                                <>
-                                    <Card className="shadow-sm">
-                                        <CardHeader className="pb-3">
-                                            <CardTitle className="flex items-center text-lg">
-                                                <FileText className="mr-2 h-4 w-4 text-green-600" />
-                                                Invoice Information
-                                            </CardTitle>
-                                        </CardHeader>
-                                        <CardContent className="space-y-4">
-                                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                                                <div>
-                                                    <Label className="text-sm font-medium">SI Number *</Label>
-                                                    <Input
-                                                        value={singleData.si_number}
-                                                        onChange={(e) =>
-                                                            setSingleData((prev) => ({
-                                                                ...prev,
-                                                                si_number: e.target.value,
-                                                            }))
-                                                        }
-                                                        placeholder="e.g., SI-2024-001"
-                                                        className="mt-1"
-                                                    />
-                                                    {errors.si_number && <p className="mt-1 text-xs text-red-600">{errors.si_number}</p>}
-                                                </div>
+                             {/*Single Invoice Mode */}
+                            {!isBulkMode &&
+                                <Suspense fallback={<Loader className="animate-spin text-center" />}>
+                                    <SingleMode
+                                        singleData={singleData}
+                                        setSingleData={setSingleData}
+                                        errors={errors}
+                                        submitToOptions={submitToOptions}
+                                        handleDateSelect={handleDateSelect}
+                                        selectedPO={selectedPO}
+                                        calculateVAT={calculateVAT}
+                                        calculatePOPercentage={calculatePOPercentage}
+                                        paymentTermsOptions={paymentTermsOptions}
+                                        handleFileChange={handleFileChange}
+                                        selectedFiles={selectedFiles}
+                                    />
+                                </Suspense>
 
-                                                <div>
-                                                    <Label className="text-sm font-medium">SI Date *</Label>
-                                                    <Popover>
-                                                        <PopoverTrigger asChild>
-                                                            <Button
-                                                                variant="outline"
-                                                                className={cn(
-                                                                    'mt-1 w-full justify-start text-left font-normal',
-                                                                    !singleData.si_date && 'text-slate-500',
-                                                                )}
-                                                            >
-                                                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                                                {singleData.si_date ? format(new Date(singleData.si_date), 'PPP') : 'Select date'}
-                                                            </Button>
-                                                        </PopoverTrigger>
-                                                        <PopoverContent className="w-auto p-0">
-                                                            <Calendar
-                                                                mode="single"
-                                                                selected={singleData.si_date ? new Date(singleData.si_date) : undefined}
-                                                                onSelect={(date) => handleDateSelect('si_date', date)}
-                                                            />
-                                                        </PopoverContent>
-                                                    </Popover>
-                                                    {errors.si_date && <p className="mt-1 text-xs text-red-600">{errors.si_date}</p>}
-                                                </div>
-
-                                                <div>
-                                                    <Label className="text-sm font-medium">Invoice Amount *</Label>
-                                                    <div className="mt-1 space-y-2">
-                                                        <div className="relative">
-                                                            <Input
-                                                                type="number"
-                                                                step="0.01"
-                                                                min="0"
-                                                                value={singleData.invoice_amount}
-                                                                onChange={(e) =>
-                                                                    setSingleData((prev) => ({
-                                                                        ...prev,
-                                                                        invoice_amount: e.target.value,
-                                                                    }))
-                                                                }
-                                                                placeholder="0.00"
-                                                                className="pr-16"
-                                                            />
-                                                            {selectedPO && singleData.invoice_amount && (
-                                                                <div className="absolute top-0 right-1 flex h-10 items-center">
-                                <span className="rounded bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700">
-                                    {calculatePOPercentage(singleData.invoice_amount, selectedPO.po_amount).toFixed(0)}%
-                                </span>
-                                                                </div>
-                                                            )}
-                                                        </div>
-
-                                                        {/* VAT Breakdown */}
-                                                        {singleData.invoice_amount && (
-                                                            <div className="rounded-md border bg-slate-50 p-2">
-                                                                <div className="grid grid-cols-2 gap-2 text-xs">
-                                                                    <div className="flex justify-between">
-                                                                        <span className="text-slate-600">Vatable Amount:</span>
-                                                                        <span className="font-medium">
-                                        ₱{calculateVAT(singleData.invoice_amount).vatableAmount.toFixed(2)}
-                                    </span>
-                                                                    </div>
-                                                                    <div className="flex justify-between">
-                                                                        <span className="text-slate-600">VAT (12%):</span>
-                                                                        <span className="font-medium">
-                                        ₱{calculateVAT(singleData.invoice_amount).vatAmount.toFixed(2)}
-                                    </span>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                    {errors.invoice_amount && <p className="mt-1 text-xs text-red-600">{errors.invoice_amount}</p>}
-                                                </div>
-
-                                                <div>
-                                                    <Label className="text-sm font-medium">Terms of Payment *</Label>
-                                                    <Select
-                                                        value={singleData.terms_of_payment}
-                                                        onValueChange={(value) =>
-                                                            setSingleData((prev) => ({
-                                                                ...prev,
-                                                                terms_of_payment: value,
-                                                            }))
-                                                        }
-                                                    >
-                                                        <SelectTrigger className="mt-1">
-                                                            <SelectValue placeholder="Select payment terms" />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            {paymentTermsOptions.map((option) => (
-                                                                <SelectItem key={option.value} value={option.value}>
-                                                                    {option.label}
-                                                                </SelectItem>
-                                                            ))}
-                                                        </SelectContent>
-                                                    </Select>
-                                                    {errors.terms_of_payment && (
-                                                        <p className="mt-1 text-xs text-red-600">{errors.terms_of_payment}</p>
-                                                    )}
-                                                </div>
-
-                                                {singleData.terms_of_payment === 'others' && (
-                                                    <div className="md:col-span-2">
-                                                        <Label className="text-sm font-medium">Specify Other Terms *</Label>
-                                                        <Input
-                                                            value={singleData.other_payment_terms}
-                                                            onChange={(e) =>
-                                                                setSingleData((prev) => ({
-                                                                    ...prev,
-                                                                    other_payment_terms: e.target.value,
-                                                                }))
-                                                            }
-                                                            placeholder="Enter payment terms"
-                                                            className="mt-1"
-                                                        />
-                                                        {errors.other_payment_terms && (
-                                                            <p className="mt-1 text-xs text-red-600">{errors.other_payment_terms}</p>
-                                                        )}
-                                                    </div>
-                                                )}
-
-                                                <div>
-                                                    <Label className="text-sm font-medium">SI Received Date</Label>
-                                                    <Popover>
-                                                        <PopoverTrigger asChild>
-                                                            <Button
-                                                                variant="outline"
-                                                                className={cn(
-                                                                    'mt-1 w-full justify-start text-left font-normal',
-                                                                    !singleData.si_received_at && 'text-slate-500',
-                                                                )}
-                                                            >
-                                                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                                                {singleData.si_received_at
-                                                                    ? format(new Date(singleData.si_received_at), 'PPP')
-                                                                    : 'Select date'}
-                                                            </Button>
-                                                        </PopoverTrigger>
-                                                        <PopoverContent className="w-auto p-0">
-                                                            <Calendar
-                                                                mode="single"
-                                                                selected={singleData.si_received_at ? new Date(singleData.si_received_at) : undefined}
-                                                                onSelect={(date) => handleDateSelect('si_received_at', date)}
-                                                            />
-                                                        </PopoverContent>
-                                                    </Popover>
-                                                </div>
-
-                                                <div>
-                                                    <Label className="text-sm font-medium">Due Date</Label>
-                                                    <Popover>
-                                                        <PopoverTrigger asChild>
-                                                            <Button
-                                                                variant="outline"
-                                                                className={cn(
-                                                                    'mt-1 w-full justify-start text-left font-normal',
-                                                                    !singleData.due_date && 'text-slate-500',
-                                                                )}
-                                                            >
-                                                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                                                {singleData.due_date ? format(new Date(singleData.due_date), 'PPP') : 'Select date'}
-                                                            </Button>
-                                                        </PopoverTrigger>
-                                                        <PopoverContent className="w-auto p-0">
-                                                            <Calendar
-                                                                mode="single"
-                                                                captionLayout="dropdown"
-                                                                className="w-56"
-                                                                selected={singleData.due_date ? new Date(singleData.due_date) : undefined}
-                                                                onSelect={(date) => handleDateSelect('due_date', date)}
-                                                            />
-                                                        </PopoverContent>
-                                                    </Popover>
-                                                </div>
-
-                                                <div>
-                                                    <Label className="text-sm font-medium">Submit To *</Label>
-                                                    <Select
-                                                        value={singleData.submitted_to}
-                                                        onValueChange={(value) =>
-                                                            setSingleData((prev) => ({
-                                                                ...prev,
-                                                                submitted_to: value,
-                                                            }))
-                                                        }
-                                                    >
-                                                        <SelectTrigger className="mt-1">
-                                                            <SelectValue placeholder="Select recipient" />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            {submitToOptions.map((option) => (
-                                                                <SelectItem key={option} value={option}>
-                                                                    {option}
-                                                                </SelectItem>
-                                                            ))}
-                                                        </SelectContent>
-                                                    </Select>
-                                                    {errors.submitted_to && <p className="mt-1 text-xs text-red-600">{errors.submitted_to}</p>}
-                                                </div>
-
-                                                <div>
-                                                    <Label className="text-sm font-medium">Submission Date *</Label>
-                                                    <Popover>
-                                                        <PopoverTrigger asChild>
-                                                            <Button
-                                                                variant="outline"
-                                                                className={cn(
-                                                                    'mt-1 w-full justify-start text-left font-normal',
-                                                                    !singleData.submitted_at && 'text-slate-500',
-                                                                )}
-                                                            >
-                                                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                                                {singleData.submitted_at
-                                                                    ? format(new Date(singleData.submitted_at), 'PPP')
-                                                                    : 'Select date'}
-                                                            </Button>
-                                                        </PopoverTrigger>
-                                                        <PopoverContent className="w-auto p-0">
-                                                            <Calendar
-                                                                mode="single"
-                                                                selected={singleData.submitted_at ? new Date(singleData.submitted_at) : undefined}
-                                                                onSelect={(date) => handleDateSelect('submitted_at', date)}
-                                                            />
-                                                        </PopoverContent>
-                                                    </Popover>
-                                                    {errors.submitted_at && <p className="mt-1 text-xs text-red-600">{errors.submitted_at}</p>}
-                                                </div>
-                                            </div>
-
-                                            <div>
-                                                <Label className="text-sm font-medium">Notes</Label>
-                                                <Textarea
-                                                    value={singleData.notes}
-                                                    onChange={(e) =>
-                                                        setSingleData((prev) => ({
-                                                            ...prev,
-                                                            notes: e.target.value,
-                                                        }))
-                                                    }
-                                                    placeholder="Additional notes about this invoice..."
-                                                    rows={3}
-                                                    className="mt-1 resize-none"
-                                                />
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-                                    <Card className="shadow-sm">
-                                        <CardHeader className="pb-3">
-                                            <CardTitle className="flex items-center text-lg">
-                                                <Upload className="mr-2 h-4 w-4 text-orange-600" />
-                                                Attachments{' '}
-                                                {isBulkMode && <span className="ml-2 text-sm text-slate-500">(Shared for all invoices)</span>}
-                                            </CardTitle>
-                                        </CardHeader>
-                                        <CardContent>
-                                            <div className="space-y-3">
-                                                <div>
-                                                    <label
-                                                        htmlFor="files"
-                                                        className="inline-block cursor-pointer rounded bg-blue-50 px-4 py-2 text-sm text-blue-700 hover:bg-blue-100"
-                                                    >
-                                                        <div className="flex items-center gap-2">
-                                                            <Upload className="h-4 w-4" />
-                                                            <span>Upload Files</span>
-                                                        </div>
-                                                    </label>
-                                                    <input
-                                                        id="files"
-                                                        type="file"
-                                                        multiple
-                                                        onChange={handleFileChange}
-                                                        accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.txt"
-                                                        className="hidden"
-                                                    />
-                                                    <p className="mt-1 text-xs text-slate-500">PDF, DOC, XLS, JPG, PNG (Max: 10MB per file)</p>
-                                                </div>
-
-                                                {selectedFiles.length > 0 && (
-                                                    <div className="space-y-2">
-                                                        <Label className="text-sm font-medium">Selected Files ({selectedFiles.length})</Label>
-                                                        <div className="space-y-1">
-                                                            {selectedFiles.map((file, index) => (
-                                                                <div
-                                                                    key={index}
-                                                                    className="flex items-center justify-between rounded border bg-slate-50 p-2 text-sm"
-                                                                >
-                                                                    <div className="min-w-0 flex-1">
-                                                                        <p className="truncate text-xs font-medium text-slate-900">{file.name}</p>
-                                                                        <p className="text-xs text-slate-500">
-                                                                            {(file.size / 1024 / 1024).toFixed(2)} MB
-                                                                        </p>
-                                                                    </div>
-                                                                    <Button
-                                                                        type="button"
-                                                                        variant="ghost"
-                                                                        size="sm"
-                                                                        onClick={() => removeFile(index)}
-                                                                        className="h-8 w-8 p-0 text-red-600 hover:bg-red-50 hover:text-red-800"
-                                                                    >
-                                                                        <X className="h-3 w-3" />
-                                                                    </Button>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-                                </>
-                            )}
+                            }
                         </div>
 
                         {/* Right Column - Summary (Only show in single mode) */}
@@ -1388,7 +680,9 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
                                 <Card className="shadow-sm">
                                     <CardContent className="pt-4">
                                         <div className="space-y-3">
-                                            <Button type="submit" className="w-full bg-blue-600 text-white hover:bg-blue-700" disabled={processing}>
+                                            <Button type="submit" className="w-full bg-blue-600 text-white hover:bg-blue-700"
+                                                    // disabled={processing}
+                                            >
                                                 <Eye className="mr-2 h-4 w-4" />
                                                 Submit All ({bulkInvoices.length})
                                             </Button>
@@ -1398,6 +692,19 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
                                                     <div className="text-xs font-medium text-red-600">
                                                         {errorCount} error{errorCount > 1 ? 's' : ''} found
                                                     </div>
+                                                    <ul className="max-h-32 space-y-1 overflow-y-auto text-xs text-red-700">
+                                                        {Object.entries(errors)
+                                                            .slice(0, 5)
+                                                            .map(([field, error]) => (
+                                                                <li key={field} className="flex items-center">
+                                                                    <span className="mr-2 h-1 w-1 flex-shrink-0 rounded-full bg-red-600"></span>
+                                                                    <span>{error}</span>
+                                                                </li>
+                                                            ))}
+                                                        {errorCount > 5 && (
+                                                            <li className="font-medium text-red-600">...and {errorCount - 5} more</li>
+                                                        )}
+                                                    </ul>
                                                 </div>
                                             )}
                                         </div>
@@ -1527,7 +834,7 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
                             <Button
                                 type="button"
                                 onClick={handleSubmitConfirmed}
-                                disabled={processing}
+                                // disabled={processing}
                                 className="bg-blue-600 text-white hover:bg-blue-700"
                             >
                                 {processing ? 'Processing...' : `Confirm & Submit ${isBulkMode ? `(${bulkInvoices.length})` : ''}`}
