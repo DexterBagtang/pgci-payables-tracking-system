@@ -300,7 +300,7 @@ function ProjectRow({ project, onEdit }) {
     };
 
     return (
-        <TableRow className="group transition-all hover:bg-muted/30 border-b border-gray-100 dark:border-gray-800">
+        <TableRow className="group transition-all hover:bg-muted cursor-pointer border-b border-gray-100 dark:border-gray-800">
             {/* Project Details */}
             <TableCell className="py-4 pl-4 pr-3 max-w-[500px]" onClick={() => router.get('/projects/' + project.id)}>
                 <div className="flex items-start">

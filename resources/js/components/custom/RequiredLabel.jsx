@@ -1,0 +1,5 @@
+export function RequiredLabel(){
+    return (
+        <span className="ml-1 text-red-500">*</span>
+    )
+}

@@ -36,7 +36,7 @@ const InvoicesTable = ({ invoices, filters, filterOptions }) => {
     const [vendorSearch, setVendorSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
 
-    const invoiceStatuses = ['all', 'received', 'under_review', 'approved', 'rejected', 'paid', 'overdue'];
+    const invoiceStatuses = ['all','pending', 'received', 'under_review', 'approved', 'rejected', 'paid', 'overdue'];
 
     const getStatusColor = (status) => {
         switch (status) {

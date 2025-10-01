@@ -283,7 +283,7 @@ class PurchaseOrderController extends Controller
             }
         }
 
-        return back()->with('message', 'Purchase Order updated successfully.');
+        return to_route('purchase-orders.show',$purchaseOrder->id)->with('message', 'Purchase Order updated successfully.');
     }
 
     /**

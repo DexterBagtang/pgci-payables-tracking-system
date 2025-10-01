@@ -44,7 +44,7 @@ export default function EditPOForm({ purchaseOrder, vendors, projects, onCancel,
 
     const handleFileChange = (e) => {
         const selectedFiles = Array.from(e.target.files);
-        setFiles(selectedFiles);
+        // setFiles(selectedFiles);
         setData('files', selectedFiles);
     };
 
@@ -57,7 +57,10 @@ export default function EditPOForm({ purchaseOrder, vendors, projects, onCancel,
             _method:'patch',
             forceFormData: true, // Enable file uploads
             onSuccess: () => {
-                toast.success('Purchase Order updated successfully.');
+                setTimeout(() => {
+                    toast.success('Purchase Order updated successfully.');
+                }, 500);
+
                 // reset();
                 setFiles([]);
                 onSuccess?.();
@@ -114,7 +117,7 @@ export default function EditPOForm({ purchaseOrder, vendors, projects, onCancel,
                         </div>
                     </div>
 
-                    <form onSubmit={handleSubmit} className="space-y-6">
+                    <form className="space-y-6">
                         {/* Combined Information Card */}
                         <Card>
                             <CardHeader>
@@ -279,9 +282,9 @@ export default function EditPOForm({ purchaseOrder, vendors, projects, onCancel,
                                             </p>
                                             {errors.files && <p className="text-sm text-red-600">{errors.files}</p>}
 
-                                            {files.length > 0 && (
+                                            {data.files.length > 0 && (
                                                 <p className="text-sm text-green-600">
-                                                    {files.length} new file(s) selected for upload
+                                                    {data.files.length} new file(s) selected for upload
                                                 </p>
                                             )}
                                         </div>
@@ -318,7 +321,7 @@ export default function EditPOForm({ purchaseOrder, vendors, projects, onCancel,
                         <div className="flex items-center justify-between pt-6">
                             <BackButton />
 
-                            <Button type="submit" disabled={processing}>
+                            <Button type="button" disabled={processing} onClick={handleSubmit}>
                                 <Save className="mr-2 h-4 w-4" />
                                 {processing ? 'Updating...' : 'Update Purchase Order'}
                             </Button>

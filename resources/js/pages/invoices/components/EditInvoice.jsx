@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
     Command,
     CommandEmpty,
@@ -49,6 +50,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge.js';
 import { Link } from '@inertiajs/react'
 import { toast } from "sonner";
+import BackButton from '@/components/custom/BackButton.jsx';
 
 const EditInvoice = ({ invoice, purchaseOrders }) => {
     const [poComboboxOpen, setPoComboboxOpen] = useState(false);
@@ -62,6 +64,8 @@ const EditInvoice = ({ invoice, purchaseOrders }) => {
         si_date: invoice.si_date || '',
         si_received_at: invoice.si_received_at || '',
         invoice_amount: invoice.invoice_amount || '',
+        terms_of_payment: invoice.terms_of_payment || '',
+        other_payment_terms: invoice.other_payment_terms || '',
         due_date: invoice.due_date || '',
         notes: invoice.notes || '',
         submitted_at: invoice.submitted_at || '',
@@ -78,6 +82,8 @@ const EditInvoice = ({ invoice, purchaseOrders }) => {
             si_date: invoice.si_date || '',
             si_received_at: invoice.si_received_at || '',
             invoice_amount: invoice.invoice_amount || '',
+            terms_of_payment: invoice.terms_of_payment || '',
+            other_payment_terms: invoice.other_payment_terms || '',
             due_date: invoice.due_date || '',
             notes: invoice.notes || '',
             submitted_at: invoice.submitted_at || '',
@@ -86,6 +92,17 @@ const EditInvoice = ({ invoice, purchaseOrders }) => {
             delete_files: [],
         });
     }, [invoice]);
+
+    // Payment terms options (matching SingleMode)
+    const paymentTermsOptions = [
+        { value: 'downpayment', label: 'Downpayment' },
+        { value: 'progress_billing', label: 'Progress Billing' },
+        { value: 'final_payment', label: 'Final Payment' },
+        { value: 'others', label: 'Others' },
+    ];
+
+    // Submit to options (matching SingleMode)
+    const submitToOptions = ['Kimberly Usona', 'Joseph David Maderazo'];
 
     // Memoized purchase order options for better performance
     const poOptions = useMemo(() =>
@@ -107,6 +124,20 @@ const EditInvoice = ({ invoice, purchaseOrders }) => {
         [poOptions, data.purchase_order_id]
     );
 
+    // Calculate PO percentage (matching SingleMode)
+    const calculatePOPercentage = useCallback((invoiceAmount, poAmount) => {
+        if (!invoiceAmount || !poAmount) return 0;
+        return (parseFloat(invoiceAmount) / parseFloat(poAmount)) * 100;
+    }, []);
+
+    // Calculate VAT breakdown (matching SingleMode)
+    const calculateVAT = useCallback((amount) => {
+        const totalAmount = parseFloat(amount) || 0;
+        const vatableAmount = totalAmount / 1.12;
+        const vatAmount = totalAmount - vatableAmount;
+        return { vatableAmount, vatAmount };
+    }, []);
+
     // Handle date selection
     const handleDateSelect = useCallback((field, date) => {
         setData(field, date ? format(date, "yyyy-MM-dd") : '');
@@ -121,17 +152,16 @@ const EditInvoice = ({ invoice, purchaseOrders }) => {
         });
 
         if (validFiles.length !== files.length) {
-            alert('Some files were too large (max 10MB per file) and were not selected.');
+            toast.error('Some files were too large (max 10MB per file) and were not selected.');
         }
 
         setSelectedFiles(prev => [...prev, ...validFiles]);
         e.target.value = '';
-
         setData('files', [...selectedFiles, ...validFiles]);
     }, [selectedFiles, setData]);
 
     // Remove selected new file
-    const removeNewFile = useCallback((index) => {
+    const removeFile = useCallback((index) => {
         const updatedFiles = selectedFiles.filter((_, i) => i !== index);
         setSelectedFiles(updatedFiles);
         setData('files', updatedFiles);
@@ -158,10 +188,8 @@ const EditInvoice = ({ invoice, purchaseOrders }) => {
 
     const handleSubmitConfirmed = () => {
         setShowConfirmation(false);
-
-
-        post(`/invoices/${invoice.id}`,{
-            _method:'patch',
+        post(`/invoices/${invoice.id}`, {
+            _method: 'patch',
             onSuccess: () => {
                 toast.success('Invoice updated successfully.');
             },
@@ -188,23 +216,12 @@ const EditInvoice = ({ invoice, purchaseOrders }) => {
                     </div>
                     <div className="flex gap-2">
                         <Link href={`/invoices/${invoice.id}`} prefetch>
-                            <Button
-                                variant="outline"
-                                className="w-fit"
-                            >
+                            <Button variant="outline" className="w-fit">
                                 <Eye className="w-4 h-4 mr-2" />
                                 View
                             </Button>
                         </Link>
-                        <Link href='/invoices' prefetch>
-                            <Button
-                                variant="outline"
-                                className="w-fit"
-                            >
-                                <ArrowLeft className="w-4 h-4 mr-2" />
-                                Back
-                            </Button>
-                        </Link>
+                        <BackButton/>
                     </div>
                 </div>
 
@@ -213,19 +230,16 @@ const EditInvoice = ({ invoice, purchaseOrders }) => {
                         {/* Left Column - Main Form */}
                         <div className="lg:col-span-2 space-y-6">
                             {/* Purchase Order Selection */}
-                            <Card className="shadow-sm border-slate-200">
-                                <CardHeader className="pb-4">
-                                    <CardTitle className="flex items-center text-slate-800">
-                                        <Building2 className="w-5 h-5 mr-2 text-blue-600" />
-                                        Purchase Order
+                            <Card className="shadow-sm">
+                                <CardHeader className="pb-3">
+                                    <CardTitle className="flex items-center text-lg">
+                                        <Building2 className="mr-2 h-4 w-4 text-blue-600" />
+                                        Purchase Order Selection
                                     </CardTitle>
-                                    <CardDescription className="text-slate-600">
-                                        Select the purchase order for this invoice
-                                    </CardDescription>
                                 </CardHeader>
                                 <CardContent>
                                     <div>
-                                        <Label className="text-sm font-medium text-slate-700">Purchase Order *</Label>
+                                        <Label className="text-sm font-medium">Purchase Order *</Label>
                                         <Popover open={poComboboxOpen} onOpenChange={setPoComboboxOpen}>
                                             <PopoverTrigger asChild>
                                                 <Button
@@ -255,10 +269,7 @@ const EditInvoice = ({ invoice, purchaseOrders }) => {
                                             </PopoverTrigger>
                                             <PopoverContent className="w-full p-0" align="start">
                                                 <Command>
-                                                    <CommandInput
-                                                        placeholder="Search purchase orders..."
-                                                        className="h-9"
-                                                    />
+                                                    <CommandInput placeholder="Search purchase orders..." className="h-9" />
                                                     <CommandEmpty>No purchase order found.</CommandEmpty>
                                                     <CommandList>
                                                         <CommandGroup>
@@ -307,293 +318,280 @@ const EditInvoice = ({ invoice, purchaseOrders }) => {
                                             </PopoverContent>
                                         </Popover>
                                         {errors.purchase_order_id && (
-                                            <p className="text-sm text-red-600 mt-1">{errors.purchase_order_id}</p>
+                                            <p className="mt-1 text-xs text-red-600">{errors.purchase_order_id}</p>
                                         )}
                                     </div>
                                 </CardContent>
                             </Card>
 
-                            {/* Invoice Information */}
-                            <Card className="shadow-sm border-slate-200">
-                                <CardHeader className="pb-4">
-                                    <CardTitle className="flex items-center text-slate-800">
-                                        <FileText className="w-5 h-5 mr-2 text-green-600" />
+                            {/* Invoice Information - Matching SingleMode structure */}
+                            <Card className="shadow-sm">
+                                <CardHeader className="pb-3">
+                                    <CardTitle className="flex items-center text-lg">
+                                        <FileText className="mr-2 h-4 w-4 text-green-600" />
                                         Invoice Information
                                     </CardTitle>
-                                    <CardDescription className="text-slate-600">
-                                        Update the basic invoice details and amount
-                                    </CardDescription>
                                 </CardHeader>
-                                <CardContent className="space-y-6">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <CardContent className="space-y-4">
+                                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                                         <div>
-                                            <Label className="text-sm font-medium text-slate-700">SI Number *</Label>
+                                            <Label className="text-sm font-medium">SI Number *</Label>
                                             <Input
                                                 value={data.si_number}
-                                                onChange={e => setData('si_number', e.target.value)}
+                                                onChange={(e) => setData('si_number', e.target.value)}
                                                 placeholder="e.g., SI-2024-001"
                                                 className="mt-1"
                                             />
-                                            {errors.si_number && (
-                                                <p className="text-sm text-red-600 mt-1">{errors.si_number}</p>
-                                            )}
+                                            {errors.si_number && <p className="mt-1 text-xs text-red-600">{errors.si_number}</p>}
                                         </div>
 
                                         <div>
-                                            <Label className="text-sm font-medium text-slate-700">SI Date *</Label>
+                                            <Label className="text-sm font-medium">SI Date *</Label>
                                             <Popover>
                                                 <PopoverTrigger asChild>
                                                     <Button
                                                         variant="outline"
                                                         className={cn(
-                                                            "w-full justify-start text-left font-normal mt-1",
-                                                            !data.si_date && "text-slate-500"
+                                                            'mt-1 w-full justify-start text-left font-normal',
+                                                            !data.si_date && 'text-slate-500',
                                                         )}
                                                     >
                                                         <CalendarIcon className="mr-2 h-4 w-4" />
-                                                        {data.si_date ? format(new Date(data.si_date), "PPP") : "Select date"}
+                                                        {data.si_date ? format(new Date(data.si_date), 'PPP') : 'Select date'}
                                                     </Button>
                                                 </PopoverTrigger>
-                                                <PopoverContent className="w-auto p-0" align="start">
+                                                <PopoverContent className="w-auto p-0">
                                                     <Calendar
                                                         mode="single"
-                                                        className="w-64 mx-auto"
                                                         selected={data.si_date ? new Date(data.si_date) : undefined}
                                                         onSelect={(date) => handleDateSelect('si_date', date)}
-                                                        captionLayout="dropdown"
                                                     />
                                                 </PopoverContent>
                                             </Popover>
-                                            {errors.si_date && (
-                                                <p className="text-sm text-red-600 mt-1">{errors.si_date}</p>
-                                            )}
+                                            {errors.si_date && <p className="mt-1 text-xs text-red-600">{errors.si_date}</p>}
                                         </div>
 
                                         <div>
-                                            <Label className="text-sm font-medium text-slate-700">Invoice Amount *</Label>
-                                            <Input
-                                                type="number"
-                                                step="0.01"
-                                                min="0"
-                                                value={data.invoice_amount}
-                                                onChange={e => setData('invoice_amount', e.target.value)}
-                                                placeholder="0.00"
-                                                className="mt-1"
-                                            />
-                                            {errors.invoice_amount && (
-                                                <p className="text-sm text-red-600 mt-1">{errors.invoice_amount}</p>
-                                            )}
-                                        </div>
-
-                                        <div>
-                                            <Label className="text-sm font-medium text-slate-700">Due Date</Label>
-                                            <Popover>
-                                                <PopoverTrigger asChild>
-                                                    <Button
-                                                        variant="outline"
-                                                        className={cn(
-                                                            "w-full justify-start text-left font-normal mt-1",
-                                                            !data.due_date && "text-slate-500"
-                                                        )}
-                                                    >
-                                                        <CalendarIcon className="mr-2 h-4 w-4" />
-                                                        {data.due_date ? format(new Date(data.due_date), "PPP") : "Select date"}
-                                                    </Button>
-                                                </PopoverTrigger>
-                                                <PopoverContent className="w-auto p-0" align="start">
-                                                    <Calendar
-                                                        mode="single"
-                                                        selected={data.due_date ? new Date(data.due_date) : undefined}
-                                                        onSelect={(date) => handleDateSelect('due_date', date)}
-                                                        captionLayout="dropdown"
-                                                        className="w-64 mx-auto"
+                                            <Label className="text-sm font-medium">Invoice Amount *</Label>
+                                            <div className="mt-1 space-y-2">
+                                                <div className="relative">
+                                                    <Input
+                                                        type="number"
+                                                        step="0.01"
+                                                        min="0"
+                                                        value={data.invoice_amount}
+                                                        onChange={(e) => setData('invoice_amount', e.target.value)}
+                                                        placeholder="0.00"
+                                                        className="pr-16"
                                                     />
-                                                </PopoverContent>
-                                            </Popover>
-                                            {errors.due_date && (
-                                                <p className="text-sm text-red-600 mt-1">{errors.due_date}</p>
+                                                    {selectedPO && data.invoice_amount && (
+                                                        <div className="absolute top-0 right-1 flex h-10 items-center">
+                                                            <span className="rounded bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700">
+                                                                {calculatePOPercentage(data.invoice_amount, selectedPO.po_amount).toFixed(0)}%
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                {/* VAT Breakdown */}
+                                                {data.invoice_amount && (
+                                                    <div className="rounded-md border bg-slate-50 p-2">
+                                                        <div className="grid grid-cols-2 gap-2 text-xs">
+                                                            <div className="flex justify-between">
+                                                                <span className="text-slate-600">Vatable Amount:</span>
+                                                                <span className="font-medium">
+                                                                    ₱{calculateVAT(data.invoice_amount).vatableAmount.toFixed(2)}
+                                                                </span>
+                                                            </div>
+                                                            <div className="flex justify-between">
+                                                                <span className="text-slate-600">VAT (12%):</span>
+                                                                <span className="font-medium">
+                                                                    ₱{calculateVAT(data.invoice_amount).vatAmount.toFixed(2)}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                            {errors.invoice_amount && <p className="mt-1 text-xs text-red-600">{errors.invoice_amount}</p>}
+                                        </div>
+
+                                        <div>
+                                            <Label className="text-sm font-medium">Terms of Payment *</Label>
+                                            <Select
+                                                value={data.terms_of_payment}
+                                                onValueChange={(value) => setData('terms_of_payment', value)}
+                                            >
+                                                <SelectTrigger className="mt-1">
+                                                    <SelectValue placeholder="Select payment terms" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {paymentTermsOptions.map((option) => (
+                                                        <SelectItem key={option.value} value={option.value}>
+                                                            {option.label}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                            {errors.terms_of_payment && (
+                                                <p className="mt-1 text-xs text-red-600">{errors.terms_of_payment}</p>
                                             )}
                                         </div>
-                                    </div>
 
-                                    <div>
-                                        <Label className="text-sm font-medium text-slate-700">Notes</Label>
-                                        <Textarea
-                                            value={data.notes}
-                                            onChange={e => setData('notes', e.target.value)}
-                                            placeholder="Additional notes about this invoice..."
-                                            rows={3}
-                                            className="mt-1 resize-none"
-                                        />
-                                        {errors.notes && (
-                                            <p className="text-sm text-red-600 mt-1">{errors.notes}</p>
+                                        {data.terms_of_payment === 'others' && (
+                                            <div className="md:col-span-2">
+                                                <Label className="text-sm font-medium">Specify Other Terms *</Label>
+                                                <Input
+                                                    value={data.other_payment_terms}
+                                                    onChange={(e) => setData('other_payment_terms', e.target.value)}
+                                                    placeholder="Enter payment terms"
+                                                    className="mt-1"
+                                                />
+                                                {errors.other_payment_terms && (
+                                                    <p className="mt-1 text-xs text-red-600">{errors.other_payment_terms}</p>
+                                                )}
+                                            </div>
                                         )}
-                                    </div>
-                                </CardContent>
-                            </Card>
 
-                            {/* Processing Information */}
-                            <Card className="shadow-sm border-slate-200">
-                                <CardHeader className="pb-4">
-                                    <CardTitle className="flex items-center text-slate-800">
-                                        <CalendarIcon className="w-5 h-5 mr-2 text-purple-600" />
-                                        Processing Information
-                                    </CardTitle>
-                                    <CardDescription className="text-slate-600">
-                                        Update when and to whom the invoice was submitted
-                                    </CardDescription>
-                                </CardHeader>
-                                <CardContent className="space-y-4">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div>
-                                            <Label className="text-sm font-medium text-slate-700">Received Date</Label>
+                                            <Label className="text-sm font-medium">SI Received Date *</Label>
                                             <Popover>
                                                 <PopoverTrigger asChild>
                                                     <Button
                                                         variant="outline"
                                                         className={cn(
-                                                            "w-full justify-start text-left font-normal mt-1",
-                                                            !data.si_received_at && "text-slate-500"
+                                                            'mt-1 w-full justify-start text-left font-normal',
+                                                            !data.si_received_at && 'text-slate-500',
                                                         )}
                                                     >
                                                         <CalendarIcon className="mr-2 h-4 w-4" />
-                                                        {data.si_received_at ? format(new Date(data.si_received_at), "PPP") : "Select date"}
+                                                        {data.si_received_at
+                                                            ? format(new Date(data.si_received_at), 'PPP')
+                                                            : 'Select date'}
                                                     </Button>
                                                 </PopoverTrigger>
-                                                <PopoverContent className="w-auto p-0" align="start">
+                                                <PopoverContent className="w-auto p-0">
                                                     <Calendar
                                                         mode="single"
                                                         selected={data.si_received_at ? new Date(data.si_received_at) : undefined}
                                                         onSelect={(date) => handleDateSelect('si_received_at', date)}
-                                                        captionLayout="dropdown"
-                                                        className="w-64 mx-auto"
                                                     />
                                                 </PopoverContent>
                                             </Popover>
-                                            {errors.si_received_at && (
-                                                <p className="text-sm text-red-600 mt-1">{errors.si_received_at}</p>
-                                            )}
+                                            {errors.si_received_at && <p className="mt-1 text-xs text-red-600">{errors.si_received_at}</p>}
                                         </div>
 
                                         <div>
-                                            <Label className="text-sm font-medium text-slate-700">Submitted To</Label>
-                                            <Input
+                                            <Label className="text-sm font-medium">Due Date</Label>
+                                            <Popover>
+                                                <PopoverTrigger asChild>
+                                                    <Button
+                                                        variant="outline"
+                                                        className={cn(
+                                                            'mt-1 w-full justify-start text-left font-normal',
+                                                            !data.due_date && 'text-slate-500',
+                                                        )}
+                                                    >
+                                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                                        {data.due_date ? format(new Date(data.due_date), 'PPP') : 'Select date'}
+                                                    </Button>
+                                                </PopoverTrigger>
+                                                <PopoverContent className="w-auto p-0">
+                                                    <Calendar
+                                                        mode="single"
+                                                        captionLayout="dropdown"
+                                                        className="w-56"
+                                                        selected={data.due_date ? new Date(data.due_date) : undefined}
+                                                        onSelect={(date) => handleDateSelect('due_date', date)}
+                                                    />
+                                                </PopoverContent>
+                                            </Popover>
+                                        </div>
+
+                                        <div>
+                                            <Label className="text-sm font-medium">Submit To *</Label>
+                                            <Select
                                                 value={data.submitted_to}
-                                                onChange={e => setData('submitted_to', e.target.value)}
-                                                placeholder="Name or department"
-                                                className="mt-1"
-                                            />
-                                            {errors.submitted_to && (
-                                                <p className="text-sm text-red-600 mt-1">{errors.submitted_to}</p>
-                                            )}
+                                                onValueChange={(value) => setData('submitted_to', value)}
+                                            >
+                                                <SelectTrigger className="mt-1">
+                                                    <SelectValue placeholder="Select recipient" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {submitToOptions.map((option) => (
+                                                        <SelectItem key={option} value={option}>
+                                                            {option}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                            {errors.submitted_to && <p className="mt-1 text-xs text-red-600">{errors.submitted_to}</p>}
+                                        </div>
+
+                                        <div>
+                                            <Label className="text-sm font-medium">Submission Date *</Label>
+                                            <Popover>
+                                                <PopoverTrigger asChild>
+                                                    <Button
+                                                        variant="outline"
+                                                        className={cn(
+                                                            'mt-1 w-full justify-start text-left font-normal',
+                                                            !data.submitted_at && 'text-slate-500',
+                                                        )}
+                                                    >
+                                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                                        {data.submitted_at
+                                                            ? format(new Date(data.submitted_at), 'PPP')
+                                                            : 'Select date'}
+                                                    </Button>
+                                                </PopoverTrigger>
+                                                <PopoverContent className="w-auto p-0">
+                                                    <Calendar
+                                                        mode="single"
+                                                        selected={data.submitted_at ? new Date(data.submitted_at) : undefined}
+                                                        onSelect={(date) => handleDateSelect('submitted_at', date)}
+                                                    />
+                                                </PopoverContent>
+                                            </Popover>
+                                            {errors.submitted_at && <p className="mt-1 text-xs text-red-600">{errors.submitted_at}</p>}
                                         </div>
                                     </div>
 
                                     <div>
-                                        <Label className="text-sm font-medium text-slate-700">Submission Date</Label>
-                                        <Popover>
-                                            <PopoverTrigger asChild>
-                                                <Button
-                                                    variant="outline"
-                                                    className={cn(
-                                                        "w-full justify-start text-left font-normal mt-1",
-                                                        !data.submitted_at && "text-slate-500"
-                                                    )}
-                                                >
-                                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                                    {data.submitted_at ? format(new Date(data.submitted_at), "PPP") : "Select date"}
-                                                </Button>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="w-auto p-0" align="start">
-                                                <Calendar
-                                                    mode="single"
-                                                    selected={data.submitted_at ? new Date(data.submitted_at) : undefined}
-                                                    onSelect={(date) => handleDateSelect('submitted_at', date)}
-                                                    captionLayout="dropdown"
-                                                    className="w-64 mx-auto"
-                                                />
-                                            </PopoverContent>
-                                        </Popover>
-                                        {errors.submitted_at && (
-                                            <p className="text-sm text-red-600 mt-1">{errors.submitted_at}</p>
-                                        )}
+                                        <Label className="text-sm font-medium">Notes</Label>
+                                        <Textarea
+                                            value={data.notes}
+                                            onChange={(e) => setData('notes', e.target.value)}
+                                            placeholder="Additional notes about this invoice..."
+                                            rows={3}
+                                            className="mt-1 resize-none"
+                                        />
                                     </div>
                                 </CardContent>
                             </Card>
 
-                            {/* Attachments */}
-                            <Card className="shadow-sm border-slate-200">
-                                <CardHeader className="pb-4">
-                                    <CardTitle className="flex items-center text-slate-800">
-                                        <Upload className="w-5 h-5 mr-2 text-orange-600" />
+                            {/* Attachments - Matching SingleMode structure */}
+                            <Card className="shadow-sm">
+                                <CardHeader className="pb-3">
+                                    <CardTitle className="flex items-center text-lg">
+                                        <Upload className="mr-2 h-4 w-4 text-orange-600" />
                                         Attachments
                                     </CardTitle>
-                                    <CardDescription className="text-slate-600">
-                                        Manage supporting documents for this invoice
-                                    </CardDescription>
                                 </CardHeader>
                                 <CardContent>
-                                    <div className="space-y-4">
+                                    <div className="space-y-3">
                                         {/* Existing Files */}
                                         {existingFiles.length > 0 && (
                                             <div className="space-y-2">
-                                                <Label className="text-sm font-medium text-slate-700">
-                                                    Current Files ({existingFiles.length})
-                                                </Label>
-                                                <div className="space-y-2">
+                                                <Label className="text-sm font-medium">Current Files ({existingFiles.length})</Label>
+                                                <div className="space-y-1">
                                                     {existingFiles.map((file) => (
                                                         <div
                                                             key={file.id}
-                                                            className="flex items-center justify-between p-2 bg-blue-50 border border-blue-200 rounded"
+                                                            className="flex items-center justify-between rounded border bg-slate-50 p-2 text-sm"
                                                         >
-                                                            <div className="flex-1 min-w-0">
-                                                                <p className="text-sm font-medium text-slate-900 truncate">
-                                                                    {file.file_name}
-                                                                </p>
-                                                                <p className="text-xs text-slate-500">
-                                                                    {(file.file_size / 1024 / 1024).toFixed(2)} MB
-                                                                </p>
-                                                            </div>
-                                                            <div className="flex gap-1">
-                                                                <Button
-                                                                    type="button"
-                                                                    variant="ghost"
-                                                                    size="sm"
-                                                                    onClick={() => window.open(`/storage/${file.file_path}`, '_blank')}
-                                                                    className="text-blue-600 hover:text-blue-800 hover:bg-blue-100"
-                                                                >
-                                                                    <Download className="h-4 w-4" />
-                                                                </Button>
-                                                                <Button
-                                                                    type="button"
-                                                                    variant="ghost"
-                                                                    size="sm"
-                                                                    onClick={() => handleDeleteExistingFile(file.id)}
-                                                                    className="text-red-600 hover:text-red-800 hover:bg-red-50"
-                                                                >
-                                                                    <Trash2 className="h-4 w-4" />
-                                                                </Button>
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        {/* Files marked for deletion */}
-                                        {filesToDelete.length > 0 && (
-                                            <div className="space-y-2">
-                                                <Label className="text-sm font-medium text-slate-700 text-red-600">
-                                                    Files to be deleted ({filesToDelete.length})
-                                                </Label>
-                                                <div className="space-y-2">
-                                                    {invoice.files?.filter(file => filesToDelete.includes(file.id)).map((file) => (
-                                                        <div
-                                                            key={file.id}
-                                                            className="flex items-center justify-between p-2 bg-red-50 border border-red-200 rounded opacity-75"
-                                                        >
-                                                            <div className="flex-1 min-w-0">
-                                                                <p className="text-sm font-medium text-slate-900 truncate line-through">
+                                                            <div className="min-w-0 flex-1">
+                                                                <p className="truncate text-xs font-medium text-slate-900 line-through">
                                                                     {file.file_name}
                                                                 </p>
                                                                 <p className="text-xs text-slate-500">
@@ -605,9 +603,9 @@ const EditInvoice = ({ invoice, purchaseOrders }) => {
                                                                 variant="ghost"
                                                                 size="sm"
                                                                 onClick={() => restoreFile(file.id)}
-                                                                className="text-green-600 hover:text-green-800 hover:bg-green-50"
+                                                                className="h-8 w-8 p-0 text-green-600 hover:bg-green-50 hover:text-green-800"
                                                             >
-                                                                Restore
+                                                                <Check className="h-3 w-3" />
                                                             </Button>
                                                         </div>
                                                     ))}
@@ -615,51 +613,38 @@ const EditInvoice = ({ invoice, purchaseOrders }) => {
                                             </div>
                                         )}
 
-                                        {/* Add new files */}
                                         <div>
-                                            <div>
-                                                <label
-                                                    htmlFor="files"
-                                                    className="inline-block cursor-pointer px-6 py-2 rounded bg-blue-50 text-blue-700 hover:bg-blue-100"
-                                                >
-                                                    <div className="flex items-center gap-2">
-                                                        <Upload className={"w-4 h-4"}/> <span>Add More Files</span>
-                                                    </div>
-                                                </label>
-                                                <input
-                                                    id="files"
-                                                    type="file"
-                                                    multiple
-                                                    onChange={handleFileChange}
-                                                    accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.txt"
-                                                    className="hidden"
-                                                />
-                                            </div>
-
-                                            <p className="text-sm text-slate-500 mt-1">
-                                                Supported formats: PDF, DOC, DOCX, XLS, XLSX, JPG, PNG (Max: 10MB per file)
-                                            </p>
-                                            {errors.files && (
-                                                <p className="text-sm text-red-600 mt-1">{errors.files}</p>
-                                            )}
+                                            <label
+                                                htmlFor="files"
+                                                className="inline-block cursor-pointer rounded bg-blue-50 px-4 py-2 text-sm text-blue-700 hover:bg-blue-100"
+                                            >
+                                                <div className="flex items-center gap-2">
+                                                    <Upload className="h-4 w-4" />
+                                                    <span>Upload Files</span>
+                                                </div>
+                                            </label>
+                                            <input
+                                                id="files"
+                                                type="file"
+                                                multiple
+                                                onChange={handleFileChange}
+                                                accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.txt"
+                                                className="hidden"
+                                            />
+                                            <p className="mt-1 text-xs text-slate-500">PDF, DOC, XLS, JPG, PNG (Max: 10MB per file)</p>
                                         </div>
 
-                                        {/* New files to upload */}
                                         {selectedFiles.length > 0 && (
                                             <div className="space-y-2">
-                                                <Label className="text-sm font-medium text-slate-700">
-                                                    New Files to Upload ({selectedFiles.length})
-                                                </Label>
-                                                <div className="space-y-2">
+                                                <Label className="text-sm font-medium">Selected Files ({selectedFiles.length})</Label>
+                                                <div className="space-y-1">
                                                     {selectedFiles.map((file, index) => (
                                                         <div
                                                             key={index}
-                                                            className="flex items-center justify-between p-2 bg-green-50 border border-green-200 rounded"
+                                                            className="flex items-center justify-between rounded border bg-slate-50 p-2 text-sm"
                                                         >
-                                                            <div className="flex-1 min-w-0">
-                                                                <p className="text-sm font-medium text-slate-900 truncate">
-                                                                    {file.name}
-                                                                </p>
+                                                            <div className="min-w-0 flex-1">
+                                                                <p className="truncate text-xs font-medium text-slate-900">{file.name}</p>
                                                                 <p className="text-xs text-slate-500">
                                                                     {(file.size / 1024 / 1024).toFixed(2)} MB
                                                                 </p>
@@ -668,10 +653,10 @@ const EditInvoice = ({ invoice, purchaseOrders }) => {
                                                                 type="button"
                                                                 variant="ghost"
                                                                 size="sm"
-                                                                onClick={() => removeNewFile(index)}
-                                                                className="text-red-600 hover:text-red-800 hover:bg-red-50"
+                                                                onClick={() => removeFile(index)}
+                                                                className="h-8 w-8 p-0 text-red-600 hover:bg-red-50 hover:text-red-800"
                                                             >
-                                                                <X className="h-4 w-4" />
+                                                                <X className="h-3 w-3" />
                                                             </Button>
                                                         </div>
                                                     ))}
@@ -686,10 +671,10 @@ const EditInvoice = ({ invoice, purchaseOrders }) => {
                         {/* Right Column - Summary and Actions */}
                         <div className="space-y-6">
                             {/* Invoice Summary */}
-                            <Card className="shadow-sm border-slate-200">
+                            <Card className="shadow-sm">
                                 <CardHeader className="pb-4">
-                                    <CardTitle className="flex items-center text-slate-800">
-                                        <DollarSign className="w-5 h-5 mr-2 text-green-600" />
+                                    <CardTitle className="flex items-center text-lg">
+                                        <DollarSign className="mr-2 h-4 w-4 text-green-600" />
                                         Invoice Summary
                                     </CardTitle>
                                 </CardHeader>
@@ -701,10 +686,42 @@ const EditInvoice = ({ invoice, purchaseOrders }) => {
                                         </div>
                                     </div>
 
+                                    {selectedPO && data.invoice_amount && (
+                                        <div className="rounded-md border bg-blue-50 p-3">
+                                            <div className="text-xs text-slate-600 mb-1">PO Utilization</div>
+                                            <div className="text-lg font-bold text-blue-700">
+                                                {calculatePOPercentage(data.invoice_amount, selectedPO.po_amount).toFixed(1)}%
+                                            </div>
+                                            <div className="text-xs text-slate-500">
+                                                of ₱{Number(selectedPO.po_amount).toLocaleString()}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {data.invoice_amount && (
+                                        <div className="rounded-md border bg-slate-50 p-3">
+                                            <div className="text-xs font-medium text-slate-600 mb-2">VAT Breakdown</div>
+                                            <div className="space-y-1 text-xs">
+                                                <div className="flex justify-between">
+                                                    <span className="text-slate-600">Vatable Amount:</span>
+                                                    <span className="font-medium">
+                                                        ₱{calculateVAT(data.invoice_amount).vatableAmount.toFixed(2)}
+                                                    </span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span className="text-slate-600">VAT (12%):</span>
+                                                    <span className="font-medium">
+                                                        ₱{calculateVAT(data.invoice_amount).vatAmount.toFixed(2)}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
                                     {selectedPO && (
-                                        <div className="p-4 bg-blue-50 border border-blue-200 rounded-md">
-                                            <h4 className="text-sm font-medium text-blue-800 mb-2">Selected Purchase Order</h4>
-                                            <div className="text-sm text-blue-700 space-y-1">
+                                        <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
+                                            <h4 className="text-xs font-medium text-blue-800 mb-2 uppercase tracking-wide">Selected Purchase Order</h4>
+                                            <div className="text-xs text-blue-700 space-y-1">
                                                 <div className="flex justify-between">
                                                     <span>PO Number:</span>
                                                     <span className="font-medium">{selectedPO.po_number}</span>
@@ -733,9 +750,9 @@ const EditInvoice = ({ invoice, purchaseOrders }) => {
 
                                     {/* File Changes Summary */}
                                     {(selectedFiles.length > 0 || filesToDelete.length > 0) && (
-                                        <div className="p-4 bg-amber-50 border border-amber-200 rounded-md">
-                                            <h4 className="text-sm font-medium text-amber-800 mb-2">File Changes</h4>
-                                            <div className="text-sm text-amber-700 space-y-1">
+                                        <div className="p-3 bg-amber-50 border border-amber-200 rounded-md">
+                                            <h4 className="text-xs font-medium text-amber-800 mb-2 uppercase tracking-wide">File Changes</h4>
+                                            <div className="text-xs text-amber-700 space-y-1">
                                                 {selectedFiles.length > 0 && (
                                                     <div className="flex justify-between">
                                                         <span>New files:</span>
@@ -761,7 +778,7 @@ const EditInvoice = ({ invoice, purchaseOrders }) => {
                             </Card>
 
                             {/* Action Card */}
-                            <Card className="shadow-sm border-slate-200">
+                            <Card className="shadow-sm">
                                 <CardContent className="pt-6">
                                     <div className="space-y-4">
                                         <Button
@@ -775,17 +792,17 @@ const EditInvoice = ({ invoice, purchaseOrders }) => {
                                         </Button>
 
                                         {errorCount > 0 && (
-                                            <div className="p-4 bg-red-50 border border-red-200 rounded-md">
+                                            <div className="p-3 bg-red-50 border border-red-200 rounded-md">
                                                 <div className="flex items-start">
-                                                    <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 mr-3 flex-shrink-0" />
+                                                    <AlertCircle className="w-4 h-4 text-red-600 mt-0.5 mr-2 flex-shrink-0" />
                                                     <div className="flex-1">
-                                                        <h3 className="text-sm font-medium text-red-800 mb-2">
+                                                        <h3 className="text-xs font-medium text-red-800 mb-1">
                                                             Please fix {errorCount} error{errorCount > 1 ? 's' : ''} before updating:
                                                         </h3>
-                                                        <ul className="text-sm text-red-700 space-y-1">
+                                                        <ul className="text-xs text-red-700 space-y-1">
                                                             {Object.entries(errors).map(([field, error]) => (
                                                                 <li key={field} className="flex items-center">
-                                                                    <span className="w-1.5 h-1.5 bg-red-600 rounded-full mr-2 flex-shrink-0"></span>
+                                                                    <span className="w-1 h-1 bg-red-600 rounded-full mr-2 flex-shrink-0"></span>
                                                                     <span className="capitalize">
                                                                         {field.replace('_', ' ')}: {error}
                                                                     </span>
@@ -805,13 +822,13 @@ const EditInvoice = ({ invoice, purchaseOrders }) => {
 
                 {/* Confirmation Dialog */}
                 <Dialog open={showConfirmation} onOpenChange={setShowConfirmation}>
-                    <DialogContent className="!max-w-5xl max-h-[90vh] overflow-y-auto p-4">
-                        <DialogHeader className="pb-3">
+                    <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                        <DialogHeader>
                             <DialogTitle className="flex items-center text-lg">
                                 <Eye className="w-5 h-5 mr-2 text-blue-600" />
                                 Review Invoice Changes
                             </DialogTitle>
-                            <DialogDescription className="text-xs text-slate-600">
+                            <DialogDescription>
                                 Verify all changes before updating the invoice.
                             </DialogDescription>
                         </DialogHeader>
@@ -820,7 +837,7 @@ const EditInvoice = ({ invoice, purchaseOrders }) => {
                             {/* PO Info */}
                             {selectedPO && (
                                 <div className="border border-blue-200 rounded-lg p-3 bg-blue-50">
-                                    <h3 className="font-semibold text-slate-800 text-xs uppercase tracking-wide mb-2">PO Info</h3>
+                                    <h3 className="font-semibold text-slate-800 text-xs uppercase tracking-wide mb-2">Purchase Order</h3>
                                     <div className="grid grid-cols-2 gap-2">
                                         <div>
                                             <div className="text-slate-500">PO #</div>
@@ -838,45 +855,38 @@ const EditInvoice = ({ invoice, purchaseOrders }) => {
                                             <div className="text-slate-500">Amount</div>
                                             <div className="font-bold text-emerald-600">₱{Number(selectedPO.po_amount).toLocaleString()}</div>
                                         </div>
-                                        <div>
-                                            <div className="text-slate-500">Status</div>
-                                            <Badge className="text-xs px-1.5 py-0.5 bg-green-100 text-green-800 capitalize">{selectedPO.po_status}</Badge>
-                                        </div>
                                     </div>
                                 </div>
                             )}
 
                             {/* Invoice Details */}
                             <div className="border border-emerald-200 rounded-lg p-3 bg-emerald-50">
-                                <h3 className="font-semibold text-slate-800 text-xs uppercase tracking-wide mb-2">Invoice</h3>
+                                <h3 className="font-semibold text-slate-800 text-xs uppercase tracking-wide mb-2">Invoice Information</h3>
                                 <div className="grid grid-cols-2 gap-2">
                                     <div>
-                                        <div className="text-slate-500">SI #</div>
+                                        <div className="text-slate-500">SI Number</div>
                                         <div>{data.si_number || <span className="text-slate-400">—</span>}</div>
                                     </div>
                                     <div>
-                                        <div className="text-slate-500">Date</div>
+                                        <div className="text-slate-500">SI Date</div>
                                         <div>{data.si_date ? format(new Date(data.si_date), "MMM d, yyyy") : "—"}</div>
                                     </div>
                                     <div>
-                                        <div className="text-slate-500">Amount</div>
+                                        <div className="text-slate-500">Invoice Amount</div>
                                         <div className="font-bold text-emerald-600">
                                             {data.invoice_amount ? `₱${Number(data.invoice_amount).toLocaleString()}` : "—"}
                                         </div>
                                     </div>
                                     <div>
-                                        <div className="text-slate-500">Due</div>
-                                        <div>{data.due_date ? format(new Date(data.due_date), "MMM d") : "—"}</div>
+                                        <div className="text-slate-500">Payment Terms</div>
+                                        <div>{paymentTermsOptions.find(opt => opt.value === data.terms_of_payment)?.label || data.other_payment_terms || "—"}</div>
                                     </div>
-                                </div>
-                            </div>
-
-                            {/* Processing */}
-                            <div className="border border-amber-200 rounded-lg p-3 bg-amber-50">
-                                <h3 className="font-semibold text-slate-800 text-xs uppercase tracking-wide mb-2">Processing</h3>
-                                <div className="grid grid-cols-2 gap-2">
                                     <div>
-                                        <div className="text-slate-500">Received</div>
+                                        <div className="text-slate-500">Due Date</div>
+                                        <div>{data.due_date ? format(new Date(data.due_date), "MMM d, yyyy") : "—"}</div>
+                                    </div>
+                                    <div>
+                                        <div className="text-slate-500">Received Date</div>
                                         <div>{data.si_received_at ? format(new Date(data.si_received_at), "MMM d, yyyy") : "—"}</div>
                                     </div>
                                     <div>
@@ -884,64 +894,78 @@ const EditInvoice = ({ invoice, purchaseOrders }) => {
                                         <div>{data.submitted_to || "—"}</div>
                                     </div>
                                     <div>
-                                        <div className="text-slate-500">On</div>
+                                        <div className="text-slate-500">Submission Date</div>
                                         <div>{data.submitted_at ? format(new Date(data.submitted_at), "MMM d, yyyy") : "—"}</div>
                                     </div>
                                 </div>
                             </div>
 
                             {/* File Changes */}
-                            {selectedFiles.length > 0 && (
+                            {(selectedFiles.length > 0 || filesToDelete.length > 0) && (
                                 <div className="border border-purple-200 rounded-lg p-3 bg-purple-50">
-                                    <h3 className="font-semibold text-slate-800 text-xs uppercase tracking-wide mb-2">New Files to Upload ({selectedFiles.length})</h3>
-                                    <ul className="text-xs text-slate-700 space-y-1">
-                                        {selectedFiles.map((file, i) => (
-                                            <li key={i} className="truncate">
-                                                📄 {file.name} ({(file.size / 1024 / 1024).toFixed(2)} MB)
-                                            </li>
-                                        ))}
-                                    </ul>
+                                    <h3 className="font-semibold text-slate-800 text-xs uppercase tracking-wide mb-2">File Changes</h3>
+                                    {selectedFiles.length > 0 && (
+                                        <div className="mb-2">
+                                            <div className="text-slate-600 text-xs mb-1">New Files ({selectedFiles.length})</div>
+                                            <ul className="text-xs text-slate-700 space-y-1">
+                                                {selectedFiles.map((file, i) => (
+                                                    <li key={i} className="truncate">
+                                                        📄 {file.name} ({(file.size / 1024 / 1024).toFixed(2)} MB)
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    )}
+                                    {filesToDelete.length > 0 && (
+                                        <div>
+                                            <div className="text-red-600 text-xs mb-1">Files to Delete ({filesToDelete.length})</div>
+                                            <ul className="text-xs text-red-700 space-y-1">
+                                                {invoice.files?.filter(file => filesToDelete.includes(file.id)).map((file, i) => (
+                                                    <li key={i} className="truncate line-through">
+                                                        🗑️ {file.file_name}
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    )}
                                 </div>
                             )}
 
                             {/* Notes */}
                             {data.notes && (
                                 <div className="border border-rose-200 rounded-lg p-3 bg-rose-50">
-                                    <h3 className="font-semibold text-slate-800 text-xs uppercase tracking-wide mb-2">Note</h3>
-                                    <p className="text-slate-700 text-xs leading-tight">{data.notes}</p>
+                                    <h3 className="font-semibold text-slate-800 text-xs uppercase tracking-wide mb-2">Notes</h3>
+                                    <p className="text-slate-700 text-xs leading-relaxed">{data.notes}</p>
                                 </div>
                             )}
                         </div>
 
-                        <DialogFooter className="pt-4 border-t bg-slate-50 -mx-4 mt-4 px-4">
-                            <div className="flex flex-col sm:flex-row gap-2 w-full">
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    onClick={() => setShowConfirmation(false)}
-                                    className="text-xs py-1 px-3 border-slate-300 hover:bg-slate-50"
-                                >
-                                    Edit More
-                                </Button>
-                                <Button
-                                    type="button"
-                                    onClick={handleSubmitConfirmed}
-                                    disabled={processing}
-                                    className="text-xs py-1 px-3 bg-blue-600 hover:bg-blue-700 text-white"
-                                >
-                                    {processing ? (
-                                        <>
-                                            <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1.5"></div>
-                                            Updating...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Check className="w-3 h-3 mr-1.5" />
-                                            Confirm & Update
-                                        </>
-                                    )}
-                                </Button>
-                            </div>
+                        <DialogFooter>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setShowConfirmation(false)}
+                            >
+                                Edit More
+                            </Button>
+                            <Button
+                                type="button"
+                                onClick={handleSubmitConfirmed}
+                                disabled={processing}
+                                className="bg-blue-600 hover:bg-blue-700 text-white"
+                            >
+                                {processing ? (
+                                    <>
+                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                        Updating...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Check className="w-4 h-4 mr-2" />
+                                        Confirm & Update
+                                    </>
+                                )}
+                            </Button>
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>
