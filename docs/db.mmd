@@ -95,7 +95,6 @@ erDiagram
     check_requisitions {
         int id PK
         varchar requisition_number UK
-        int invoice_id FK
         varchar requisition_status
         numeric php_amount
         date request_date
@@ -114,6 +113,14 @@ erDiagram
         int processed_by FK
         datetime approved_at
         datetime processed_at
+        datetime created_at
+        datetime updated_at
+    }
+
+    check_requisition_invoices {
+        int id PK
+        int check_requisition_id FK
+        int invoice_id FK
         datetime created_at
         datetime updated_at
     }
@@ -188,7 +195,10 @@ erDiagram
     projects ||--o{ purchase_orders : "has"
     purchase_orders ||--|| po_line_items : "has"
     purchase_orders ||--o{ invoices : "has"
-    invoices ||--o{ check_requisitions : "generates"
+
+%% New Relationship (Junction Table)
+    check_requisitions ||--o{ check_requisition_invoices : "links"
+    invoices ||--o{ check_requisition_invoices : "links"
 
 %% Polymorphic
     remarks }o--o{ vendors : "remarkable"
