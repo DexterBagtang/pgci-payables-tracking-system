@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('check_requisitions', function (Blueprint $table) {
             $table->id();
             $table->string('requisition_number')->unique();
-            $table->foreignId('invoice_id')->nullable()->constrained()->onDelete('set null');
+//            $table->foreignId('invoice_id')->nullable()->constrained()->onDelete('set null');
             $table->enum('requisition_status', [
                 'draft',
                 'pending_approval',

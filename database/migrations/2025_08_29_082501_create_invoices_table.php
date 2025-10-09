@@ -25,7 +25,7 @@ return new class extends Migration
             $table->decimal('net_amount', 15, 2);
             $table->string('terms_of_payment')->nullable();
             $table->string('other_payment_terms')->nullable();
-            $table->enum('invoice_status', ['pending','received', 'in_progress', 'approved', 'rejected', 'paid', 'overdue'])->default('pending');
+            $table->enum('invoice_status', ['pending','received', 'in_progress', 'approved','pending_disbursement','rejected', 'paid', 'overdue'])->default('pending');
             $table->date('due_date')->nullable();
             $table->text('notes')->nullable();
             $table->date('files_received_at')->nullable();
