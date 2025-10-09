@@ -100,15 +100,87 @@ class VendorController extends Controller
     /**
      * Display the specified resource.
      */
+//    public function show(Vendor $vendor)
+//    {
+//        $vendor->load(
+//            'invoices',
+//            'projects',
+//            'purchaseOrders.project',
+//            'remarks.user:id,name'
+//        );
+//        return inertia('vendors/show', [
+//            'vendor' => $vendor,
+//            'backUrl' => url()->previous() ?: '/vendors',
+//        ]);
+//    }
     public function show(Vendor $vendor)
     {
-        $vendor->load(
+        $vendor->load([
             'purchaseOrders.project',
-            'remarks.user:id,name'
-        );
+            'purchaseOrders.invoices.checkRequisitions',
+            'remarks.user'
+        ]);
+
+        // Get all invoices for this vendor
+        $invoices = $vendor->invoices()->with(['checkRequisitions'])->get();
+
+        // Total paid is based on invoices marked as 'paid'
+        $totalPaid = $invoices->where('invoice_status', 'paid')->sum('invoice_amount');
+
+        $totalInvoiced = $invoices->sum('invoice_amount');
+        $outstandingBalance = $totalInvoiced - $totalPaid;
+
+        // Calculate overdue invoices (not paid and past due date)
+        $today = now();
+        $overdueInvoices = $invoices->filter(function ($invoice) use ($today) {
+            return $invoice->due_date &&
+                $invoice->due_date < $today &&
+                $invoice->invoice_status !== 'paid';
+        });
+
+        $overdueAmount = $overdueInvoices->sum('invoice_amount');
+
+        // Count invoice statuses
+        $paidInvoices = $invoices->where('invoice_status', 'paid')->count();
+
+        $pendingInvoices = $invoices->where('invoice_status','!=','paid')->count();
+
+        $overdueInvoicesCount = $overdueInvoices->count();
+
+        // Calculate average payment days (from SI date to when invoice status changed to 'paid')
+        $paidInvoicesWithDates = $invoices->filter(function ($invoice) {
+            return $invoice->invoice_status === 'paid' &&
+                $invoice->si_date &&
+                $invoice->updated_at; // When it was marked as paid
+        });
+
+        $averagePaymentDays = 0;
+        if ($paidInvoicesWithDates->count() > 0) {
+            $totalDays = $paidInvoicesWithDates->sum(function ($invoice) {
+                // Calculate days from SI date to when invoice was marked as paid
+                return \Carbon\Carbon::parse($invoice->si_date)
+                    ->diffInDays(\Carbon\Carbon::parse($invoice->updated_at));
+            });
+
+            $averagePaymentDays = round($totalDays / $paidInvoicesWithDates->count());
+        }
+
+        $financialSummary = [
+            'total_po_amount' => $vendor->purchaseOrders->sum('po_amount'),
+            'total_invoiced' => $totalInvoiced,
+            'total_paid' => $totalPaid,
+            'outstanding_balance' => $outstandingBalance,
+            'overdue_amount' => $overdueAmount,
+            'pending_invoices' => $pendingInvoices,
+            'paid_invoices' => $paidInvoices,
+            'overdue_invoices' => $overdueInvoicesCount,
+            'average_payment_days' => $averagePaymentDays,
+        ];
+
         return inertia('vendors/show', [
-            'vendor' => $vendor,
-            'backUrl' => url()->previous() ?: '/vendors',
+            'vendor' => array_merge($vendor->toArray(), [
+                'financial_summary' => $financialSummary
+            ]),
         ]);
     }
 

@@ -17,6 +17,9 @@ import {
     TabsList,
     TabsTrigger
 } from '@/components/ui/tabs';
+import {
+    Progress
+} from '@/components/ui/progress';
 
 import {
     Building2,
@@ -25,7 +28,6 @@ import {
     MapPin,
     Calendar,
     User,
-    Plus,
     Edit,
     TrendingUp,
     Clock,
@@ -34,75 +36,95 @@ import {
     Loader,
     CheckCircle,
     XCircle,
-    Package, ArrowLeft
+    Package,
+    AlertTriangle,
+    FileText,
+    CreditCard,
+    Activity
 } from 'lucide-react';
-import {getUniqueProjectsWithFormattedDate} from "@/components/custom/helpers.jsx";
-import {Link} from "@inertiajs/react";
+import { getUniqueProjectsWithFormattedDate } from "@/components/custom/helpers.jsx";
 import BackButton from '@/components/custom/BackButton.jsx';
-const VendorProjects = lazy(()=> import('@/pages/vendors/components/VendorProjects.jsx'));
-const EditVendorDialog = lazy(()=> import("@/pages/vendors/components/EditVendorDialog.jsx"));
-const VendorPO = lazy(()=> import('@/pages/vendors/components/VendorPO.jsx'));
+
+const VendorProjects = lazy(() => import('@/pages/vendors/components/VendorProjects.jsx'));
+const EditVendorDialog = lazy(() => import("@/pages/vendors/components/EditVendorDialog.jsx"));
+const VendorPO = lazy(() => import('@/pages/vendors/components/VendorPO.jsx'));
+const VendorInvoices = lazy(() => import('@/pages/vendors/components/VendorInvoices.jsx'));
+// const VendorPayments = lazy(() => import('@/pages/vendors/components/VendorPayments.jsx'));
 const Remarks = lazy(() => import("@/components/custom/Remarks.jsx"));
 
-export default function ShowVendor({vendor,backUrl}){
+export default function ShowVendor({ vendor }) {
+    console.log(vendor);
     const [activeTab, setActiveTab] = useState('overview');
     const [editDialogOpen, setEditDialogOpen] = useState(false);
 
-    const {purchase_orders,remarks} = vendor;
+    const { purchase_orders, remarks, financial_summary } = vendor;
 
-    // Calculate completion rate
-    const completionRate = purchase_orders.length > 0
-        ? Math.round((purchase_orders.filter(po => po.po_status === 'closed').length / purchase_orders.length) * 100)
+    // Financial calculations from backend
+    const {
+        total_po_amount = 0,
+        total_invoiced = 0,
+        total_paid = 0,
+        outstanding_balance = 0,
+        overdue_amount = 0,
+        pending_invoices = 0,
+        paid_invoices = 0,
+        overdue_invoices = 0,
+        average_payment_days = 0,
+    } = financial_summary || {};
+
+    // Calculate metrics
+    const paymentProgress = total_invoiced > 0
+        ? Math.round((total_paid / total_invoiced) * 100)
         : 0;
 
-    // Get unique projects count
-    const uniqueProjects = [...new Set(purchase_orders.map(po => po.project.project_title))].length;
+    const invoicedProgress = total_po_amount > 0
+        ? Math.round((total_invoiced / total_po_amount) * 100)
+        : 0;
 
-    const metrics = {
-        total_pos: purchase_orders.length,
-        active_pos: purchase_orders.reduce((count,po)=>po.po_status === 'open' ? count+1 : count,0),
-        total_contract_value: purchase_orders.reduce((count,po)=> count + po.po_amount,0),
-        completion_rate: completionRate,
-        projects_count: uniqueProjects
-    };
-
-    // Sample projects data
-    const projects = getUniqueProjectsWithFormattedDate(purchase_orders);
-
-
-    const getStatusBadge = (status) => {
-        const statusConfig = {
-            open: { variant: "default", icon: CheckCircle, color: "text-green-600" },
-            draft: { variant: "secondary", icon: Clock, color: "text-yellow-600" },
-            closed: { variant: "outline", icon: CheckCircle, color: "text-blue-600" },
-            cancelled: { variant: "destructive", icon: XCircle, color: "text-red-600" }
-        };
-
-        const config = statusConfig[status] || statusConfig.pending;
-        const Icon = config.icon;
-
-        return (
-            <Badge variant={config.variant} className="gap-1">
-                <Icon className={`h-3 w-3 ${config.color}`} />
-                {status.charAt(0).toUpperCase() + status.slice(1)}
-            </Badge>
-        );
-    };
+    const uniqueProjects = getUniqueProjectsWithFormattedDate(purchase_orders);
 
     const formatCurrency = (amount) => {
         return new Intl.NumberFormat('en-US', {
             style: 'currency',
-            currency: 'PHP'
-        }).format(amount);
+            currency: 'PHP',
+            minimumFractionDigits: 2
+        }).format(amount || 0);
     };
 
     const formatDate = (dateString) => {
+        if (!dateString) return 'N/A';
         return new Date(dateString).toLocaleDateString('en-US', {
             year: 'numeric',
             month: 'short',
             day: 'numeric'
         });
     };
+
+    const getStatusColor = (status) => {
+        const colors = {
+            active: 'text-green-600',
+            inactive: 'text-gray-500',
+            overdue: 'text-red-600',
+            warning: 'text-orange-600'
+        };
+        return colors[status] || 'text-gray-600';
+    };
+
+    // Determine vendor health status
+    const getVendorHealthStatus = () => {
+        if (overdue_amount > 0) {
+            return { status: 'overdue', label: 'Overdue Payments', color: 'red' };
+        }
+        if (outstanding_balance > total_invoiced * 0.5) {
+            return { status: 'warning', label: 'High Outstanding', color: 'orange' };
+        }
+        if (outstanding_balance > 0) {
+            return { status: 'pending', label: 'Pending Payments', color: 'blue' };
+        }
+        return { status: 'good', label: 'All Clear', color: 'green' };
+    };
+
+    const healthStatus = getVendorHealthStatus();
 
     return (
         <>
@@ -121,13 +143,19 @@ export default function ShowVendor({vendor,backUrl}){
                                         <Badge variant={vendor.is_active ? "default" : "secondary"}>
                                             {vendor.is_active ? "Active" : "Inactive"}
                                         </Badge>
+                                        <Badge
+                                            variant="outline"
+                                            className={`border-${healthStatus.color}-200 text-${healthStatus.color}-700 bg-${healthStatus.color}-50`}
+                                        >
+                                            {healthStatus.label}
+                                        </Badge>
                                     </div>
                                     <p className="text-gray-600">{vendor.category}</p>
                                 </div>
                             </div>
                             <div className="flex gap-2">
                                 <BackButton />
-                                <Button size="sm" variant="" onClick={()=>setEditDialogOpen(true)}>
+                                <Button size="sm" onClick={() => setEditDialogOpen(true)}>
                                     <Edit className="mr-2 h-4 w-4" />
                                     Edit Vendor
                                 </Button>
@@ -135,75 +163,174 @@ export default function ShowVendor({vendor,backUrl}){
                         </div>
                     </div>
 
-                    {/* Key Metrics */}
-                    <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-5">
+                    {/* Financial Overview Cards */}
+                    <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+                        {/* Total PO Amount */}
                         <Card>
                             <CardContent className="pt-6">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <p className="text-2xl font-bold">{metrics.total_pos}</p>
-                                        <p className="text-sm text-gray-600">Total POs</p>
+                                <div className="space-y-2">
+                                    <div className="flex items-center justify-between">
+                                        <p className="text-sm font-medium text-gray-600">Total PO Amount</p>
+                                        <ShoppingCart className="h-5 w-5 text-blue-600" />
                                     </div>
-                                    <ShoppingCart className="h-8 w-8 text-blue-600" />
+                                    <p className="text-2xl font-bold">{formatCurrency(total_po_amount)}</p>
+                                    <div className="flex items-center gap-2 text-xs text-gray-500">
+                                        <Package className="h-3 w-3" />
+                                        {purchase_orders.length} Purchase Orders
+                                    </div>
                                 </div>
                             </CardContent>
                         </Card>
+
+                        {/* Total Invoiced */}
                         <Card>
                             <CardContent className="pt-6">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <p className="text-2xl font-bold">{metrics.active_pos}</p>
-                                        <p className="text-sm text-gray-600">Active POs</p>
+                                <div className="space-y-2">
+                                    <div className="flex items-center justify-between">
+                                        <p className="text-sm font-medium text-gray-600">Total Invoiced</p>
+                                        <FileText className="h-5 w-5 text-purple-600" />
                                     </div>
-                                    <Clock className="h-8 w-8 text-green-600" />
+                                    <p className="text-2xl font-bold text-purple-600">
+                                        {formatCurrency(total_invoiced)}
+                                    </p>
+                                    <div className="space-y-1">
+                                        <div className="flex items-center justify-between text-xs">
+                                            <span className="text-gray-500">{invoicedProgress}% of PO</span>
+                                            <span className="text-gray-500">
+                                                {pending_invoices + paid_invoices + overdue_invoices} invoices
+                                            </span>
+                                        </div>
+                                        <Progress value={invoicedProgress} className="h-1" />
+                                    </div>
                                 </div>
                             </CardContent>
                         </Card>
-                        <Card>
+
+                        {/* Total Paid */}
+                        <Card className="border-green-100 bg-green-50/50">
                             <CardContent className="pt-6">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <p className="text-2xl font-bold">{formatCurrency(metrics.total_contract_value)}</p>
-                                        <p className="text-sm text-gray-600">Total Value</p>
+                                <div className="space-y-2">
+                                    <div className="flex items-center justify-between">
+                                        <p className="text-sm font-medium text-gray-600">Total Paid</p>
+                                        <CheckCircle className="h-5 w-5 text-green-600" />
                                     </div>
-                                    <DollarSign className="h-8 w-8 text-emerald-600" />
+                                    <p className="text-2xl font-bold text-green-600">
+                                        {formatCurrency(total_paid)}
+                                    </p>
+                                    <div className="space-y-1">
+                                        <div className="flex items-center justify-between text-xs">
+                                            <span className="text-green-600 font-medium">
+                                                {paymentProgress}% paid
+                                            </span>
+                                            <span className="text-gray-600">
+                                                {paid_invoices} invoices
+                                            </span>
+                                        </div>
+                                        <Progress value={paymentProgress} className="h-1 bg-green-200" />
+                                    </div>
                                 </div>
                             </CardContent>
                         </Card>
-                        <Card>
+
+                        {/* Outstanding Balance */}
+                        <Card className={outstanding_balance > 0 ? "border-orange-200 bg-orange-50/50" : ""}>
                             <CardContent className="pt-6">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <p className="text-2xl font-bold">{metrics.completion_rate}%</p>
-                                        <p className="text-sm text-gray-600">Completion Rate</p>
+                                <div className="space-y-2">
+                                    <div className="flex items-center justify-between">
+                                        <p className="text-sm font-medium text-gray-600">Outstanding</p>
+                                        <Clock className="h-5 w-5 text-orange-600" />
                                     </div>
-                                    <TrendingUp className="h-8 w-8 text-purple-600" />
-                                </div>
-                            </CardContent>
-                        </Card>
-                        <Card>
-                            <CardContent className="pt-6">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <p className="text-2xl font-bold">{metrics.projects_count}</p>
-                                        <p className="text-sm text-gray-600">Projects</p>
+                                    <p className={`text-2xl font-bold ${outstanding_balance > 0 ? 'text-orange-600' : 'text-gray-400'}`}>
+                                        {formatCurrency(outstanding_balance)}
+                                    </p>
+                                    <div className="text-xs">
+                                        {overdue_amount > 0 ? (
+                                            <div className="flex items-center gap-1 text-red-600 font-medium">
+                                                <AlertTriangle className="h-3 w-3" />
+                                                {formatCurrency(overdue_amount)} overdue ({overdue_invoices})
+                                            </div>
+                                        ) : (
+                                            <span className="text-gray-500">
+                                                {pending_invoices} pending invoices
+                                            </span>
+                                        )}
                                     </div>
-                                    <Package className="h-8 w-8 text-orange-600" />
                                 </div>
                             </CardContent>
                         </Card>
                     </div>
 
+                    {/* Secondary Metrics Row */}
+                    <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-4">
+                        <Card>
+                            <CardContent className="pt-4 pb-4">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <p className="text-sm text-gray-600">Projects</p>
+                                        <p className="text-xl font-bold">{uniqueProjects.length}</p>
+                                    </div>
+                                    <Package className="h-6 w-6 text-blue-500" />
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        <Card>
+                            <CardContent className="pt-4 pb-4">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <p className="text-sm text-gray-600">Avg Payment Days</p>
+                                        <p className="text-xl font-bold">{average_payment_days}</p>
+                                    </div>
+                                    <Activity className="h-6 w-6 text-purple-500" />
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        <Card>
+                            <CardContent className="pt-4 pb-4">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <p className="text-sm text-gray-600">Payment Terms</p>
+                                        <p className="text-lg font-semibold">{vendor.payment_terms || 'N/A'}</p>
+                                    </div>
+                                    <CreditCard className="h-6 w-6 text-green-500" />
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        <Card>
+                            <CardContent className="pt-4 pb-4">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <p className="text-sm text-gray-600">Vendor Type</p>
+                                        <p className="text-lg font-semibold">{vendor.vendor_type || 'General'}</p>
+                                    </div>
+                                    <Building2 className="h-6 w-6 text-orange-500" />
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
 
                     {/* Tabs Section */}
                     <Tabs value={activeTab} onValueChange={setActiveTab}>
-                        <TabsList className="grid w-full grid-cols-4">
+                        <TabsList className="grid w-full grid-cols-6">
                             <TabsTrigger value="overview">Overview</TabsTrigger>
+                            <TabsTrigger value="financials">Financials</TabsTrigger>
+                            <TabsTrigger value="invoices">
+                                Invoices
+                                {pending_invoices > 0 && (
+                                    <Badge variant="secondary" className="ml-2">{pending_invoices}</Badge>
+                                )}
+                            </TabsTrigger>
                             <TabsTrigger value="pos">Purchase Orders</TabsTrigger>
                             <TabsTrigger value="projects">Projects</TabsTrigger>
-                            <TabsTrigger value="remarks">Remarks <Badge variant='secondary' className="ml-2" >{remarks.length}</Badge></TabsTrigger>
+                            <TabsTrigger value="remarks">
+                                Remarks
+                                <Badge variant="secondary" className="ml-2">{remarks.length}</Badge>
+                            </TabsTrigger>
                         </TabsList>
 
+                        {/* Overview Tab */}
                         <TabsContent value="overview" className="mt-6">
                             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
                                 {/* Vendor Details Card */}
@@ -211,7 +338,7 @@ export default function ShowVendor({vendor,backUrl}){
                                     <CardHeader>
                                         <CardTitle className="flex items-center gap-2">
                                             <User className="h-5 w-5" />
-                                            Vendor Details
+                                            Vendor Information
                                         </CardTitle>
                                     </CardHeader>
                                     <CardContent>
@@ -225,7 +352,7 @@ export default function ShowVendor({vendor,backUrl}){
                                                     </p>
                                                 </div>
                                             </div>
-                                            {/* Email */}
+
                                             <div className="flex items-center gap-3">
                                                 <Mail className="h-4 w-4 text-blue-600" />
                                                 <div>
@@ -236,7 +363,6 @@ export default function ShowVendor({vendor,backUrl}){
                                                 </div>
                                             </div>
 
-                                            {/* Phone */}
                                             <div className="flex items-center gap-3">
                                                 <Phone className="h-4 w-4 text-green-600" />
                                                 <div>
@@ -247,34 +373,20 @@ export default function ShowVendor({vendor,backUrl}){
                                                 </div>
                                             </div>
 
-                                            {/* Payment Terms */}
-                                            <div className="flex items-center gap-3">
-                                                <DollarSign className="h-4 w-4 text-red-600" />
-                                                <div>
-                                                    <p className="text-sm font-medium">Payment Terms</p>
-                                                    <p className="text-sm text-gray-600">
-                                                        {vendor.payment_terms || "N/A"}
-                                                    </p>
-                                                </div>
-                                            </div>
-
-                                            {/* Address Card - Only show if address exists */}
                                             <div className="flex items-start gap-3">
-                                                <MapPin className="h-5 w-5 text-gray-600 mt-1" />
+                                                <MapPin className="h-4 w-4 text-red-600 mt-1" />
                                                 <div>
                                                     <p className="text-sm font-medium">Address</p>
-                                                    <p className="text-gray-600">{vendor.address}</p>
+                                                    <p className="text-sm text-gray-600">{vendor.address || "N/A"}</p>
                                                 </div>
                                             </div>
 
-
-                                            {/* Created At */}
                                             <div className="flex items-center gap-3">
                                                 <Calendar className="h-4 w-4 text-purple-600" />
                                                 <div>
                                                     <p className="text-sm font-medium">Created</p>
                                                     <p className="text-sm text-gray-600">
-                                                        {vendor.created_at ? formatDate(vendor.created_at) : "N/A"}
+                                                        {formatDate(vendor.created_at)}
                                                     </p>
                                                 </div>
                                             </div>
@@ -282,63 +394,282 @@ export default function ShowVendor({vendor,backUrl}){
                                     </CardContent>
                                 </Card>
 
-
-                                {/* Recent Remarks */}
+                                {/* Payment Health Summary */}
                                 <Card>
                                     <CardHeader>
+                                        <CardTitle className="flex items-center gap-2">
+                                            <DollarSign className="h-5 w-5" />
+                                            Payment Health
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="space-y-4">
+                                            {/* Overall Payment Progress */}
+                                            <div>
+                                                <div className="flex justify-between mb-2">
+                                                    <span className="text-sm font-medium">Overall Payment Progress</span>
+                                                    <span className="text-sm font-bold text-green-600">
+                                                        {paymentProgress}%
+                                                    </span>
+                                                </div>
+                                                <Progress value={paymentProgress} className="h-3" />
+                                            </div>
+
+                                            {/* Invoice Progress */}
+                                            <div>
+                                                <div className="flex justify-between mb-2">
+                                                    <span className="text-sm font-medium">Invoice Coverage</span>
+                                                    <span className="text-sm font-bold text-purple-600">
+                                                        {invoicedProgress}%
+                                                    </span>
+                                                </div>
+                                                <Progress value={invoicedProgress} className="h-3 bg-purple-200" />
+                                                <p className="text-xs text-gray-500 mt-1">
+                                                    {formatCurrency(total_po_amount - total_invoiced)} not yet invoiced
+                                                </p>
+                                            </div>
+
+                                            {/* Financial Breakdown */}
+                                            <div className="space-y-3 pt-4 border-t">
+                                                <div className="flex justify-between items-center">
+                                                    <span className="text-sm text-gray-600">PO Commitment:</span>
+                                                    <span className="font-semibold">{formatCurrency(total_po_amount)}</span>
+                                                </div>
+                                                <div className="flex justify-between items-center">
+                                                    <span className="text-sm text-gray-600">Invoiced:</span>
+                                                    <span className="font-semibold text-purple-600">
+                                                        {formatCurrency(total_invoiced)}
+                                                    </span>
+                                                </div>
+                                                <div className="flex justify-between items-center">
+                                                    <span className="text-sm text-gray-600">Paid:</span>
+                                                    <span className="font-semibold text-green-600">
+                                                        {formatCurrency(total_paid)}
+                                                    </span>
+                                                </div>
+                                                <div className="flex justify-between items-center pt-2 border-t">
+                                                    <span className="text-sm font-medium text-orange-600">Outstanding:</span>
+                                                    <span className="font-bold text-orange-600">
+                                                        {formatCurrency(outstanding_balance)}
+                                                    </span>
+                                                </div>
+                                                {overdue_amount > 0 && (
+                                                    <div className="flex justify-between items-center bg-red-50 p-3 rounded-lg border border-red-200">
+                                                        <div className="flex items-center gap-2">
+                                                            <AlertTriangle className="h-4 w-4 text-red-600" />
+                                                            <span className="text-sm font-medium text-red-600">Overdue:</span>
+                                                        </div>
+                                                        <span className="font-bold text-red-600">
+                                                            {formatCurrency(overdue_amount)}
+                                                        </span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+
+                                {/* Recent Activity */}
+                                <Card className="lg:col-span-2">
+                                    <CardHeader>
                                         <div className="flex items-center justify-between">
-                                            <CardTitle>Recent Remarks</CardTitle>
-                                            <Button variant="ghost" size="sm">View All</Button>
+                                            <CardTitle className="flex items-center gap-2">
+                                                <Activity className="h-5 w-5" />
+                                                Recent Remarks
+                                            </CardTitle>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => setActiveTab('remarks')}
+                                            >
+                                                View All
+                                            </Button>
                                         </div>
                                     </CardHeader>
                                     <CardContent>
                                         <div className="space-y-4">
-                                            {remarks.slice(0, 3).map((remark) => (
-                                                <div key={remark.id} className="border-b pb-3 last:border-b-0 last:pb-0">
-                                                    <div className="flex items-center justify-between mb-2">
-                                                        <p className="text-xs text-gray-500">{formatDate(remark.created_at)}</p>
+                                            {remarks.length > 0 ? (
+                                                remarks.slice(0, 5).map((remark) => (
+                                                    <div key={remark.id} className="border-b pb-3 last:border-b-0 last:pb-0">
+                                                        <div className="flex items-center justify-between mb-2">
+                                                            <p className="text-xs text-gray-500">
+                                                                {formatDate(remark.created_at)}
+                                                            </p>
+                                                            <Badge variant="outline" className="text-xs">
+                                                                {remark.user.name}
+                                                            </Badge>
+                                                        </div>
+                                                        <p className="text-sm text-gray-700">{remark.remark_text}</p>
                                                     </div>
-                                                    <p className="text-sm text-gray-700 mb-1">{remark.remark_text}</p>
-                                                    <p className="text-xs text-gray-500">by {remark.user.name}</p>
-                                                </div>
-                                            ))}
+                                                ))
+                                            ) : (
+                                                <p className="text-sm text-gray-500 text-center py-4">
+                                                    No remarks yet
+                                                </p>
+                                            )}
                                         </div>
                                     </CardContent>
                                 </Card>
                             </div>
                         </TabsContent>
 
+                        {/* Financials Tab - NEW */}
+                        <TabsContent value="financials" className="mt-6">
+                            <div className="grid grid-cols-1 gap-6">
+                                {/* Summary Cards */}
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    <Card>
+                                        <CardHeader className="pb-3">
+                                            <CardTitle className="text-sm font-medium text-gray-600">
+                                                Invoice Status
+                                            </CardTitle>
+                                        </CardHeader>
+                                        <CardContent>
+                                            <div className="space-y-2">
+                                                <div className="flex justify-between items-center">
+                                                    <span className="text-sm flex items-center gap-2">
+                                                        <CheckCircle className="h-4 w-4 text-green-600" />
+                                                        Paid
+                                                    </span>
+                                                    <span className="font-semibold">{paid_invoices}</span>
+                                                </div>
+                                                <div className="flex justify-between items-center">
+                                                    <span className="text-sm flex items-center gap-2">
+                                                        <Clock className="h-4 w-4 text-orange-600" />
+                                                        Pending
+                                                    </span>
+                                                    <span className="font-semibold">{pending_invoices}</span>
+                                                </div>
+                                                <div className="flex justify-between items-center">
+                                                    <span className="text-sm flex items-center gap-2">
+                                                        <AlertTriangle className="h-4 w-4 text-red-600" />
+                                                        Overdue
+                                                    </span>
+                                                    <span className="font-semibold text-red-600">{overdue_invoices}</span>
+                                                </div>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+
+                                    <Card>
+                                        <CardHeader className="pb-3">
+                                            <CardTitle className="text-sm font-medium text-gray-600">
+                                                Payment Performance
+                                            </CardTitle>
+                                        </CardHeader>
+                                        <CardContent>
+                                            <div className="space-y-2">
+                                                <div>
+                                                    <p className="text-2xl font-bold">{average_payment_days}</p>
+                                                    <p className="text-xs text-gray-600">Average Days to Pay</p>
+                                                </div>
+                                                <div className="pt-2 border-t">
+                                                    <p className="text-sm text-gray-600">Terms: {vendor.payment_terms || 'N/A'}</p>
+                                                </div>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+
+                                    <Card>
+                                        <CardHeader className="pb-3">
+                                            <CardTitle className="text-sm font-medium text-gray-600">
+                                                Uninvoiced Balance
+                                            </CardTitle>
+                                        </CardHeader>
+                                        <CardContent>
+                                            <div className="space-y-2">
+                                                <p className="text-2xl font-bold text-blue-600">
+                                                    {formatCurrency(total_po_amount - total_invoiced)}
+                                                </p>
+                                                <p className="text-xs text-gray-600">
+                                                    {invoicedProgress}% of PO amount invoiced
+                                                </p>
+                                                <Progress value={invoicedProgress} className="h-2" />
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                </div>
+
+                                {/* Payment Timeline would go here */}
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle>Financial Summary</CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="space-y-4">
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div className="space-y-2">
+                                                    <p className="text-sm text-gray-600">Purchase Orders</p>
+                                                    <p className="text-xl font-bold">{formatCurrency(total_po_amount)}</p>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <p className="text-sm text-gray-600">Total Invoiced</p>
+                                                    <p className="text-xl font-bold text-purple-600">
+                                                        {formatCurrency(total_invoiced)}
+                                                    </p>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <p className="text-sm text-gray-600">Total Paid</p>
+                                                    <p className="text-xl font-bold text-green-600">
+                                                        {formatCurrency(total_paid)}
+                                                    </p>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <p className="text-sm text-gray-600">Balance Due</p>
+                                                    <p className="text-xl font-bold text-orange-600">
+                                                        {formatCurrency(outstanding_balance)}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            </div>
+                        </TabsContent>
+
+                        {/* Invoices Tab */}
+                        <TabsContent value="invoices" className="mt-6">
+                            <Suspense fallback={<Loader className="animate-spin mx-auto" />}>
+                                <VendorInvoices vendor={vendor} />
+                            </Suspense>
+                        </TabsContent>
+
+                        {/* Purchase Orders Tab */}
                         <TabsContent value="pos" className="mt-6">
-                            <Suspense fallback={<Loader className="animate-spin" />}>
+                            <Suspense fallback={<Loader className="animate-spin mx-auto" />}>
                                 <VendorPO purchase_orders={purchase_orders} />
                             </Suspense>
-
                         </TabsContent>
 
+                        {/* Projects Tab */}
                         <TabsContent value="projects" className="mt-6">
-                            <Suspense fallback={<Loader className="animate-spin" />}>
-                                <VendorProjects projects={projects} />
+                            <Suspense fallback={<Loader className="animate-spin mx-auto" />}>
+                                <VendorProjects projects={uniqueProjects} />
                             </Suspense>
                         </TabsContent>
 
+                        {/* Remarks Tab */}
                         <TabsContent value="remarks" className="mt-6">
-                            <Suspense fallback={<Loader className="animate-spin" />}>
-                                <Remarks remarkableType="Vendor" remarkableId={vendor.id} remarks={remarks} />
+                            <Suspense fallback={<Loader className="animate-spin mx-auto" />}>
+                                <Remarks
+                                    remarkableType="Vendor"
+                                    remarkableId={vendor.id}
+                                    remarks={remarks}
+                                />
                             </Suspense>
                         </TabsContent>
                     </Tabs>
                 </div>
             </div>
+
             <Suspense fallback={null}>
                 <EditVendorDialog
                     vendor={vendor}
                     isOpen={editDialogOpen}
                     onOpenChange={setEditDialogOpen}
-                    onSuccess={()=>{}}
+                    onSuccess={() => {}}
                 />
             </Suspense>
         </>
     );
-};
-
-
+}

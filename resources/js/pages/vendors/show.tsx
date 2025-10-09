@@ -13,15 +13,14 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 interface ShowVendorsProp {
     vendor: unknown[];
-    backUrl: string;
 }
 
-export default function VendorDetails({vendor,backUrl}: ShowVendorsProp) {
+export default function VendorDetails({vendor,}: ShowVendorsProp) {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Vendors" />
             <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
-                <ShowVendor vendor={vendor} backUrl={backUrl} />
+                <ShowVendor vendor={vendor} />
             </div>
         </AppLayout>
     );
