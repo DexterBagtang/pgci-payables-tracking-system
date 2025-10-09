@@ -119,7 +119,7 @@ class ProjectController extends Controller
                 Rule::unique('projects', 'cer_number')->ignore($project->id)
             ],
             'total_project_cost' => 'required|numeric|min:0.01', // Made required and minimum 0.01
-            'total_contract_cost' => 'required|numeric|min:0.01', // Made required and minimum 0.01
+            'total_contract_cost' => 'required_if:project_type,sm_project', // Made required and minimum 0.01
             'project_type' => 'required|in:sm_project,philcom_project', // Made required
             'smpo_number' => 'required_if:project_type,sm_project|nullable|string|max:255',
             'philcom_category' => 'required_if:project_type,philcom_project|nullable|in:profit_and_loss,capital_expenditure,others',

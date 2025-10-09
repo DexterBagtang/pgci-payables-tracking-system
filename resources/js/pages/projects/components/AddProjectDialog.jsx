@@ -43,6 +43,78 @@ export default function AddProjectDialog({ open, onOpenChange, project = null })
     }, [project]);
 
     // Client-side validation function
+    // const validateForm = () => {
+    //     let isValid = true;
+    //
+    //     // Clear previous client-side errors
+    //     clearErrors();
+    //
+    //     // Project Title validation
+    //     if (!data.project_title || data.project_title.trim() === '') {
+    //         setError('project_title', 'Project Title is required');
+    //         isValid = false;
+    //     }
+    //
+    //     // CER Number validation
+    //     if (!data.cer_number || data.cer_number.trim() === '') {
+    //         setError('cer_number', 'CER Number is required');
+    //         isValid = false;
+    //     }
+    //
+    //     // Total Project Cost validation
+    //     if (!data.total_project_cost || data.total_project_cost === '') {
+    //         setError('total_project_cost', 'Total Project Cost is required');
+    //         isValid = false;
+    //     } else {
+    //         const numericValue = parseFloat(parseFormattedNumber(data.total_project_cost));
+    //         if (isNaN(numericValue) || numericValue <= 0) {
+    //             setError('total_project_cost', 'Total Project Cost must be a valid positive number');
+    //             isValid = false;
+    //         }
+    //     }
+    //
+    //     // Project Type validation
+    //     if (!data.project_type || data.project_type === '') {
+    //         setError('project_type', 'Project Type is required');
+    //         isValid = false;
+    //     }
+    //
+    //     // Total Contract Cost validation (required for editing mode or SM projects)
+    //     if (isEditing || data.project_type === 'sm_project') {
+    //         if (!data.total_contract_cost || data.total_contract_cost === '') {
+    //             setError('total_contract_cost', 'Total Contract Cost is required');
+    //             isValid = false;
+    //         } else {
+    //             const numericValue = parseFloat(parseFormattedNumber(data.total_contract_cost));
+    //             if (isNaN(numericValue) || numericValue <= 0) {
+    //                 setError('total_contract_cost', 'Total Contract Cost must be a valid positive number');
+    //                 isValid = false;
+    //             }
+    //         }
+    //     }
+    //
+    //     // Conditional validation based on project type
+    //     if (data.project_type === 'sm_project') {
+    //         if (!data.smpo_number || data.smpo_number.trim() === '') {
+    //             setError('smpo_number', 'SMPO Number is required for SM Projects');
+    //             isValid = false;
+    //         }
+    //     }
+    //
+    //     if (data.project_type === 'philcom_project') {
+    //         if (!data.philcom_category || data.philcom_category === '') {
+    //             setError('philcom_category', 'Philcom Category is required for Philcom Projects');
+    //             isValid = false;
+    //         }
+    //         if (!data.team || data.team === '') {
+    //             setError('team', 'Philcom team is required for Philcom Projects');
+    //             isValid = false;
+    //         }
+    //     }
+    //
+    //     return isValid;
+    // };
+    // Client-side validation function
     const validateForm = () => {
         let isValid = true;
 
@@ -79,8 +151,8 @@ export default function AddProjectDialog({ open, onOpenChange, project = null })
             isValid = false;
         }
 
-        // Total Contract Cost validation (required for editing mode or SM projects)
-        if (isEditing || data.project_type === 'sm_project') {
+        // Total Contract Cost validation (required for SM projects only)
+        if (data.project_type === 'sm_project') {
             if (!data.total_contract_cost || data.total_contract_cost === '') {
                 setError('total_contract_cost', 'Total Contract Cost is required');
                 isValid = false;
