@@ -670,6 +670,10 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
                                                 ₱{bulkInvoices.reduce((sum, inv) => sum + (parseFloat(inv.invoice_amount) || 0), 0).toLocaleString()}
                                             </div>
                                             <div className="mt-1 text-xs text-slate-500">
+                                                EX: ₱
+                                                {bulkInvoices.reduce((sum, inv) => sum + calculateVAT(inv.invoice_amount).vatableAmount, 0).toFixed(2)}
+                                            </div>
+                                            <div className="mt-1 text-xs text-slate-500">
                                                 VAT: ₱
                                                 {bulkInvoices.reduce((sum, inv) => sum + calculateVAT(inv.invoice_amount).vatAmount, 0).toFixed(2)}
                                             </div>

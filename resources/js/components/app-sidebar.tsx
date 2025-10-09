@@ -8,7 +8,7 @@ import { Link } from '@inertiajs/react';
 import {
     BookOpen,
     Building,
-    Files,
+    Files, FileSignature,
     Folder,
     FolderKanban,
     LayoutGrid,
@@ -48,7 +48,13 @@ const mainNavItems: NavItem[] = [
         title:'Review',
         href: '/invoice/bulk-review',
         icon: ScanSearch,
+    },
+    {
+        title:'Check Requisitions',
+        href: '/check-requisitions',
+        icon: FileSignature,
     }
+
 ];
 
 const footerNavItems: NavItem[] = [

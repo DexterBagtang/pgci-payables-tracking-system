@@ -36,8 +36,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/invoice/bulk-reject', [InvoiceController::class, 'bulkReject'])->name('invoices.bulk-reject');
 
 
-
     Route::resource('check-requisitions', CheckRequisitionController::class);
+    // Review and approval routes
+    Route::get('/check-requisitions/{checkRequisition}/review', [CheckRequisitionController::class, 'review'])
+        ->name('check-requisitions.review');
+    Route::post('/check-requisitions/{checkRequisition}/approve', [CheckRequisitionController::class, 'approve'])
+        ->name('check-requisitions.approve');
+    Route::post('/check-requisitions/{checkRequisition}/reject', [CheckRequisitionController::class, 'reject'])
+        ->name('check-requisitions.reject');
+    Route::post('/check-requisitions/{checkRequisition}/upload-signed', [CheckRequisitionController::class, 'uploadSigned'])
+        ->name('check-requisitions.upload-signed');
 
     Route::resource('remarks',RemarksController::class);
 
