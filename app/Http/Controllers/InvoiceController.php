@@ -22,7 +22,7 @@ class InvoiceController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Invoice::with([
+        $query = Invoice::with(['vendor','project',
             'purchaseOrder' => function ($q) {
                 $q->with(['project', 'vendor']);
             }
@@ -86,6 +86,8 @@ class InvoiceController extends Controller
         $vendors = Vendor::where('is_active', true)->orderBy('name')->get(['id', 'name']);
         $projects = Project::all(['id', 'project_title']);
 
+//        $invoices->append(['vendor','project']);
+
         return inertia('invoices/index', [
             'invoices' => $invoices,
             'filters' => [
@@ -114,90 +116,9 @@ class InvoiceController extends Controller
         ]);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-//    public function store(Request $request)
-//    {
-//
-//        $validated = $request->validate([
-//            'purchase_order_id' => 'required|exists:purchase_orders,id',
-//            'si_number' => 'required|string|max:255|unique:invoices',
-//            'si_date' => 'required|date',
-//            'received_date' => 'nullable|date',
-//            'invoice_amount' => 'required|numeric|min:0',
-//            'tax_amount' => 'nullable|numeric|min:0',
-//            'discount_amount' => 'nullable|numeric|min:0',
-//            'due_date' => 'required|date',
-//            'notes' => 'nullable|string',
-//            'submitted_at' => 'nullable|date',
-//            'submitted_to' => 'nullable|string|max:255',
-//            'files.*' => 'file|max:10240|mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png',
-//        ]);
-//
-//        unset($validated['files']);
-//
-//        $validated['net_amount'] = $validated['invoice_amount'];
-//
-//        // Create invoice
-//        $invoice = Invoice::create([
-//            ...$validated,
-//            'si_received_at' => now(),
-//            'created_by' => auth()->id(),
-//        ]);
-//
-//        $invoice->activityLogs()->create([
-//           'action' => 'created',
-//           'user_id' => auth()->id(),
-//            'ip_address' => $request->ip(),
-//            'changes' => json_encode($invoice->toArray()),
-//            'notes' => $validated['notes'],
-//        ]);
-//
-//        // Handle file uploads
-//        if ($request->hasFile('files')) {
-//            foreach ($request->file('files') as $file) {
-//                $filePath = $file->store('invoices/files', 'public');
-//
-//                $invoice->files()->create([
-//                    'file_name' => $file->getClientOriginalName(),
-//                    'file_path' => $filePath,
-//                    'file_type' => $file->getClientMimeType(),
-//                    'file_category' => 'invoice',
-//                    'file_purpose' => 'documentation',
-//                    'file_size' => $file->getSize(),
-//                    'disk' => 'public',
-//                    'uploaded_by' => auth()->id(),
-//                    'is_active' => true,
-//                ]);
-//            }
-//        }
-//
-//        return back()->with('success', 'Invoice created successfully!');
-//
-//    }
 
     public function store(Request $request)
     {
-//        dd($request->all());
-//        $validated = $request->validate([
-//            'invoices' => 'required|array|min:1',
-//            'invoices.*.purchase_order_id' => 'required|exists:purchase_orders,id',
-//            'invoices.*.si_number' => 'required|string|max:255|unique:invoices,si_number',
-//            'invoices.*.si_date' => 'required|date',
-//            'invoices.*.si_received_at' => 'required|date',
-//            'invoices.*.invoice_amount' => 'required|numeric|min:0',
-//            'invoices.*.tax_amount' => 'nullable|numeric|min:0',
-//            'invoices.*.discount_amount' => 'nullable|numeric|min:0',
-//            'invoices.*.terms_of_payment' => 'required|string',
-//            'invoices.*.other_payment_terms' => 'nullable|string',
-//            'invoices.*.due_date' => 'nullable|date',
-//            'invoices.*.notes' => 'nullable|string',
-//            'invoices.*.submitted_at' => 'nullable|date',
-//            'invoices.*.submitted_to' => 'nullable|string|max:255',
-//            'invoices.*.files.*' => 'file|max:10240|mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png',
-//        ]);
-
         $validator = Validator::make($request->all(), [
             'invoices' => 'required|array|min:1',
             'invoices.*.purchase_order_id' => 'required|exists:purchase_orders,id',
@@ -351,6 +272,8 @@ class InvoiceController extends Controller
         unset($validated['files']);
 
         $validated['net_amount'] = $validated['invoice_amount'];
+        $validated['invoice_status'] = 'pending';
+
 
 //        $dirty = $invoice->getDirty();
 
@@ -428,7 +351,8 @@ class InvoiceController extends Controller
             'files'
         ])
             ->select('invoices.*')
-            ->leftJoin('purchase_orders', 'purchase_orders.id', '=', 'invoices.purchase_order_id');
+            ->leftJoin('purchase_orders', 'purchase_orders.id', '=', 'invoices.purchase_order_id')
+            ->whereNotIn('invoices.invoice_status', ['approved','pending_disbursement']);
 
         // Search
         if ($request->has('search')) {
@@ -673,5 +597,96 @@ class InvoiceController extends Controller
             DB::rollBack();
             return redirect()->back()->with('error', 'Failed to reject invoices: ' . $e->getMessage());
         }
+    }
+
+    public function checkRequisition(Request $request)
+    {
+        $query = Invoice::with([
+            'purchaseOrder' => function ($q) {
+                $q->with(['project', 'vendor']);
+            },
+            'files'
+        ])
+            ->select('invoices.*')
+            ->leftJoin('purchase_orders', 'purchase_orders.id', '=', 'invoices.purchase_order_id')
+            ->where('invoices.invoice_status','!=', 'approved');
+
+        // Search
+        if ($request->has('search')) {
+            $query->where(function ($query) use ($request) {
+                $query->where('si_number', 'like', '%' . $request->search . '%')
+                    ->orWhereHas('purchaseOrder.project', function ($q) use ($request) {
+                        $q->where('project_title', 'like', '%' . $request->search . '%')
+                            ->orWhere('cer_number', 'like', '%' . $request->search . '%');
+                    })
+                    ->orWhereHas('purchaseOrder.vendor', function ($q) use ($request) {
+                        $q->where('name', 'like', '%' . $request->search . '%');
+                    })
+                    ->orWhereHas('purchaseOrder', function ($q) use ($request) {
+                        $q->where('po_number', 'like', '%' . $request->search . '%');
+                    });
+            });
+        }
+
+        // Vendor filter
+        if ($request->has('vendor') && $request->vendor !== 'all') {
+            $query->whereHas('purchaseOrder', function ($q) use ($request) {
+                $q->where('vendor_id', $request->vendor);
+            });
+        }
+
+        // Status filter
+        if ($request->has('status') && $request->status !== 'all') {
+            $query->where('invoice_status', $request->status);
+        }
+
+        // Date range filter
+        if ($request->has('date_from')) {
+            $query->where('si_date', '>=', $request->date_from);
+        }
+        if ($request->has('date_to')) {
+            $query->where('si_date', '<=', $request->date_to);
+        }
+
+        // Sorting
+        $sortField = $request->get('sort_field', 'created_at');
+        $sortDirection = $request->get('sort_direction', 'desc');
+
+        $sortMapping = [
+            'si_number' => 'si_number',
+            'created_at' => 'invoices.created_at',
+        ];
+
+        if (array_key_exists($sortField, $sortMapping)) {
+            $query->orderBy($sortMapping[$sortField], $sortDirection);
+        } else {
+            $query->orderBy('invoices.created_at', 'desc');
+        }
+
+        $perPage = $request->get('per_page', 10);
+        $perPage = in_array($perPage, [10, 15, 25, 50]) ? $perPage : 10;
+
+        $invoices = $query->paginate($perPage);
+        $invoices->appends($request->query());
+
+        $vendors = Vendor::where('is_active', true)->orderBy('name')->get(['id', 'name']);
+
+        return inertia('invoices/check-requisition', [
+            'invoices' => $invoices,
+            'filters' => [
+                'search' => $request->get('search', ''),
+                'sort_field' => $request->get('sort_field', 'created_at'),
+                'vendor' => $request->vendor !== 'all' ? (int)$request->vendor : 'all',
+                'status' => $request->status !== 'all' ? $request->status : 'all',
+                'sort_direction' => $request->get('sort_direction', 'desc'),
+                'date_from' => $request->get('date_from'),
+                'date_to' => $request->get('date_to'),
+                'per_page' => $request->get('per_page', 10),
+            ],
+            'filterOptions' => [
+                'vendors' => $vendors,
+            ],
+        ]);
+
     }
 }

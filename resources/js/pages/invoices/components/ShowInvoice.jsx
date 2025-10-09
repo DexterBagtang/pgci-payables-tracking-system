@@ -40,6 +40,7 @@ import AttachmentsCard from '@/components/custom/AttachmentsCard.jsx';
 import Remarks from '@/components/custom/Remarks.jsx';
 import remarks from '@/routes/remarks/index.js';
 import InvoiceReview from '@/pages/invoices/components/InvoiceReview.jsx';
+import BackButton from '@/components/custom/BackButton.jsx';
 
 const ShowInvoice = ({ invoice }) => {
     // Destructure related data from invoice object
@@ -141,12 +142,13 @@ const ShowInvoice = ({ invoice }) => {
                                         Edit
                                     </Button>
                                 </Link>
-                                <Link href="/invoices" prefetch>
+                                {/*<Link href="/invoices" prefetch>
                                     <Button variant="outline" size="sm">
                                         <ArrowLeft className="mr-2 h-4 w-4" />
                                         Back
                                     </Button>
-                                </Link>
+                                </Link>*/}
+                                <BackButton />
                             </div>
                         </div>
 
