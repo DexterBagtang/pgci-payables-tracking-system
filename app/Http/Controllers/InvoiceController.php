@@ -65,9 +65,12 @@ class InvoiceController extends Controller
         $sortField = $request->get('sort_field', 'created_at');
         $sortDirection = $request->get('sort_direction', 'desc');
 
+//        dd($sortField, $sortDirection);
+
         $sortMapping = [
             'si_number' => 'si_number',
             'created_at' => 'invoices.created_at',
+            'invoice_amount' => 'invoice_amount',
         ];
 
         if (array_key_exists($sortField, $sortMapping)) {
