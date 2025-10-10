@@ -22,7 +22,9 @@ return new class extends Migration
             $table->timestamps();
 
             // prevent duplicate invoice being linked twice to the same requisition
-            $table->unique(['check_requisition_id', 'invoice_id']);
+//            $table->unique(['check_requisition_id', 'invoice_id']);
+            $table->unique(['check_requisition_id', 'invoice_id'], 'check_req_invoice_unique');
+
         });
     }
 
