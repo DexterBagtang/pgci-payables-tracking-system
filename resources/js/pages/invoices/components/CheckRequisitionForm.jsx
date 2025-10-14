@@ -115,6 +115,11 @@ const CheckRequisitionForm = ({ invoices, filters, filterOptions }) => {
         return filtered;
     }, [invoices, amountFilter]);
 
+    useEffect(() => {
+        console.log("Invoices data:", invoices);
+        console.log("First invoice:", invoices?.data?.[0]);
+    }, [invoices]);
+
     // Statistics
     const statistics = useMemo(() => {
         const amounts = filteredInvoices
@@ -170,6 +175,8 @@ const CheckRequisitionForm = ({ invoices, filters, filterOptions }) => {
                 const amount = inv.invoice_amount || 0;
                 return sum + (typeof amount === 'number' ? amount : 0);
             }, 0);
+
+            console.log(total);
 
             const firstInvoice = selectedInvs[0];
             const uniqueVendors = new Set(
