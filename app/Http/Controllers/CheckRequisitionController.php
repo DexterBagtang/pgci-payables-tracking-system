@@ -167,6 +167,7 @@ class CheckRequisitionController extends Controller
             $browsershot = Browsershot::html($html)
                 ->format('A4')
                 ->showBackground()
+                ->setOption('args', ['--no-sandbox', '--disable-setuid-sandbox'])
                 ->margins(10, 10, 10, 10);
 
             if (PHP_OS_FAMILY === 'Linux') {
