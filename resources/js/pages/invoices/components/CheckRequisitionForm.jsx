@@ -118,7 +118,7 @@ const CheckRequisitionForm = ({ invoices, filters, filterOptions }) => {
     // Statistics
     const statistics = useMemo(() => {
         const amounts = filteredInvoices
-            .map(inv => inv.invoice_amount || 0)
+            .map(inv => Number(inv.invoice_amount) || 0)
             .filter(amount => typeof amount === 'number' && !isNaN(amount));
 
         const total = amounts.reduce((sum, amount) => sum + Number(amount), 0);
