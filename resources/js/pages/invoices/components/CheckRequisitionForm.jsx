@@ -78,6 +78,8 @@ const CheckRequisitionForm = ({ invoices, filters, filterOptions }) => {
         }, 0);
     }, [selectedInvoices, invoices]);
 
+    // console.log(selectedTotal);
+
     const selectedInvoicesList = useMemo(() => {
         return invoices?.data?.filter((inv) => selectedInvoices.has(inv.id)) || [];
     }, [selectedInvoices, invoices]);
@@ -122,10 +124,14 @@ const CheckRequisitionForm = ({ invoices, filters, filterOptions }) => {
 
     // Statistics
     const statistics = useMemo(() => {
-        const total = filteredInvoices.reduce((sum, inv) => sum + inv.invoice_amount, 0);
-        const avg = filteredInvoices.length > 0 ? total / filteredInvoices.length : 0;
-        const max = Math.max(...filteredInvoices.map(inv => inv.invoice_amount), 0);
-        const min = filteredInvoices.length > 0 ? Math.min(...filteredInvoices.map(inv => inv.invoice_amount)) : 0;
+        const amounts = filteredInvoices
+            .map(inv => inv.invoice_amount || 0)
+            .filter(amount => typeof amount === 'number' && !isNaN(amount));
+
+        const total = amounts.reduce((sum, amount) => sum + amount, 0);
+        const avg = amounts.length > 0 ? total / amounts.length : 0;
+        const max = amounts.length > 0 ? Math.max(...amounts) : 0;
+        const min = amounts.length > 0 ? Math.min(...amounts) : 0;
 
         return { total, avg, max, min, count: filteredInvoices.length };
     }, [filteredInvoices]);
@@ -182,7 +188,7 @@ const CheckRequisitionForm = ({ invoices, filters, filterOptions }) => {
             setData({
                 ...data,
                 php_amount: selectedTotal,
-                amount_in_words: numberToWords(selectedTotal),
+                amount_in_words: numberToWords(selectedTotal) || 0,
                 payee_name: payeeName,
                 po_number: firstInvoice?.purchase_order?.po_number || "",
                 cer_number: firstInvoice?.purchase_order?.project?.cer_number || "",
