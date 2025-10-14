@@ -1,6 +1,7 @@
 import { File, Image, FileText, FileSpreadsheet, Clock, CheckCircle, XCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge.js';
 import React from 'react';
+import { toWords } from 'number-to-words';
 
 export const formatFileSize = (bytes) => {
     if (bytes === 0) return '0 Bytes';
@@ -88,46 +89,20 @@ export const parseFormattedNumber = (value) => {
 };
 
 export const numberToWords = (num) => {
-    if (num == null || num === "") return ""; // handle null/empty input
+    const [intPart, decPart = '00'] = num.toFixed(2).split('.');
+    const pesosAmount = parseInt(intPart);
 
-    // Convert to number safely (remove commas or currency symbols)
-    const cleaned = Number(String(num).replace(/[^0-9.]/g, ""));
-    if (isNaN(cleaned)) return ""; // return empty if invalid
+    // Convert to words and capitalize first letter
+    const pesos = toWords(pesosAmount);
+    const pesosCapitalized = pesos.charAt(0).toUpperCase() + pesos.slice(1);
 
-    const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
-    const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
-    const teens = ['Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
-
-    const convertLessThanThousand = (n) => {
-        if (n === 0) return '';
-        if (n < 10) return ones[n];
-        if (n < 20) return teens[n - 10];
-        if (n < 100) return tens[Math.floor(n / 10)] + (n % 10 !== 0 ? ' ' + ones[n % 10] : '');
-        return ones[Math.floor(n / 100)] + ' Hundred' + (n % 100 !== 0 ? ' ' + convertLessThanThousand(n % 100) : '');
-    };
-
-    const convertNumber = (n) => {
-        if (n === 0) return 'Zero';
-        const billion = Math.floor(n / 1_000_000_000);
-        const million = Math.floor((n % 1_000_000_000) / 1_000_000);
-        const thousand = Math.floor((n % 1_000_000) / 1_000);
-        const remainder = n % 1_000;
-
-        let result = '';
-        if (billion > 0) result += convertLessThanThousand(billion) + ' Billion ';
-        if (million > 0) result += convertLessThanThousand(million) + ' Million ';
-        if (thousand > 0) result += convertLessThanThousand(thousand) + ' Thousand ';
-        if (remainder > 0) result += convertLessThanThousand(remainder);
-        return result.trim();
-    };
-
-    const [intPart, decPart = '00'] = cleaned.toFixed(2).split('.');
-    const pesos = convertNumber(parseInt(intPart));
     const centavos = decPart.padEnd(2, '0');
 
-    return centavos === '00'
-        ? `${pesos} Pesos Only`
-        : `${pesos} and ${centavos}/100 Pesos Only`;
+    if (centavos === '00') {
+        return `${pesosCapitalized} Pesos Only`;
+    }
+
+    return `${pesosCapitalized} and ${centavos}/100 Pesos Only`;
 };
 
 export const getStatusBadge = (status) => {
