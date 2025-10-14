@@ -164,11 +164,18 @@ class CheckRequisitionController extends Controller
             }
 
             // Generate PDF with Browsershot
-            Browsershot::html($html)
+            $browsershot = Browsershot::html($html)
                 ->format('A4')
                 ->showBackground()
-                ->margins(10, 10, 10, 10)
-                ->save(storage_path('app/public/' . $path));
+                ->margins(10, 10, 10, 10);
+
+            if (PHP_OS_FAMILY === 'Linux') {
+                $browsershot->setOption(
+                    'executablePath',
+                    '/var/www/.cache/puppeteer/chrome-headless-shell/linux-141.0.7390.76/chrome-headless-shell-linux64/chrome-headless-shell'
+                );
+            }
+            $browsershot->save(storage_path('app/public/' . $path));
 
             // Save to files table
             File::create([
