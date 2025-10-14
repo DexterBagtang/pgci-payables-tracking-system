@@ -31,7 +31,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { router, useForm } from "@inertiajs/react";
 import { toast } from "sonner";
-import { numberToWords } from "@/components/custom/helpers.jsx";
+import { formatCurrency, numberToWords } from '@/components/custom/helpers.jsx';
 import { DatePicker } from "@/components/custom/DatePicker.jsx";
 import {
     Alert,
@@ -63,13 +63,6 @@ const CheckRequisitionForm = ({ invoices, filters, filterOptions }) => {
     });
 
     const isInitialMount = useRef(true);
-
-
-    const formatCurrency = (amount) =>
-        new Intl.NumberFormat("en-PH", {
-            style: "currency",
-            currency: "PHP",
-        }).format(amount);
 
     const selectedTotal = useMemo(() => {
         return Array.from(selectedInvoices).reduce((sum, invId) => {
@@ -170,25 +163,29 @@ const CheckRequisitionForm = ({ invoices, filters, filterOptions }) => {
     // populate form when selecting invoices
     useEffect(() => {
         if (selectedInvoices.size > 0) {
-            const selectedInvs =
-                invoices?.data?.filter((inv) => selectedInvoices.has(inv.id)) || [];
-            const firstInvoice = selectedInvs[0];
+            const selectedInvs = invoices?.data?.filter((inv) => selectedInvoices.has(inv.id)) || [];
 
+            // Recalculate total here instead of relying on selectedTotal
+            const total = selectedInvs.reduce((sum, inv) => {
+                const amount = inv.invoice_amount || 0;
+                return sum + (typeof amount === 'number' ? amount : 0);
+            }, 0);
+
+            const firstInvoice = selectedInvs[0];
             const uniqueVendors = new Set(
                 selectedInvs.map((inv) => inv.purchase_order?.vendor?.name).filter(Boolean)
             );
 
-            const payeeName =
-                uniqueVendors.size === 1
-                    ? firstInvoice?.purchase_order?.vendor?.name || ""
-                    : "Multiple Vendors";
+            const payeeName = uniqueVendors.size === 1
+                ? firstInvoice?.purchase_order?.vendor?.name || ""
+                : "Multiple Vendors";
 
             const siNumbersFormatted = formatSINumbers(selectedInvs);
 
             setData({
                 ...data,
-                php_amount: selectedTotal,
-                amount_in_words: numberToWords(selectedTotal) || 0,
+                php_amount: total,  // Use local calculation
+                amount_in_words: numberToWords(total) || "",
                 payee_name: payeeName,
                 po_number: firstInvoice?.purchase_order?.po_number || "",
                 cer_number: firstInvoice?.purchase_order?.project?.cer_number || "",
@@ -197,7 +194,7 @@ const CheckRequisitionForm = ({ invoices, filters, filterOptions }) => {
                 invoice_ids: Array.from(selectedInvoices),
             });
         }
-    }, [selectedInvoices, selectedTotal]);
+    }, [selectedInvoices, invoices]);  // Remove selectedTotal from dependency
 
     const handleFilterChange = (newFilters) => {
 
