@@ -167,7 +167,7 @@ const CheckRequisitionForm = ({ invoices, filters, filterOptions }) => {
 
             // Recalculate total here instead of relying on selectedTotal
             const total = selectedInvs.reduce((sum, inv) => {
-                const amount = inv.invoice_amount || 0;
+                const amount = Number(inv.invoice_amount) || 0;
                 return sum + (typeof amount === 'number' ? amount : 0);
             }, 0);
 
