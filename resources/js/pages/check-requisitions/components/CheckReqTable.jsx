@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,12 +26,16 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
+import { getStatusBadge } from '@/components/custom/helpers.jsx';
 
 export default function CheckReqTable({ checkRequisitions, filters }) {
+    // console.log(filters);
     const [search, setSearch] = useState(filters.search || '');
     const [status, setStatus] = useState(filters.status || '');
     const [sortBy, setSortBy] = useState(filters.sort_by || 'created_at');
     const [sortOrder, setSortOrder] = useState(filters.sort_order || 'desc');
+
+    const isInitialMount = useRef(true);
 
     // Debounce search
     useEffect(() => {
@@ -42,14 +46,21 @@ export default function CheckReqTable({ checkRequisitions, filters }) {
         return () => clearTimeout(timeoutId);
     }, [search]);
 
+
     // Apply filters immediately for status and sort
     useEffect(() => {
-        if (filters.status !== undefined || filters.sort_by !== undefined) {
+        if (filters.status !== null || filters.sort_by !== 'created_at') {
             applyFilters(search, status, sortBy, sortOrder);
         }
     }, [status, sortBy, sortOrder]);
 
     const applyFilters = (searchValue, statusValue, sortByValue, sortOrderValue) => {
+
+        if (isInitialMount.current) {
+            isInitialMount.current = false;
+            return;
+        }
+
         router.get(
             '/check-requisitions',
             {
@@ -88,23 +99,6 @@ export default function CheckReqTable({ checkRequisitions, filters }) {
             <ArrowUp className="ml-2 h-4 w-4" />
         ) : (
             <ArrowDown className="ml-2 h-4 w-4" />
-        );
-    };
-
-    const getStatusBadge = (status) => {
-        const config = {
-            pending: { variant: 'secondary', className: 'bg-yellow-100 text-yellow-800 hover:bg-yellow-100' },
-            approved: { variant: 'default', className: 'bg-green-100 text-green-800 hover:bg-green-100' },
-            processed: { variant: 'default', className: 'bg-blue-100 text-blue-800 hover:bg-blue-100' },
-            rejected: { variant: 'destructive', className: 'bg-red-100 text-red-800 hover:bg-red-100' },
-        };
-
-        const statusConfig = config[status] || config.pending;
-
-        return (
-            <Badge variant={statusConfig.variant} className={statusConfig.className}>
-                {status?.toUpperCase()}
-            </Badge>
         );
     };
 

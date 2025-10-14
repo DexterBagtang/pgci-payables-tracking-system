@@ -205,9 +205,14 @@ const BulkInvoiceReview = ({ invoices, filters, filterOptions }) => {
                 setShowConfirmDialog(false);
                 setReviewNotes('');
             },
-            onError:(errors) => {
-                toast.error(errors[0]);
+            onError: (errors) => {
+                const msg = Array.isArray(errors)
+                    ? errors[0]
+                    : Object.values(errors || {})[0] || 'An unexpected error occurred.';
+                toast.error(Array.isArray(msg) ? msg[0] : msg);
             }
+
+
         });
     };
 

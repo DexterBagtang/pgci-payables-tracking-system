@@ -279,10 +279,10 @@ const InvoicesTable = ({ invoices, filters, filterOptions, user }) => {
                                 <CardDescription>AP Invoice Processing & Tracking System</CardDescription>
                             </div>
                             <div className="flex items-center space-x-3">
-                                <Button variant="outline" size="sm">
-                                    <Download className="mr-2 h-4 w-4" />
-                                    Export
-                                </Button>
+                                {/*<Button variant="outline" size="sm">*/}
+                                {/*    <Download className="mr-2 h-4 w-4" />*/}
+                                {/*    Export*/}
+                                {/*</Button>*/}
                                 <Link href="/invoices/create" prefetch>
                                     <Button size="sm">
                                         <Plus className="mr-2 h-4 w-4" />
@@ -601,7 +601,7 @@ const InvoicesTable = ({ invoices, filters, filterOptions, user }) => {
                                         })
                                     ) : (
                                         <TableRow>
-                                            <TableCell Span={7} className="py-12 text-center">
+                                            <TableCell colSpan={7} className="py-12 text-center">
                                                 <div className="flex flex-col items-center justify-center gap-2 text-gray-500">
                                                     <FoldersIcon className="h-12 w-12" />
                                                     <p className="text-sm font-medium">No invoices found</p>

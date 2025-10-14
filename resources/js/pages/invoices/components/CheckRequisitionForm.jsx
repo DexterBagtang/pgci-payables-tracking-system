@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
     Check,
     FileText,
@@ -61,6 +61,9 @@ const CheckRequisitionForm = ({ invoices, filters, filterOptions }) => {
         approved_by: "CHRISTOPHER S. BAUTISTA / WILLY N. OCIER",
         invoice_ids: [],
     });
+
+    const isInitialMount = useRef(true);
+
 
     const formatCurrency = (amount) =>
         new Intl.NumberFormat("en-PH", {
@@ -191,6 +194,12 @@ const CheckRequisitionForm = ({ invoices, filters, filterOptions }) => {
     }, [selectedInvoices, selectedTotal]);
 
     const handleFilterChange = (newFilters) => {
+
+        if (isInitialMount.current) {
+            isInitialMount.current = false;
+            return;
+        }
+
         const updatedFilters = { ...filters, ...newFilters };
         Object.keys(updatedFilters).forEach((key) => {
             if (!updatedFilters[key] || updatedFilters[key] === "all") {

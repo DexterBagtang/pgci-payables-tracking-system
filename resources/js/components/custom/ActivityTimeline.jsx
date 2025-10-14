@@ -1,5 +1,4 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card.js';
-import { format } from 'date-fns';
 import { Clock } from 'lucide-react';
 
 export default function ActivityTimeline({ activity_logs, title = "Recent Activity", entityType = "item" }) {
@@ -52,26 +51,55 @@ export default function ActivityTimeline({ activity_logs, title = "Recent Activi
         return user.name || user.username || user.email?.split('@')[0] || 'Someone';
     };
 
-    // Helper function to format date - more casual
+    // Helper function to format actual date
+    const formatActualDate = (date) => {
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const month = months[date.getMonth()];
+        const day = date.getDate();
+        const year = date.getFullYear();
+        let hours = date.getHours();
+        const minutes = date.getMinutes();
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        hours = hours % 12;
+        hours = hours ? hours : 12;
+        const minutesStr = minutes < 10 ? '0' + minutes : minutes;
+        return `${month} ${day}, ${year} ${hours}:${minutesStr} ${ampm}`;
+    };
+
+    // Helper function to format date - human diff + actual date
     const formatDate = (dateString) => {
         try {
             const date = new Date(dateString);
             const now = new Date();
-            const diffInHours = (now - date) / (1000 * 60 * 60);
+            const diffInSeconds = Math.floor((now - date) / 1000);
+            const diffInMinutes = Math.floor(diffInSeconds / 60);
+            const diffInHours = Math.floor(diffInMinutes / 60);
+            const diffInDays = Math.floor(diffInHours / 24);
+            const diffInWeeks = Math.floor(diffInDays / 7);
+            const diffInMonths = Math.floor(diffInDays / 30);
+            const diffInYears = Math.floor(diffInDays / 365);
 
-            if (diffInHours < 1) {
-                return 'Just now';
+            let humanDiff;
+            if (diffInSeconds < 60) {
+                humanDiff = 'just now';
+            } else if (diffInMinutes < 60) {
+                humanDiff = `${diffInMinutes} ${diffInMinutes === 1 ? 'minute' : 'minutes'} ago`;
             } else if (diffInHours < 24) {
-                return `${Math.floor(diffInHours)} hours ago`;
-            } else if (diffInHours < 48) {
-                return 'Yesterday';
-            } else if (diffInHours < 168) { // 7 days
-                return `${Math.floor(diffInHours / 24)} days ago`;
+                humanDiff = `${diffInHours} ${diffInHours === 1 ? 'hour' : 'hours'} ago`;
+            } else if (diffInDays < 7) {
+                humanDiff = `${diffInDays} ${diffInDays === 1 ? 'day' : 'days'} ago`;
+            } else if (diffInWeeks < 4) {
+                humanDiff = `${diffInWeeks} ${diffInWeeks === 1 ? 'week' : 'weeks'} ago`;
+            } else if (diffInMonths < 12) {
+                humanDiff = `${diffInMonths} ${diffInMonths === 1 ? 'month' : 'months'} ago`;
             } else {
-                return format(date, 'MMM d, yyyy');
+                humanDiff = `${diffInYears} ${diffInYears === 1 ? 'year' : 'years'} ago`;
             }
+
+            const actualDate = formatActualDate(date);
+            return { humanDiff, actualDate };
         } catch (e) {
-            return dateString;
+            return { humanDiff: dateString, actualDate: '' };
         }
     };
 
@@ -112,7 +140,7 @@ export default function ActivityTimeline({ activity_logs, title = "Recent Activi
                     {activity_logs.slice(0, 10).map((log, index) => { // Show only last 10 activities
                         const actionDetails = getActionDetails(log.action);
                         const userDisplay = formatUser(log.user);
-                        const dateDisplay = formatDate(log.created_at || log.timestamp || log.date);
+                        const { humanDiff, actualDate } = formatDate(log.created_at || log.timestamp || log.date);
                         const note = getDisplayNote(log);
 
                         return (
@@ -137,8 +165,14 @@ export default function ActivityTimeline({ activity_logs, title = "Recent Activi
                                     )}
 
                                     {/* Timestamp */}
-                                    <div className="mt-1 text-xs text-slate-400">
-                                        {dateDisplay}
+                                    <div className="mt-1 text-xs text-slate-500">
+                                        <span className="font-medium">{humanDiff}</span>
+                                        {actualDate && (
+                                            <>
+                                                <span className="mx-1.5 text-slate-300">•</span>
+                                                <span className="text-slate-400">{actualDate}</span>
+                                            </>
+                                        )}
                                     </div>
                                 </div>
                             </div>

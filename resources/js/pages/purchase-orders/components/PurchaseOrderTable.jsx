@@ -52,8 +52,19 @@ import {
 } from 'lucide-react';
 import PaginationServerSide from '@/components/custom/Pagination.jsx';
 import { differenceInDays } from 'date-fns';
+import {
+    Dialog,
+    DialogClose,
+    DialogContent, DialogDescription, DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger
+} from '@/components/ui/dialog.js';
+import { Label } from '@/components/ui/label.js';
+import CreatePOForm from '@/pages/purchase-orders/components/CreatePOForm.jsx';
 
 export default function PurchaseOrderTable({ purchaseOrders, filters, filterOptions }) {
+    console.log(filters,filterOptions);
     const { data } = purchaseOrders;
     const [localFilters, setLocalFilters] = useState({
         search: filters.search || '',
@@ -67,6 +78,8 @@ export default function PurchaseOrderTable({ purchaseOrders, filters, filterOpti
     const [sortField, setSortField] = useState(filters.sort_field || 'po_date');
     const [sortDirection, setSortDirection] = useState(filters.sort_direction || 'desc');
     const [activeTab, setActiveTab] = useState(filters.status || 'all');
+
+    const [isCreateOpen, setCreateOpen] = useState(false);
 
     // SAP-like status configuration
     const getStatusConfig = (status) => {
@@ -313,6 +326,12 @@ export default function PurchaseOrderTable({ purchaseOrders, filters, filterOpti
                                         Create PO
                                     </Link>
                                 </Button>
+
+                                {/*<Button onClick={()=>setCreateOpen(true)}>*/}
+                                {/*    <Plus className="mr-2 h-4 w-4" />*/}
+                                {/*    Create PO*/}
+                                {/*</Button>*/}
+
                             </div>
                         </div>
                     </CardHeader>
@@ -658,6 +677,14 @@ export default function PurchaseOrderTable({ purchaseOrders, filters, filterOpti
                         <PaginationServerSide items={purchaseOrders} onChange={handlePageChange} />
                     </CardContent>
                 </Card>
+
+                {/*<Dialog open={isCreateOpen} onOpenChange={setCreateOpen}>*/}
+                {/*    <DialogContent className="!max-w-7xl">*/}
+                {/*        <CreatePOForm vendors={filterOptions.vendors} projects={filterOptions.projects}  />*/}
+                {/*    </DialogContent>*/}
+                {/*</Dialog>*/}
+
+
             </div>
         </div>
     );

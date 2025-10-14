@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input.js';
 import { Label } from '@/components/ui/label.js';
 import { Separator } from '@/components/ui/separator.js';
 import { Textarea } from '@/components/ui/textarea.js';
-import { Head, Link, router, useForm } from '@inertiajs/react';
+import { Head, useForm } from '@inertiajs/react';
 import { format } from 'date-fns';
 import { FileText, Save, Download, } from 'lucide-react';
 import { useState, useEffect, Suspense, lazy } from 'react';
@@ -19,7 +19,7 @@ const ExpectedDateSelectionButton = lazy(()=> import('@/pages/purchase-orders/co
 const ProjectSelection = lazy(() => import('@/pages/purchase-orders/components/create/ProjectSelection.jsx'));
 const VendorSelection = lazy(()=> import('@/pages/purchase-orders/components/create/VendorSelection.jsx'));
 
-export default function EditPOForm({ purchaseOrder, vendors, projects, onCancel, onSuccess }) {
+export default function EditPOForm({ purchaseOrder, vendors, projects, onSuccess = null, }) {
     const [isDraft, setIsDraft] = useState(purchaseOrder.po_status === 'draft');
     const [files, setFiles] = useState([]);
 

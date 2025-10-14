@@ -4,16 +4,22 @@ import { Button } from '@/components/ui/button.js';
 
 export default function BackButton() {
     const handleBack = () => {
+        const currentUrl = window.location.href;
+
         // Go back
         window.history.back();
-        // Optional reload (after a tiny delay, to ensure cache kicks in)
+
+        // Only reload if we actually navigated to a different page
         setTimeout(() => {
-            router.reload();
-        }, 100);
+            // if (window.location.href !== currentUrl) {
+                router.reload();
+            // }
+        }, 1000);
     };
 
     return (
         <Button
+            type="button"
             onClick={handleBack}
             variant="outline"
             size="sm"
