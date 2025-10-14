@@ -67,7 +67,7 @@ const CheckRequisitionForm = ({ invoices, filters, filterOptions }) => {
     const selectedTotal = useMemo(() => {
         return Array.from(selectedInvoices).reduce((sum, invId) => {
             const invoice = invoices?.data?.find((inv) => inv.id === invId);
-            return sum + (invoice?.invoice_amount || 0);
+            return sum + (Number(invoice?.invoice_amount) || 0);
         }, 0);
     }, [selectedInvoices, invoices]);
 
@@ -115,18 +115,13 @@ const CheckRequisitionForm = ({ invoices, filters, filterOptions }) => {
         return filtered;
     }, [invoices, amountFilter]);
 
-    useEffect(() => {
-        console.log("Invoices data:", invoices);
-        console.log("First invoice:", invoices?.data?.[0]);
-    }, [invoices]);
-
     // Statistics
     const statistics = useMemo(() => {
         const amounts = filteredInvoices
             .map(inv => inv.invoice_amount || 0)
             .filter(amount => typeof amount === 'number' && !isNaN(amount));
 
-        const total = amounts.reduce((sum, amount) => sum + amount, 0);
+        const total = amounts.reduce((sum, amount) => sum + Number(amount), 0);
         const avg = amounts.length > 0 ? total / amounts.length : 0;
         const max = amounts.length > 0 ? Math.max(...amounts) : 0;
         const min = amounts.length > 0 ? Math.min(...amounts) : 0;
