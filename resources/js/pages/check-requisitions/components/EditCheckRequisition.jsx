@@ -63,7 +63,7 @@ const EditCheckRequisition = ({ checkRequisition, currentInvoices, availableInvo
     const selectedTotal = useMemo(() => {
         return Array.from(selectedInvoices).reduce((sum, invId) => {
             const invoice = allInvoices.find((inv) => inv.id === invId);
-            return sum + (invoice?.invoice_amount || invoice?.net_amount || 0);
+            return sum + Number(invoice?.invoice_amount || invoice?.net_amount || 0);
         }, 0);
     }, [selectedInvoices, allInvoices]);
 
@@ -116,7 +116,7 @@ const EditCheckRequisition = ({ checkRequisition, currentInvoices, availableInvo
 
     // Statistics
     const statistics = useMemo(() => {
-        const total = filteredInvoices.reduce((sum, inv) => sum + (inv.invoice_amount || inv.net_amount || 0), 0);
+        const total = filteredInvoices.reduce((sum, inv) => sum + Number(inv.invoice_amount || inv.net_amount || 0), 0);
         const avg = filteredInvoices.length > 0 ? total / filteredInvoices.length : 0;
 
         return { total, avg, count: filteredInvoices.length };
