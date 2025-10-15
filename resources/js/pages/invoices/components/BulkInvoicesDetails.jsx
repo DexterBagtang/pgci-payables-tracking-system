@@ -21,6 +21,7 @@ import {
     FileX2,
     ShoppingCart,
 } from 'lucide-react';
+import StatusBadge from '@/components/custom/StatusBadge.jsx';
 
 export default function BulkInvoiceDetails({
     currentInvoice,
@@ -79,13 +80,7 @@ export default function BulkInvoiceDetails({
                                             <div className="text-[10px] font-medium tracking-wider text-slate-500 uppercase">Invoice</div>
                                             <h3 className="truncate font-mono text-base font-bold text-slate-900">{currentInvoice.si_number}</h3>
                                         </div>
-                                        <Badge
-                                            className={`${
-                                                getStatusConfig(currentInvoice.invoice_status, currentInvoice.files_received_at).variant
-                                            } shrink-0 border px-2 py-0.5 text-[10px] font-semibold`}
-                                        >
-                                            {getStatusConfig(currentInvoice.invoice_status, currentInvoice.files_received_at).label}
-                                        </Badge>
+                                        <StatusBadge status={currentInvoice.invoice_status} />
                                     </div>
 
                                     <div className="space-y-2">

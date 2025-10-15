@@ -44,6 +44,7 @@ import {
 } from 'lucide-react';
 import { getUniqueProjectsWithFormattedDate } from "@/components/custom/helpers.jsx";
 import BackButton from '@/components/custom/BackButton.jsx';
+import StatusBadge from '@/components/custom/StatusBadge.jsx';
 
 const VendorProjects = lazy(() => import('@/pages/vendors/components/VendorProjects.jsx'));
 const EditVendorDialog = lazy(() => import("@/pages/vendors/components/EditVendorDialog.jsx"));
@@ -140,9 +141,7 @@ export default function ShowVendor({ vendor }) {
                                 <div>
                                     <div className="flex items-center gap-3">
                                         <h1 className="text-3xl font-bold text-gray-900">{vendor.name}</h1>
-                                        <Badge variant={vendor.is_active ? "default" : "secondary"}>
-                                            {vendor.is_active ? "Active" : "Inactive"}
-                                        </Badge>
+                                        <StatusBadge status={vendor.is_active ? "active" : "inactive"} />
                                         <Badge
                                             variant="outline"
                                             className={`border-${healthStatus.color}-200 text-${healthStatus.color}-700 bg-${healthStatus.color}-50`}

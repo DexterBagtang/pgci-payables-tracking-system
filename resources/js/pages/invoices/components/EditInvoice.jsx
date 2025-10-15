@@ -51,6 +51,9 @@ import { Badge } from '@/components/ui/badge.js';
 import { Link } from '@inertiajs/react'
 import { toast } from "sonner";
 import BackButton from '@/components/custom/BackButton.jsx';
+import { DatePicker } from '@/components/custom/DatePicker.jsx';
+import { RequiredLabel } from '@/components/custom/RequiredLabel.jsx';
+import { PaymentTermsSelect } from '@/components/custom/PaymentTermsSelect.jsx';
 
 const EditInvoice = ({ invoice, purchaseOrders }) => {
     const [poComboboxOpen, setPoComboboxOpen] = useState(false);
@@ -239,7 +242,7 @@ const EditInvoice = ({ invoice, purchaseOrders }) => {
                                 </CardHeader>
                                 <CardContent>
                                     <div>
-                                        <Label className="text-sm font-medium">Purchase Order *</Label>
+                                        <Label className="text-sm font-medium">Purchase Order<RequiredLabel /></Label>
                                         <Popover open={poComboboxOpen} onOpenChange={setPoComboboxOpen}>
                                             <PopoverTrigger asChild>
                                                 <Button
@@ -324,7 +327,7 @@ const EditInvoice = ({ invoice, purchaseOrders }) => {
                                 </CardContent>
                             </Card>
 
-                            {/* Invoice Information - Matching SingleMode structure */}
+                            {/* Invoice Information - Using DatePicker and PaymentTermsSelect components */}
                             <Card className="shadow-sm">
                                 <CardHeader className="pb-3">
                                     <CardTitle className="flex items-center text-lg">
@@ -335,7 +338,7 @@ const EditInvoice = ({ invoice, purchaseOrders }) => {
                                 <CardContent className="space-y-4">
                                     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                                         <div>
-                                            <Label className="text-sm font-medium">SI Number *</Label>
+                                            <Label className="text-sm font-medium">SI Number<RequiredLabel /></Label>
                                             <Input
                                                 value={data.si_number}
                                                 onChange={(e) => setData('si_number', e.target.value)}
@@ -345,34 +348,16 @@ const EditInvoice = ({ invoice, purchaseOrders }) => {
                                             {errors.si_number && <p className="mt-1 text-xs text-red-600">{errors.si_number}</p>}
                                         </div>
 
-                                        <div>
-                                            <Label className="text-sm font-medium">SI Date *</Label>
-                                            <Popover>
-                                                <PopoverTrigger asChild>
-                                                    <Button
-                                                        variant="outline"
-                                                        className={cn(
-                                                            'mt-1 w-full justify-start text-left font-normal',
-                                                            !data.si_date && 'text-slate-500',
-                                                        )}
-                                                    >
-                                                        <CalendarIcon className="mr-2 h-4 w-4" />
-                                                        {data.si_date ? format(new Date(data.si_date), 'PPP') : 'Select date'}
-                                                    </Button>
-                                                </PopoverTrigger>
-                                                <PopoverContent className="w-auto p-0">
-                                                    <Calendar
-                                                        mode="single"
-                                                        selected={data.si_date ? new Date(data.si_date) : undefined}
-                                                        onSelect={(date) => handleDateSelect('si_date', date)}
-                                                    />
-                                                </PopoverContent>
-                                            </Popover>
-                                            {errors.si_date && <p className="mt-1 text-xs text-red-600">{errors.si_date}</p>}
-                                        </div>
+                                        <DatePicker
+                                            label="SI Date"
+                                            value={data.si_date}
+                                            onChange={(date) => handleDateSelect('si_date', date)}
+                                            error={errors.si_date}
+                                            required={true}
+                                        />
 
                                         <div>
-                                            <Label className="text-sm font-medium">Invoice Amount *</Label>
+                                            <Label className="text-sm font-medium">Invoice Amount<RequiredLabel /></Label>
                                             <div className="mt-1 space-y-2">
                                                 <div className="relative">
                                                     <Input
@@ -416,100 +401,35 @@ const EditInvoice = ({ invoice, purchaseOrders }) => {
                                             {errors.invoice_amount && <p className="mt-1 text-xs text-red-600">{errors.invoice_amount}</p>}
                                         </div>
 
-                                        <div>
-                                            <Label className="text-sm font-medium">Terms of Payment *</Label>
-                                            <Select
-                                                value={data.terms_of_payment}
-                                                onValueChange={(value) => setData('terms_of_payment', value)}
-                                            >
-                                                <SelectTrigger className="mt-1">
-                                                    <SelectValue placeholder="Select payment terms" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    {paymentTermsOptions.map((option) => (
-                                                        <SelectItem key={option.value} value={option.value}>
-                                                            {option.label}
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                            {errors.terms_of_payment && (
-                                                <p className="mt-1 text-xs text-red-600">{errors.terms_of_payment}</p>
-                                            )}
-                                        </div>
+                                        <PaymentTermsSelect
+                                            value={data.terms_of_payment}
+                                            onChange={(value) => setData('terms_of_payment', value)}
+                                            otherValue={data.other_payment_terms}
+                                            onOtherChange={(value) => setData('other_payment_terms', value)}
+                                            error={errors.terms_of_payment}
+                                            otherError={errors.other_payment_terms}
+                                            paymentTermsOptions={paymentTermsOptions}
+                                            required={true}
+                                        />
 
-                                        {data.terms_of_payment === 'others' && (
-                                            <div className="md:col-span-2">
-                                                <Label className="text-sm font-medium">Specify Other Terms *</Label>
-                                                <Input
-                                                    value={data.other_payment_terms}
-                                                    onChange={(e) => setData('other_payment_terms', e.target.value)}
-                                                    placeholder="Enter payment terms"
-                                                    className="mt-1"
-                                                />
-                                                {errors.other_payment_terms && (
-                                                    <p className="mt-1 text-xs text-red-600">{errors.other_payment_terms}</p>
-                                                )}
-                                            </div>
-                                        )}
+                                        <DatePicker
+                                            label="SI Received Date"
+                                            value={data.si_received_at}
+                                            onChange={(date) => handleDateSelect('si_received_at', date)}
+                                            error={errors.si_received_at}
+                                            required={true}
+                                        />
+
+                                        <DatePicker
+                                            label="Due Date"
+                                            value={data.due_date}
+                                            onChange={(date) => handleDateSelect('due_date', date)}
+                                            error={errors.due_date}
+                                            required={false}
+                                        />
 
                                         <div>
-                                            <Label className="text-sm font-medium">SI Received Date *</Label>
-                                            <Popover>
-                                                <PopoverTrigger asChild>
-                                                    <Button
-                                                        variant="outline"
-                                                        className={cn(
-                                                            'mt-1 w-full justify-start text-left font-normal',
-                                                            !data.si_received_at && 'text-slate-500',
-                                                        )}
-                                                    >
-                                                        <CalendarIcon className="mr-2 h-4 w-4" />
-                                                        {data.si_received_at
-                                                            ? format(new Date(data.si_received_at), 'PPP')
-                                                            : 'Select date'}
-                                                    </Button>
-                                                </PopoverTrigger>
-                                                <PopoverContent className="w-auto p-0">
-                                                    <Calendar
-                                                        mode="single"
-                                                        selected={data.si_received_at ? new Date(data.si_received_at) : undefined}
-                                                        onSelect={(date) => handleDateSelect('si_received_at', date)}
-                                                    />
-                                                </PopoverContent>
-                                            </Popover>
-                                            {errors.si_received_at && <p className="mt-1 text-xs text-red-600">{errors.si_received_at}</p>}
-                                        </div>
-
-                                        <div>
-                                            <Label className="text-sm font-medium">Due Date</Label>
-                                            <Popover>
-                                                <PopoverTrigger asChild>
-                                                    <Button
-                                                        variant="outline"
-                                                        className={cn(
-                                                            'mt-1 w-full justify-start text-left font-normal',
-                                                            !data.due_date && 'text-slate-500',
-                                                        )}
-                                                    >
-                                                        <CalendarIcon className="mr-2 h-4 w-4" />
-                                                        {data.due_date ? format(new Date(data.due_date), 'PPP') : 'Select date'}
-                                                    </Button>
-                                                </PopoverTrigger>
-                                                <PopoverContent className="w-auto p-0">
-                                                    <Calendar
-                                                        mode="single"
-                                                        captionLayout="dropdown"
-                                                        className="w-56"
-                                                        selected={data.due_date ? new Date(data.due_date) : undefined}
-                                                        onSelect={(date) => handleDateSelect('due_date', date)}
-                                                    />
-                                                </PopoverContent>
-                                            </Popover>
-                                        </div>
-
-                                        <div>
-                                            <Label className="text-sm font-medium">Submit To *</Label>
+                                            <Label className="text-sm font-medium">Submit To<RequiredLabel /></Label>
                                             <Select
                                                 value={data.submitted_to}
                                                 onValueChange={(value) => setData('submitted_to', value)}
@@ -528,33 +448,13 @@ const EditInvoice = ({ invoice, purchaseOrders }) => {
                                             {errors.submitted_to && <p className="mt-1 text-xs text-red-600">{errors.submitted_to}</p>}
                                         </div>
 
-                                        <div>
-                                            <Label className="text-sm font-medium">Submission Date *</Label>
-                                            <Popover>
-                                                <PopoverTrigger asChild>
-                                                    <Button
-                                                        variant="outline"
-                                                        className={cn(
-                                                            'mt-1 w-full justify-start text-left font-normal',
-                                                            !data.submitted_at && 'text-slate-500',
-                                                        )}
-                                                    >
-                                                        <CalendarIcon className="mr-2 h-4 w-4" />
-                                                        {data.submitted_at
-                                                            ? format(new Date(data.submitted_at), 'PPP')
-                                                            : 'Select date'}
-                                                    </Button>
-                                                </PopoverTrigger>
-                                                <PopoverContent className="w-auto p-0">
-                                                    <Calendar
-                                                        mode="single"
-                                                        selected={data.submitted_at ? new Date(data.submitted_at) : undefined}
-                                                        onSelect={(date) => handleDateSelect('submitted_at', date)}
-                                                    />
-                                                </PopoverContent>
-                                            </Popover>
-                                            {errors.submitted_at && <p className="mt-1 text-xs text-red-600">{errors.submitted_at}</p>}
-                                        </div>
+                                        <DatePicker
+                                            label="Submission Date"
+                                            value={data.submitted_at}
+                                            onChange={(date) => handleDateSelect('submitted_at', date)}
+                                            error={errors.submitted_at}
+                                            required={true}
+                                        />
                                     </div>
 
                                     <div>
@@ -570,7 +470,7 @@ const EditInvoice = ({ invoice, purchaseOrders }) => {
                                 </CardContent>
                             </Card>
 
-                            {/* Attachments - Matching SingleMode structure */}
+                            {/* Attachments */}
                             <Card className="shadow-sm">
                                 <CardHeader className="pb-3">
                                     <CardTitle className="flex items-center text-lg">
@@ -591,10 +491,40 @@ const EditInvoice = ({ invoice, purchaseOrders }) => {
                                                             className="flex items-center justify-between rounded border bg-slate-50 p-2 text-sm"
                                                         >
                                                             <div className="min-w-0 flex-1">
+                                                                <p className="truncate text-xs font-medium text-slate-900">
+                                                                    {file.file_name}
+                                                                </p>
+                                                            </div>
+                                                            <Button
+                                                                type="button"
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                onClick={() => handleDeleteExistingFile(file.id)}
+                                                                className="h-8 w-8 p-0 text-red-600 hover:bg-red-50 hover:text-red-800"
+                                                            >
+                                                                <X className="h-3 w-3" />
+                                                            </Button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Files marked for deletion */}
+                                        {filesToDelete.length > 0 && (
+                                            <div className="space-y-2">
+                                                <Label className="text-sm font-medium text-red-600">Files to be Deleted ({filesToDelete.length})</Label>
+                                                <div className="space-y-1">
+                                                    {invoice.files?.filter(file => filesToDelete.includes(file.id)).map((file) => (
+                                                        <div
+                                                            key={file.id}
+                                                            className="flex items-center justify-between rounded border bg-red-50 p-2 text-sm"
+                                                        >
+                                                            <div className="min-w-0 flex-1">
                                                                 <p className="truncate text-xs font-medium text-slate-900 line-through">
                                                                     {file.file_name}
                                                                 </p>
-                                                                <p className="text-xs text-slate-500">
+                                                                <p className="text-xs text-red-600">
                                                                     Will be deleted
                                                                 </p>
                                                             </div>
@@ -768,7 +698,7 @@ const EditInvoice = ({ invoice, purchaseOrders }) => {
                                                 <div className="flex justify-between border-t border-amber-300 pt-1">
                                                     <span>Total files after update:</span>
                                                     <span className="font-medium">
-                                                        {existingFiles.length + selectedFiles.length}
+                                                        {(invoice.files?.length || 0) - filesToDelete.length + selectedFiles.length}
                                                     </span>
                                                 </div>
                                             </div>

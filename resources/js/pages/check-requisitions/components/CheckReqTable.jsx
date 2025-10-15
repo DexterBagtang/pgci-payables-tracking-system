@@ -27,6 +27,7 @@ import {
     CardTitle,
 } from '@/components/ui/card';
 import { getStatusBadge } from '@/components/custom/helpers.jsx';
+import StatusBadge from '@/components/custom/StatusBadge.jsx';
 
 export default function CheckReqTable({ checkRequisitions, filters }) {
     // console.log(filters);
@@ -290,7 +291,7 @@ export default function CheckReqTable({ checkRequisitions, filters }) {
                                                     {formatCurrency(requisition.php_amount)}
                                                 </TableCell>
                                                 <TableCell>
-                                                    {getStatusBadge(requisition.requisition_status)}
+                                                    <StatusBadge className={'uppercase'} status={requisition.requisition_status} />
                                                 </TableCell>
                                                 <TableCell className="text-muted-foreground">
                                                     {formatDate(requisition.request_date)}

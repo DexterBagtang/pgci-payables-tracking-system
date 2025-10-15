@@ -62,6 +62,7 @@ import {
 } from '@/components/ui/dialog.js';
 import { Label } from '@/components/ui/label.js';
 import CreatePOForm from '@/pages/purchase-orders/components/CreatePOForm.jsx';
+import StatusBadge from '@/components/custom/StatusBadge.jsx';
 
 export default function PurchaseOrderTable({ purchaseOrders, filters, filterOptions }) {
     console.log(filters,filterOptions);
@@ -576,21 +577,18 @@ export default function PurchaseOrderTable({ purchaseOrders, filters, filterOpti
                                                     {/* Status & Delivery */}
                                                     <TableCell>
                                                         <div className="flex flex-col space-y-2">
-                                                            <Badge className={`${statusConfig.color} justify-center text-xs font-medium`}>
-                                                                {statusConfig.icon}
-                                                                {statusConfig.label}
-                                                            </Badge>
-                                                            {daysUntilDelivery !== null && po.po_status !== 'closed' && po.po_status !== 'cancelled' && (
-                                                                <Badge
-                                                                    variant="outline"
-                                                                    className={`${getDeliveryBadgeColor(daysUntilDelivery)} justify-center text-xs`}
-                                                                >
-                                                                    <Calendar className="mr-1 h-3 w-3" />
-                                                                    {daysUntilDelivery < 0
-                                                                        ? `${Math.abs(daysUntilDelivery)}d overdue`
-                                                                        : `${daysUntilDelivery}d until delivery`}
-                                                                </Badge>
-                                                            )}
+                                                            <StatusBadge status={po.po_status} className="text-xs font-medium"  />
+                                                            {/*{daysUntilDelivery !== null && po.po_status !== 'closed' && po.po_status !== 'cancelled' && (*/}
+                                                            {/*    <Badge*/}
+                                                            {/*        variant="outline"*/}
+                                                            {/*        className={`${getDeliveryBadgeColor(daysUntilDelivery)} justify-center text-xs`}*/}
+                                                            {/*    >*/}
+                                                            {/*        <Calendar className="mr-1 h-3 w-3" />*/}
+                                                            {/*        {daysUntilDelivery < 0*/}
+                                                            {/*            ? `${Math.abs(daysUntilDelivery)}d overdue`*/}
+                                                            {/*            : `${daysUntilDelivery}d until delivery`}*/}
+                                                            {/*    </Badge>*/}
+                                                            {/*)}*/}
                                                         </div>
                                                     </TableCell>
 

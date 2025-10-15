@@ -41,6 +41,7 @@ import {
     Download
 } from 'lucide-react';
 import { Link } from '@inertiajs/react';
+import StatusBadge from '@/components/custom/StatusBadge.jsx';
 
 export default function VendorInvoices({ vendor }) {
     const [searchTerm, setSearchTerm] = useState('');
@@ -113,21 +114,8 @@ export default function VendorInvoices({ vendor }) {
             );
         }
 
-        const statusConfig = {
-            paid: { variant: "default", icon: CheckCircle, color: "text-green-600", label: "Paid" },
-            pending: { variant: "secondary", icon: Clock, color: "text-yellow-600", label: "Pending" },
-            submitted: { variant: "outline", icon: FileText, color: "text-blue-600", label: "Submitted" },
-            draft: { variant: "outline", icon: FileText, color: "text-gray-600", label: "Draft" },
-        };
-
-        const config = statusConfig[status] || statusConfig.pending;
-        const Icon = config.icon;
-
         return (
-            <Badge variant={config.variant} className="gap-1">
-                <Icon className={`h-3 w-3 ${config.color}`} />
-                {config.label}
-            </Badge>
+            <StatusBadge status={status} size={'sm'} />
         );
     };
 

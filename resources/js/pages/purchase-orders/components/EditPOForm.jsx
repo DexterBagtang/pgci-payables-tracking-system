@@ -228,7 +228,7 @@ export default function EditPOForm({ purchaseOrder, vendors, projects, onSuccess
                                         {errors.payment_term && <p className="text-sm text-red-600">{errors.payment_term}</p>}
                                     </div>
 
-                                    <ExpectedDateSelectionButton data={data} setData={setData} errors={errors} />
+                                    {/*<ExpectedDateSelectionButton data={data} setData={setData} errors={errors} />*/}
                                 </div>
 
                                 {/* Attachments Section */}

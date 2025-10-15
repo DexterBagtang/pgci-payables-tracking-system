@@ -41,6 +41,7 @@ import Remarks from '@/components/custom/Remarks.jsx';
 import remarks from '@/routes/remarks/index.js';
 import InvoiceReview from '@/pages/invoices/components/InvoiceReview.jsx';
 import BackButton from '@/components/custom/BackButton.jsx';
+import StatusBadge, { OverdueBadge } from '@/components/custom/StatusBadge.jsx';
 
 const ShowInvoice = ({ invoice }) => {
     // Destructure related data from invoice object
@@ -122,11 +123,19 @@ const ShowInvoice = ({ invoice }) => {
                             <div className="space-y-2">
                                 <div className="flex flex-wrap items-center gap-3">
                                     <h1 className="text-2xl font-bold text-slate-900">Invoice #{invoice.si_number}</h1>
-                                    <Badge className={cn('px-3 py-1', getStatusColor(invoice.invoice_status))}>
-                                        {invoice.invoice_status || 'Pending'}
-                                    </Badge>
+                                    {/* Primary Status Badge */}
+                                    <StatusBadge
+                                        status={invoice.invoice_status}
+                                        showIcon
+                                        size="lg"
+                                    />
+
+                                    {/* Overdue Badge */}
                                     {daysOverdue && (
-                                        <Badge className="border-red-200 bg-red-100 px-3 py-1 text-red-800">{daysOverdue} days overdue</Badge>
+                                        <OverdueBadge
+                                            daysOverdue={daysOverdue}
+                                            size="default"
+                                        />
                                     )}
                                 </div>
                                 <div className="text-sm text-slate-600">
@@ -198,13 +207,13 @@ const ShowInvoice = ({ invoice }) => {
                                 </div>
                                 <div className="font-semibold text-slate-900">{po?.po_number || 'No PO'}</div>
                                 <div className="text-sm text-slate-600">
-                                    {formatCurrency(po?.po_amount)} • <Badge variant="outline">{po?.po_status}</Badge>
+                                    {formatCurrency(po?.po_amount)} • <StatusBadge status={po?.po_status} size="xs" />
                                 </div>
-                                {/*{po && (*/}
-                                {/*    <Link href={`/purchase-orders/${po.id}`} className="text-xs text-blue-600 hover:text-blue-800">*/}
-                                {/*        View Details*/}
-                                {/*    </Link>*/}
-                                {/*)}*/}
+                                {po && (
+                                    <Link href={`/purchase-orders/${po.id}`} className="text-xs text-blue-600 hover:text-blue-800">
+                                        View Details
+                                    </Link>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -367,7 +376,12 @@ const ShowInvoice = ({ invoice }) => {
                                                     </div>
                                                     <div className="flex justify-between">
                                                         <span className="text-slate-500">Status:</span>
-                                                        <Badge className="text-xs capitalize">{project.project_status?.replace('_', ' ')}</Badge>
+                                                        <StatusBadge
+                                                            status={project.project_status}
+                                                            size="sm"
+                                                            showIcon={false}
+                                                            uppercase
+                                                        />
                                                     </div>
                                                 </div>
                                             </div>
@@ -441,9 +455,12 @@ const ShowInvoice = ({ invoice }) => {
                                                         </div>
                                                         <div className="text-right">
                                                             <div className="text-lg font-bold text-green-600">{formatCurrency(cr.php_amount)}</div>
-                                                            <Badge className={cn('text-xs', getStatusColor(cr.requisition_status))}>
-                                                                {cr.requisition_status}
-                                                            </Badge>
+                                                            {/* Status Badge */}
+                                                            <StatusBadge
+                                                                status={cr.requisition_status}
+                                                                size="sm"
+                                                                showIcon
+                                                            />
                                                         </div>
                                                     </div>
                                                     <div className="flex justify-between text-sm">

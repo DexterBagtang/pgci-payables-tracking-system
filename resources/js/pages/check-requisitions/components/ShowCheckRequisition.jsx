@@ -61,6 +61,8 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
+import BackButton from '@/components/custom/BackButton.jsx';
+import StatusBadge from '@/components/custom/StatusBadge.jsx';
 
 export default function ShowCheckRequisition({ checkRequisition, invoices, files, purchaseOrder }) {
     const [searchInvoice, setSearchInvoice] = useState('');
@@ -258,12 +260,7 @@ return (
         <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
             {/* Header */}
             <div className="flex justify-between items-center mb-6 print:hidden">
-                <Link href="/check-requisitions">
-                    <Button variant="outline" size="sm">
-                        <ArrowLeft className="mr-2 h-4 w-4" />
-                        Back
-                    </Button>
-                </Link>
+                <BackButton />
 
                 <div className="flex gap-2">
                     {checkRequisition.requisition_status !== 'approved' && (
@@ -574,9 +571,7 @@ return (
                                                                     {formatCurrency(invoice.net_amount)}
                                                                 </TableCell>
                                                                 <TableCell className="py-2">
-                                                                    <Badge variant="outline" className="text-xs">
-                                                                        {invoice.invoice_status}
-                                                                    </Badge>
+                                                                    <StatusBadge status={invoice.invoice_status} size="sm" />
                                                                 </TableCell>
                                                             </TableRow>
                                                         ))}

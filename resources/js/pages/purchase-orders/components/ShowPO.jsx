@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import React, { lazy, Suspense, useState, useMemo } from 'react';
 import BackButton from '@/components/custom/BackButton.jsx';
+import StatusBadge from '@/components/custom/StatusBadge.jsx';
 const ActivityTimeline = lazy(()=> import('@/components/custom/ActivityTimeline.jsx'));
 const AttachmentsCard = lazy(()=> import('@/components/custom/AttachmentsCard.jsx')) ;
 const Remarks = lazy(()=> import('@/components/custom/Remarks.jsx'));
@@ -140,9 +141,7 @@ export default function ShowPO({ purchaseOrder, vendors, projects , backUrl}) {
                             <div className="space-y-2">
                                 <div className="flex flex-wrap items-center gap-3">
                                     <h1 className="text-2xl font-bold text-slate-900">Purchase Order #{purchaseOrder.po_number}</h1>
-                                    <Badge className={cn('px-3 py-1', getStatusColor(purchaseOrder.po_status))}>
-                                        {purchaseOrder.po_status || 'Draft'}
-                                    </Badge>
+                                    <StatusBadge status={purchaseOrder.po_status} />
                                     {financialMetrics.overdueInvoices > 0 && (
                                         <Badge variant="destructive" className="px-2 py-1">
                                             <AlertTriangle className="h-3 w-3 mr-1" />
@@ -440,7 +439,7 @@ export default function ShowPO({ purchaseOrder, vendors, projects , backUrl}) {
                                             </div>
                                             <div>
                                                 <div className="text-slate-500">Status</div>
-                                                <Badge variant={purchaseOrder.po_status === 'closed' ? 'outline' : 'secondary'}>{purchaseOrder.po_status}</Badge>
+                                                <StatusBadge status={purchaseOrder.po_status} />
                                             </div>
                                             {purchaseOrder.expected_delivery_date && (
                                                 <div>
@@ -747,9 +746,7 @@ export default function ShowPO({ purchaseOrder, vendors, projects , backUrl}) {
                                                                 </Badge>
                                                             )}
                                                         </div>
-                                                        <Badge className={cn('px-2 py-0.5 text-xs', getStatusColor(invoice.invoice_status))}>
-                                                            {invoice.invoice_status || 'Pending'}
-                                                        </Badge>
+                                                        <StatusBadge status={invoice.invoice_status} />
                                                     </div>
 
                                                     <div className="flex items-center justify-between text-xs text-slate-600">

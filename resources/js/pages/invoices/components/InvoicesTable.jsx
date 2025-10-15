@@ -33,6 +33,7 @@ import {
     XCircle,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import StatusBadge, { AgingBadge, OverdueBadge } from '@/components/custom/StatusBadge.jsx';
 
 const InvoicesTable = ({ invoices, filters, filterOptions, user }) => {
     console.log(invoices);
@@ -49,7 +50,7 @@ const InvoicesTable = ({ invoices, filters, filterOptions, user }) => {
     const invoiceStatuses = ['all', 'pending', 'received', 'approved', 'rejected', 'pending_disbursement'];
 
     // SAP-like status configuration
-    const getStatusConfig = (status) => {
+    /*const getStatusConfig = (status) => {
         const configs = {
             pending: {
                 color: 'bg-amber-50 text-amber-700 border-amber-200',
@@ -83,7 +84,7 @@ const InvoicesTable = ({ invoices, filters, filterOptions, user }) => {
             },
         };
         return configs[status] || configs.pending;
-    };
+    };*/
 
     const formatCurrency = (amount) => {
         return new Intl.NumberFormat('en-PH', {
@@ -424,7 +425,7 @@ const InvoicesTable = ({ invoices, filters, filterOptions, user }) => {
                                 <TableBody>
                                     {invoices.data.length > 0 ? (
                                         invoices.data.map((invoice) => {
-                                            const statusConfig = getStatusConfig(invoice.invoice_status);
+                                            // const statusConfig = getStatusConfig(invoice.invoice_status);
                                             const agingDays = calculateAgingDays(invoice.si_received_at);
                                             const overdueFlag = isOverdue(invoice.due_date, invoice.invoice_status);
 
@@ -460,11 +461,17 @@ const InvoicesTable = ({ invoices, filters, filterOptions, user }) => {
                                                         <div className="flex flex-col space-y-1">
                                                             <div className="flex items-center">
                                                                 <Building2 className="mr-1 h-4 w-4 text-gray-500" />
-                                                                <span className="font-medium text-sm">{invoice.purchase_order.vendor.name}</span>
+                                                                <span className="font-medium text-sm mr-1">{invoice.purchase_order.vendor.name}</span>
+                                                                <StatusBadge
+                                                                    status={invoice.purchase_order.vendor.category}
+                                                                    showIcon={false}
+                                                                    size="xs"
+                                                                    variant="outline"
+                                                                />
                                                             </div>
-                                                            <Badge variant="outline" className="w-fit text-xs">
-                                                                {invoice.purchase_order.vendor.category}
-                                                            </Badge>
+                                                            {/*<Badge variant="outline" className="w-fit text-xs">*/}
+                                                            {/*    {invoice.purchase_order.vendor.category}*/}
+                                                            {/*</Badge>*/}
                                                             <div className="mt-1 text-xs text-gray-600">
                                                                 {invoice.purchase_order.project.project_title}
                                                             </div>
@@ -502,21 +509,45 @@ const InvoicesTable = ({ invoices, filters, filterOptions, user }) => {
                                                     </TableCell>
 
                                                     {/* Status & Aging */}
+                                                    {/*<TableCell>*/}
+                                                    {/*    <div className="flex flex-col space-y-2">*/}
+                                                    {/*        <Badge className={`${statusConfig.color} justify-center text-xs font-medium`}>*/}
+                                                    {/*            {statusConfig.icon}*/}
+                                                    {/*            {statusConfig.label}*/}
+                                                    {/*        </Badge>*/}
+                                                    {/*        <Badge variant="outline" className={`${getAgingBadgeColor(agingDays)} justify-center text-xs`}>*/}
+                                                    {/*            <Clock className="mr-1 h-3 w-3" />*/}
+                                                    {/*            {agingDays}d aging*/}
+                                                    {/*        </Badge>*/}
+                                                    {/*        {overdueFlag && (*/}
+                                                    {/*            <Badge variant="destructive" className="justify-center text-xs">*/}
+                                                    {/*                <AlertCircle className="mr-1 h-3 w-3" />*/}
+                                                    {/*                {differenceInDays(new Date(), new Date(invoice.due_date))}d overdue*/}
+                                                    {/*            </Badge>*/}
+                                                    {/*        )}*/}
+                                                    {/*    </div>*/}
+                                                    {/*</TableCell>*/}
                                                     <TableCell>
                                                         <div className="flex flex-col space-y-2">
-                                                            <Badge className={`${statusConfig.color} justify-center text-xs font-medium`}>
-                                                                {statusConfig.icon}
-                                                                {statusConfig.label}
-                                                            </Badge>
-                                                            <Badge variant="outline" className={`${getAgingBadgeColor(agingDays)} justify-center text-xs`}>
-                                                                <Clock className="mr-1 h-3 w-3" />
-                                                                {agingDays}d aging
-                                                            </Badge>
+                                                            {/* Basic Usage */}
+                                                            <StatusBadge
+                                                                status={invoice.invoice_status}
+                                                                showIcon
+                                                                size="default"
+                                                            />
+
+                                                            {/* Aging Badge */}
+                                                            <AgingBadge
+                                                                days={agingDays}
+                                                                size="sm"
+                                                            />
+
+                                                            {/* Overdue Badge */}
                                                             {overdueFlag && (
-                                                                <Badge variant="destructive" className="justify-center text-xs">
-                                                                    <AlertCircle className="mr-1 h-3 w-3" />
-                                                                    {differenceInDays(new Date(), new Date(invoice.due_date))}d overdue
-                                                                </Badge>
+                                                                <OverdueBadge
+                                                                    daysOverdue={differenceInDays(new Date(), new Date(invoice.due_date))}
+                                                                    size="sm"
+                                                                />
                                                             )}
                                                         </div>
                                                     </TableCell>

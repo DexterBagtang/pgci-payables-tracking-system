@@ -58,6 +58,7 @@ import {
     TabsList,
     TabsTrigger,
 } from '@/components/ui/tabs';
+import StatusBadge from '@/components/custom/StatusBadge.jsx';
 
 export default function ReviewCheckRequisition({
                                                    checkRequisition,
@@ -115,24 +116,6 @@ export default function ReviewCheckRequisition({
         });
     };
 
-    const getStatusBadge = (status) => {
-        const config = {
-            pending_approval: { icon: Clock, className: 'bg-blue-100 text-blue-800 border-blue-300' },
-            approved: { icon: CheckCircle, className: 'bg-green-100 text-green-800 border-green-300' },
-            rejected: { icon: XCircle, className: 'bg-red-100 text-red-800 border-red-300' },
-            processed: { icon: CheckCircle, className: 'bg-emerald-100 text-emerald-800 border-emerald-300' },
-        };
-
-        const statusConfig = config[status] || config.pending_approval;
-        const StatusIcon = statusConfig.icon;
-
-        return (
-            <Badge variant="outline" className={statusConfig.className}>
-                <StatusIcon className="mr-1 h-3 w-3" />
-                {status?.toUpperCase().replace('_', ' ')}
-            </Badge>
-        );
-    };
 
     const handleApprove = () => {
         approvalForm.post(`/check-requisitions/${checkRequisition.id}/approve`, {
@@ -355,7 +338,7 @@ export default function ReviewCheckRequisition({
                                         <div>
                                             <p className="text-xs text-blue-600 font-medium">Status</p>
                                             <div className="mt-2">
-                                                {getStatusBadge(checkRequisition.requisition_status)}
+                                                <StatusBadge status={checkRequisition.requisition_status} />
                                             </div>
                                         </div>
                                         <Clock className="h-10 w-10 text-blue-300" />
@@ -527,9 +510,7 @@ export default function ReviewCheckRequisition({
                                                             {formatCurrency(invoice.net_amount)}
                                                         </TableCell>
                                                         <TableCell>
-                                                            <Badge variant="outline" className="text-xs">
-                                                                {invoice.invoice_status}
-                                                            </Badge>
+                                                            <StatusBadge status={invoice.invoice_status} size="sm" />
                                                         </TableCell>
                                                     </TableRow>
                                                 ))}

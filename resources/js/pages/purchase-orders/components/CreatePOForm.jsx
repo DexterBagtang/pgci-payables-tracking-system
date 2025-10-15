@@ -182,7 +182,7 @@ export default function CreatePOForm({ vendors, projects,project_id }) {
                                         {errors.payment_term && <p className="text-sm text-red-600">{errors.payment_term}</p>}
                                     </div>
 
-                                    <ExpectedDateSelectionButton data={data} setData={setData} errors={errors} />
+                                    {/*<ExpectedDateSelectionButton data={data} setData={setData} errors={errors} />*/}
                                 </div>
 
                                 {/* Bottom Section: Save as Draft Checkbox */}

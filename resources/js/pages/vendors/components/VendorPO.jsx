@@ -3,6 +3,7 @@ import { Plus, ShoppingCart } from 'lucide-react';
 import { Button } from '@/components/ui/button.js';
 import {Badge} from '@/components/ui/badge.js';
 import { formatDate } from 'date-fns';
+import StatusBadge from '@/components/custom/StatusBadge.jsx';
 
 export default function VendorPO({purchase_orders}) {
     return (
@@ -43,7 +44,7 @@ export default function VendorPO({purchase_orders}) {
                                     </div>
                                     <div className="flex justify-between items-center pt-2 border-t">
                                         <span className="font-medium">{(po.po_amount)}</span>
-                                        <Badge>{po.po_status}</Badge>
+                                        <StatusBadge status={po.po_status} />
                                     </div>
                                 </CardContent>
                             </Card>

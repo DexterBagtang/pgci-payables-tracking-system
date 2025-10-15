@@ -54,6 +54,7 @@ import {
 } from 'lucide-react';
 import BackButton from '@/components/custom/BackButton.jsx';
 import { route } from 'ziggy-js';
+import StatusBadge from '@/components/custom/StatusBadge.jsx';
 
 const Remarks = lazy(() => import("@/components/custom/Remarks.jsx"));
 
@@ -195,29 +196,6 @@ export default function ProjectShow({ project }) {
     const formatPercentage = (value) => {
         if (isNaN(value) || !isFinite(value)) return '0%';
         return `${Math.round(value * 100) / 100}%`;
-    };
-
-    const getStatusBadge = (status) => {
-        const statusConfig = {
-            open: { variant: "default", icon: CheckCircle, color: "text-green-600", label: "Open" },
-            closed: { variant: "outline", icon: CheckCircle, color: "text-blue-600", label: "Closed" },
-            draft: { variant: "secondary", icon: Clock, color: "text-yellow-600", label: "Draft" },
-            cancelled: { variant: "destructive", icon: XCircle, color: "text-red-600", label: "Cancelled" },
-            paid: { variant: "default", icon: CheckCircle, color: "text-green-600", label: "Paid" },
-            pending: { variant: "secondary", icon: Clock, color: "text-yellow-600", label: "Pending" },
-            submitted: { variant: "outline", icon: FileText, color: "text-blue-600", label: "Submitted" },
-            overdue: { variant: "destructive", icon: AlertTriangle, color: "text-red-600", label: "Overdue" },
-        };
-
-        const config = statusConfig[status?.toLowerCase()] || statusConfig.draft;
-        const Icon = config.icon;
-
-        return (
-            <Badge variant={config.variant} className="gap-1">
-                <Icon className={`h-3 w-3 ${config.color}`} />
-                {config.label}
-            </Badge>
-        );
     };
 
     const getProjectHealthStatus = () => {
@@ -879,7 +857,7 @@ export default function ProjectShow({ project }) {
                                                                     {formatCurrency(po.po_amount)}
                                                                 </TableCell>
                                                                 <TableCell className="text-center">
-                                                                    {getStatusBadge(po.po_status)}
+                                                                    <StatusBadge status={po.po_status} />
                                                                 </TableCell>
                                                                 <TableCell className="text-center">
                                                                     <Badge variant="outline">
@@ -1060,9 +1038,7 @@ export default function ProjectShow({ project }) {
                                                                             {formatCurrency(invoice.net_amount || invoice.invoice_amount)}
                                                                         </TableCell>
                                                                         <TableCell className="text-center">
-                                                                            {getStatusBadge(
-                                                                                isOverdue ? 'overdue' : invoice.invoice_status
-                                                                            )}
+                                                                            <StatusBadge status={invoice.invoice_status} />
                                                                         </TableCell>
                                                                         <TableCell className="text-right">
                                                                             <Button
