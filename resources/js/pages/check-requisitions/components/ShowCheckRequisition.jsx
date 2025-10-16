@@ -71,26 +71,6 @@ export default function ShowCheckRequisition({ checkRequisition, invoices, files
 
     const mainPdfFile = files?.find(f => f.file_purpose === 'check_requisition');
 
-    const getStatusBadge = (status) => {
-        const config = {
-            pending: { icon: Clock, className: 'bg-yellow-100 text-yellow-800 border-yellow-300' },
-            pending_approval: { icon: Clock, className: 'bg-blue-100 text-blue-800 border-blue-300' },
-            approved: { icon: CheckCircle, className: 'bg-green-100 text-green-800 border-green-300' },
-            processed: { icon: CheckCircle, className: 'bg-emerald-100 text-emerald-800 border-emerald-300' },
-            rejected: { icon: XCircle, className: 'bg-red-100 text-red-800 border-red-300' },
-        };
-
-        const statusConfig = config[status] || config.pending;
-        const StatusIcon = statusConfig.icon;
-
-        return (
-            <Badge variant="outline" className={statusConfig.className}>
-                <StatusIcon className="mr-1 h-3 w-3" />
-                {status?.toUpperCase().replace('_', ' ')}
-            </Badge>
-        );
-    };
-
     const formatCurrency = (amount) => {
         return new Intl.NumberFormat('en-PH', {
             style: 'currency',
@@ -365,7 +345,7 @@ return (
                                         <span>{formatDate(checkRequisition.created_at)}</span>
                                     </div>
                                 </div>
-                                {getStatusBadge(checkRequisition.requisition_status)}
+                                <StatusBadge status={checkRequisition.requisition_status} />
                             </div>
                         </CardHeader>
 
