@@ -1,0 +1,196 @@
+import { formatCurrency } from '@/components/custom/helpers.jsx';
+import { Badge } from '@/components/ui/badge.js';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card.js';
+import { Checkbox } from '@/components/ui/checkbox.js';
+import { Input } from '@/components/ui/input.js';
+import { Label } from '@/components/ui/label.js';
+import { Separator } from '@/components/ui/separator.js';
+import { Textarea } from '@/components/ui/textarea.js';
+import { FileText } from 'lucide-react';
+import { lazy, Suspense } from 'react';
+
+const PoDateSelection = lazy(()=> import('@/pages/purchase-orders/components/create/PoDateSelection.jsx'));
+const ProjectSelection = lazy(() => import('@/pages/purchase-orders/components/create/ProjectSelection.jsx'));
+const VendorSelection = lazy(()=> import('@/pages/purchase-orders/components/create/VendorSelection.jsx'));
+
+/**
+ * PODetailsCard Component
+ * Shared UI component for displaying and editing PO basic details
+ * Used by both CreatePOForm and EditPOForm
+ * 
+ * @param {Object} props
+ * @param {Object} props.data - Form data object
+ * @param {Function} props.setData - Function to update form data
+ * @param {Object} props.errors - Form validation errors
+ * @param {Array} props.vendors - List of vendor options
+ * @param {Array} props.projects - List of project options
+ * @param {string} props.mode - 'create' or 'edit'
+ * @param {boolean} props.isDraft - Whether PO is saved as draft
+ * @param {Function} props.onDraftChange - Callback when draft status changes
+ * @param {string} props.projectId - Optional initial project ID for create mode
+ */
+export default function PODetailsCard({
+    data,
+    setData,
+    errors,
+    vendors,
+    projects,
+    mode = 'create',
+    isDraft,
+    onDraftChange,
+    projectId,
+}) {
+    return (
+        <>
+            {/* Combined Information Card */}
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <FileText className="h-5 w-5" />
+                        Purchase Order Details
+                    </CardTitle>
+                    <CardDescription>
+                        {mode === 'create' 
+                            ? 'Enter all the details for the purchase order' 
+                            : 'Update the details for the purchase order'}
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    {/* Project & Vendor Selection */}
+                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                        <Suspense fallback={<div>Loading...</div>}>
+                            <ProjectSelection 
+                                projects={projects} 
+                                data={data} 
+                                setData={setData} 
+                                errors={errors} 
+                                project_id={projectId}
+                            />
+                        </Suspense>
+
+                        <Suspense fallback={<div>Loading...</div>}>
+                            <VendorSelection 
+                                vendors={vendors} 
+                                data={data} 
+                                setData={setData} 
+                                errors={errors} 
+                            />
+                        </Suspense>
+                    </div>
+
+                    {/* Top Section: PO Number, Date, Amount */}
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                        <div className="space-y-2">
+                            <Label htmlFor="po_number">PO Number</Label>
+                            <Input
+                                id="po_number"
+                                value={data.po_number}
+                                onChange={(e) => setData('po_number', e.target.value)}
+                                placeholder="e.g., PO-2024-001"
+                                error={errors.po_number}
+                            />
+                            {errors.po_number && <p className="text-sm text-red-600">{errors.po_number}</p>}
+                        </div>
+
+                        <PoDateSelection data={data} setData={setData} errors={errors} />
+
+                        <div className="space-y-2">
+                            <Label htmlFor="po_amount">PO Amount *</Label>
+                            <div className="relative">
+                                <span className="absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground">₱</span>
+                                <Input
+                                    id="po_amount"
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    value={data.po_amount}
+                                    onChange={(e) => setData('po_amount', e.target.value)}
+                                    className="pl-8"
+                                    placeholder="0.00"
+                                />
+                            </div>
+                            {errors.po_amount && <p className="text-sm text-red-600">{errors.po_amount}</p>}
+
+                            {/* Tax Breakdown */}
+                            {data.po_amount && (
+                                <div className="mt-1 rounded-md bg-muted/40 p-2 text-xs">
+                                    <div className="flex justify-between">
+                                        <span className="text-muted-foreground">VAT Ex (₱)</span>
+                                        <span className="font-medium text-muted-foreground">
+                                            {formatCurrency((parseFloat(data.po_amount) || 0) / 1.12)}
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-muted-foreground">VAT (12%)</span>
+                                        <span className="font-medium text-muted-foreground">
+                                            {formatCurrency(((parseFloat(data.po_amount) || 0) * 0.12) / 1.12)}
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className={'text-sm text-muted-foreground'}>Total</span>
+                                        <p className="text-sm font-medium">{formatCurrency(data.po_amount)}</p>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Middle Section: Description */}
+                    <div className="space-y-2">
+                        <Label htmlFor="description">Description</Label>
+                        <Textarea
+                            id="description"
+                            value={data.description}
+                            onChange={(e) => setData('description', e.target.value)}
+                            placeholder="Enter purchase order description..."
+                            rows={mode === 'edit' ? 3 : 2}
+                        />
+                        {errors.description && <p className="text-sm text-red-600">{errors.description}</p>}
+                    </div>
+
+                    {/* Financial & Timeline Information */}
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        <div className="space-y-2">
+                            <Label htmlFor="payment_term">Payment Terms</Label>
+                            <Textarea
+                                id="payment_term"
+                                value={data.payment_term}
+                                onChange={(e) => setData('payment_term', e.target.value)}
+                                placeholder="e.g., Net 30, Due on receipt, 2% 10 Net 30"
+                                className="w-full"
+                                rows={2}
+                            />
+                            {errors.payment_term && <p className="text-sm text-red-600">{errors.payment_term}</p>}
+                        </div>
+                    </div>
+
+                    {/* Bottom Section: Save as Draft Checkbox */}
+                    <div className="flex items-center space-x-2 border-t pt-4">
+                        <Checkbox 
+                            id="is_draft" 
+                            checked={isDraft} 
+                            onCheckedChange={onDraftChange}
+                        />
+                        <Label
+                            htmlFor="is_draft"
+                            className="text-sm leading-none font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                        >
+                            Save as Draft
+                        </Label>
+                        <Separator orientation="vertical" className={'mx-6'} />
+                        <Label>Status:</Label>
+                        {isDraft ? (
+                            <Badge variant="secondary" className="ml-2">
+                                Draft
+                            </Badge>
+                        ) : (
+                            <Badge variant="default" className="ml-2">
+                                Open
+                            </Badge>
+                        )}
+                    </div>
+                </CardContent>
+            </Card>
+        </>
+    );
+}
