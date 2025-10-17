@@ -31,11 +31,12 @@ import {
     AlertCircle,
     Filter,
 } from 'lucide-react';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, lazy, Suspense } from 'react';
 import { toast } from 'sonner';
-import BulkInvoiceList from '@/pages/invoices/components/BulkInvoiceList.jsx';
-import BulkInvoiceDetails from '@/pages/invoices/components/BulkInvoicesDetails.jsx';
-import BulkInvoiceConfirmDialog from '@/pages/invoices/components/BulkInvoiceConfirmDialog.jsx';
+import DialogLoadingFallback from '@/components/custom/DialogLoadingFallback';
+const BulkInvoiceList = lazy(() => import('@/pages/invoices/components/BulkInvoiceList.jsx'));
+const BulkInvoiceDetails = lazy(() => import('@/pages/invoices/components/BulkInvoicesDetails.jsx'));
+const BulkInvoiceConfirmDialog = lazy(() => import('@/pages/invoices/components/BulkInvoiceConfirmDialog.jsx'));
 
 const BulkInvoiceReview = ({ invoices, filters, filterOptions }) => {
     const [selectedInvoices, setSelectedInvoices] = useState(new Set());
@@ -358,7 +359,8 @@ const BulkInvoiceReview = ({ invoices, filters, filterOptions }) => {
                 {/* Main Content Grid - Maximized Space */}
                 <div className="grid gap-4 lg:grid-cols-[320px_1fr]">
                     {/* Compact Invoice List */}
-                    <BulkInvoiceList
+                    <Suspense fallback={<DialogLoadingFallback message="Loading invoice list..." />}>
+                        <BulkInvoiceList
                         invoices={invoices}
                         selectedInvoices={selectedInvoices}
                         currentInvoiceIndex={currentInvoiceIndex}
@@ -367,9 +369,11 @@ const BulkInvoiceReview = ({ invoices, filters, filterOptions }) => {
                         getStatusConfig={getStatusConfig}
                         formatCurrency={formatCurrency}
                     />
+                    </Suspense>
 
                     {/* Compact Detail Panel */}
-                    <BulkInvoiceDetails
+                    <Suspense fallback={<DialogLoadingFallback message="Loading invoice details..." />}>
+                        <BulkInvoiceDetails
                         currentInvoice={currentInvoice}
                         currentInvoiceIndex={currentInvoiceIndex}
                         invoices={invoices}
@@ -380,12 +384,13 @@ const BulkInvoiceReview = ({ invoices, filters, filterOptions }) => {
                         reviewNotes={reviewNotes}
                         setReviewNotes={setReviewNotes}
                     />
-
+                    </Suspense>
                 </div>
             </div>
 
             {/* Confirmation Dialog */}
-            <BulkInvoiceConfirmDialog
+            <Suspense fallback={<DialogLoadingFallback message="Loading confirmation dialog..." />}>
+                <BulkInvoiceConfirmDialog
                 open={showConfirmDialog}
                 onOpenChange={setShowConfirmDialog}
                 bulkAction={bulkAction}
@@ -394,6 +399,7 @@ const BulkInvoiceReview = ({ invoices, filters, filterOptions }) => {
                 setReviewNotes={setReviewNotes}
                 onConfirm={confirmBulkAction}
             />
+            </Suspense>
 
         </div>
     );

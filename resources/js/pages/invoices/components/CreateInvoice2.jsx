@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { lazy, Suspense, useCallback, useMemo, useState } from 'react';
 import { toast } from 'sonner';
+import DialogLoadingFallback from '@/components/custom/DialogLoadingFallback';
 const BulkMode = lazy(()=> import('@/pages/invoices/components/create/BulkMode.jsx'));
 const SingleMode = lazy(()=> import('@/pages/invoices/components/create/SingleMode.jsx'));
 
@@ -505,7 +506,7 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
 
                             {/* Bulk Mode - Invoice Details Table */}
                             {isBulkMode && bulkConfigured && (
-                                <Suspense fallback={<Loader className="animate-spin text-center" />}>
+                                <Suspense fallback={<DialogLoadingFallback message="Loading bulk invoice form..." />}>
                                     <BulkMode
                                         bulkInvoices={bulkInvoices}
                                         resetBulkMode={resetBulkMode}
@@ -530,7 +531,7 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
 
                              {/*Single Invoice Mode */}
                             {!isBulkMode &&
-                                <Suspense fallback={<Loader className="animate-spin text-center" />}>
+                                <Suspense fallback={<DialogLoadingFallback message="Loading invoice form..." />}>
                                     <SingleMode
                                         singleData={singleData}
                                         setSingleData={setSingleData}

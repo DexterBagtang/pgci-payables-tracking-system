@@ -20,6 +20,8 @@ import {
     FileText,
     FileX2,
     ShoppingCart,
+    TrendingUp,
+    Package,
 } from 'lucide-react';
 import StatusBadge from '@/components/custom/StatusBadge.jsx';
 
@@ -35,77 +37,101 @@ export default function BulkInvoiceDetails({
     setReviewNotes,
 }) {
     return (
-        <Card className="border-0 shadow-sm">
+        <Card className="border-0 shadow-lg overflow-hidden">
             {currentInvoice ? (
                 <>
-                    {/* Header with navigation */}
-                    <CardHeader className="border-b bg-gradient-to-r from-slate-50 to-white p-3">
+                    {/* Enhanced Header with navigation */}
+                    <CardHeader className="border-b bg-gradient-to-r from-blue-600 to-blue-700 p-4">
                         <div className="flex items-center justify-between">
-                            <CardTitle className="text-sm font-semibold">Invoice Details</CardTitle>
+                            <div className="flex items-center gap-3">
+                                <div className="rounded-lg bg-white/20 backdrop-blur-sm p-2">
+                                    <FileCheck className="h-5 w-5 text-white" />
+                                </div>
+                                <div>
+                                    <CardTitle className="text-base font-bold text-white">Invoice Details</CardTitle>
+                                    <p className="text-xs text-blue-100">Review and verify information</p>
+                                </div>
+                            </div>
                             <div className="flex items-center gap-2">
                                 <Button
                                     size="sm"
-                                    variant="outline"
-                                    className="h-7 w-7 p-0"
+                                    variant="ghost"
+                                    className="h-8 w-8 p-0 hover:bg-white/20 text-white"
                                     onClick={() => handleNavigate('prev')}
                                     disabled={currentInvoiceIndex === 0}
                                 >
-                                    <ChevronLeft className="h-3.5 w-3.5" />
+                                    <ChevronLeft className="h-4 w-4" />
                                 </Button>
-                                <span className="min-w-[50px] text-center text-xs font-medium text-slate-600">
-                                    {currentInvoiceIndex + 1} / {invoices.data.length}
-                                </span>
+                                <div className="rounded-lg bg-white/20 backdrop-blur-sm px-3 py-1">
+                                    <span className="text-sm font-bold text-white">
+                                        {currentInvoiceIndex + 1} / {invoices.data.length}
+                                    </span>
+                                </div>
                                 <Button
                                     size="sm"
-                                    variant="outline"
-                                    className="h-7 w-7 p-0"
+                                    variant="ghost"
+                                    className="h-8 w-8 p-0 hover:bg-white/20 text-white"
                                     onClick={() => handleNavigate('next')}
                                     disabled={currentInvoiceIndex === invoices.data.length - 1}
                                 >
-                                    <ChevronRight className="h-3.5 w-3.5" />
+                                    <ChevronRight className="h-4 w-4" />
                                 </Button>
                             </div>
                         </div>
                     </CardHeader>
 
-                    {/* Content */}
-                    <CardContent className="p-4">
-                        <div className="grid grid-cols-3 gap-4">
+                    {/* Enhanced Content */}
+                    <CardContent className="p-5 bg-gradient-to-br from-slate-50 to-white">
+                        <div className="grid grid-cols-3 gap-5">
                             {/* Column 1: Invoice + Vendor */}
-                            <div className="space-y-3">
-                                {/* Invoice Header */}
-                                <div className="rounded-lg border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-white p-3">
-                                    <div className="mb-2 flex items-start justify-between gap-2">
+                            <div className="space-y-4">
+                                {/* Enhanced Invoice Header */}
+                                <div className="rounded-xl border-2 border-blue-200 bg-gradient-to-br from-blue-50 via-white to-blue-50 p-4 shadow-sm">
+                                    <div className="mb-3 flex items-start justify-between gap-2">
                                         <div className="min-w-0 flex-1">
-                                            <div className="text-[10px] font-medium tracking-wider text-slate-500 uppercase">Invoice</div>
-                                            <h3 className="truncate font-mono text-base font-bold text-slate-900">{currentInvoice.si_number}</h3>
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <div className="rounded-md bg-blue-100 p-1.5">
+                                                    <FileText className="h-4 w-4 text-blue-600" />
+                                                </div>
+                                                <div className="text-[10px] font-bold tracking-wider text-blue-600 uppercase">Invoice</div>
+                                            </div>
+                                            <h3 className="truncate font-mono text-lg font-bold text-slate-900">{currentInvoice.si_number}</h3>
                                         </div>
                                         <StatusBadge status={currentInvoice.invoice_status} />
                                     </div>
 
-                                    <div className="space-y-2">
-                                        <div className="rounded-lg border border-emerald-200 bg-gradient-to-br from-emerald-50 to-white p-2.5">
-                                            <div className="mb-1 flex items-center gap-1.5 text-[10px] font-medium tracking-wide text-emerald-700 uppercase">
-                                                <DollarSign className="h-3 w-3" />
-                                                Amount
+                                    <div className="space-y-2.5">
+                                        {/* Enhanced Amount Card */}
+                                        <div className="rounded-xl border-2 border-emerald-300 bg-gradient-to-br from-emerald-50 via-white to-emerald-50 p-3 shadow-sm">
+                                            <div className="mb-1.5 flex items-center gap-2">
+                                                <div className="rounded-md bg-emerald-100 p-1">
+                                                    <DollarSign className="h-4 w-4 text-emerald-700" />
+                                                </div>
+                                                <div className="text-[10px] font-bold tracking-wide text-emerald-700 uppercase">Invoice Amount</div>
                                             </div>
-                                            <div className="text-xl font-bold text-emerald-700">{formatCurrency(currentInvoice.invoice_amount)}</div>
+                                            <div className="text-2xl font-extrabold text-emerald-700">{formatCurrency(currentInvoice.invoice_amount)}</div>
                                         </div>
 
-                                        <div className="rounded-lg border border-blue-200 bg-gradient-to-br from-blue-50 to-white p-2.5">
-                                            <div className="mb-1 flex items-center gap-1.5 text-[10px] font-medium tracking-wide text-blue-700 uppercase">
-                                                <Calendar className="h-3 w-3" />
-                                                Date
+                                        {/* Enhanced Date Card */}
+                                        <div className="rounded-lg border border-blue-200 bg-gradient-to-br from-blue-50/50 to-white p-3">
+                                            <div className="mb-1 flex items-center gap-2">
+                                                <div className="rounded bg-blue-100 p-1">
+                                                    <Calendar className="h-3.5 w-3.5 text-blue-700" />
+                                                </div>
+                                                <div className="text-[10px] font-semibold tracking-wide text-blue-700 uppercase">Invoice Date</div>
                                             </div>
                                             <div className="text-sm font-bold text-slate-900">{formatDate(currentInvoice.si_date)}</div>
                                         </div>
 
+                                        {/* Enhanced Due Date */}
                                         {currentInvoice.due_date && (
-                                            <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-2">
-                                                <AlertCircle className="h-3.5 w-3.5 shrink-0 text-amber-600" />
+                                            <div className="flex items-center gap-2.5 rounded-lg border-2 border-amber-300 bg-gradient-to-br from-amber-50 to-white px-3 py-2.5 shadow-sm">
+                                                <div className="rounded-md bg-amber-100 p-1.5">
+                                                    <AlertCircle className="h-4 w-4 text-amber-600" />
+                                                </div>
                                                 <div className="min-w-0 flex-1">
-                                                    <div className="text-[10px] font-medium text-amber-900">Due Date</div>
-                                                    <div className="truncate text-xs font-bold text-amber-700">
+                                                    <div className="text-[10px] font-semibold text-amber-900 uppercase">Due Date</div>
+                                                    <div className="truncate text-sm font-bold text-amber-700">
                                                         {formatDate(currentInvoice.due_date)}
                                                     </div>
                                                 </div>
@@ -114,30 +140,33 @@ export default function BulkInvoiceDetails({
                                     </div>
                                 </div>
 
-                                {/* Vendor Info */}
-                                <div className="rounded-lg border border-slate-200 bg-white p-3">
-                                    <h4 className="mb-2 flex items-center gap-1.5 text-xs font-bold text-slate-900">
-                                        <div className="rounded bg-slate-100 p-1">
-                                            <Building2 className="h-3 w-3 text-slate-600" />
+                                {/* Enhanced Vendor Info */}
+                                <div className="rounded-xl border-2 border-slate-200 bg-white p-4 shadow-sm">
+                                    <h4 className="mb-3 flex items-center gap-2 text-sm font-bold text-slate-900">
+                                        <div className="rounded-lg bg-gradient-to-br from-slate-100 to-slate-200 p-2">
+                                            <Building2 className="h-4 w-4 text-slate-600" />
                                         </div>
-                                        Vendor & PO
+                                        Vendor & Purchase Order
                                     </h4>
-                                    <div className="space-y-2">
-                                        <div>
-                                            <div className="mb-0.5 text-[10px] font-medium text-slate-500">Vendor</div>
-                                            <div className="text-xs font-semibold text-slate-900">{currentInvoice.purchase_order?.vendor?.name}</div>
+                                    <div className="space-y-3">
+                                        <div className="rounded-lg bg-slate-50 p-3">
+                                            <div className="mb-1 text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Vendor Name</div>
+                                            <div className="text-sm font-bold text-slate-900">{currentInvoice.purchase_order?.vendor?.name}</div>
                                         </div>
                                         <Separator />
-                                        <div>
-                                            <div className="mb-0.5 text-[10px] font-medium text-slate-500">PO Number</div>
-                                            <div className="font-mono text-xs font-bold text-blue-600">
+                                        <div className="rounded-lg bg-blue-50 p-3">
+                                            <div className="mb-1 text-[10px] font-semibold text-blue-600 uppercase tracking-wide">PO Number</div>
+                                            <div className="font-mono text-sm font-bold text-blue-700">
                                                 {currentInvoice.purchase_order?.po_number}
                                             </div>
                                         </div>
                                         <Separator />
-                                        <div>
-                                            <div className="mb-0.5 text-[10px] font-medium text-slate-500">PO Amount</div>
-                                            <div className="text-xs font-bold text-slate-900">
+                                        <div className="rounded-lg bg-emerald-50 p-3">
+                                            <div className="mb-1 flex items-center gap-1.5 text-[10px] font-semibold text-emerald-600 uppercase tracking-wide">
+                                                <TrendingUp className="h-3 w-3" />
+                                                PO Amount
+                                            </div>
+                                            <div className="text-sm font-bold text-emerald-700">
                                                 {formatCurrency(currentInvoice.purchase_order?.po_amount || 0)}
                                             </div>
                                         </div>
@@ -146,28 +175,28 @@ export default function BulkInvoiceDetails({
                             </div>
 
                             {/* Column 2: Project + Files */}
-                            <div className="space-y-3">
-                                {/* Project Info */}
-                                <div className="rounded-lg border border-slate-200 bg-white p-3">
-                                    <h4 className="mb-2 flex items-center gap-1.5 text-xs font-bold text-slate-900">
-                                        <div className="rounded bg-slate-100 p-1">
-                                            <ShoppingCart className="h-3 w-3 text-slate-600" />
+                            <div className="space-y-4">
+                                {/* Enhanced Project Info */}
+                                <div className="rounded-xl border-2 border-slate-200 bg-white p-4 shadow-sm">
+                                    <h4 className="mb-3 flex items-center gap-2 text-sm font-bold text-slate-900">
+                                        <div className="rounded-lg bg-gradient-to-br from-purple-100 to-purple-200 p-2">
+                                            <Package className="h-4 w-4 text-purple-600" />
                                         </div>
-                                        Project
+                                        Project Information
                                     </h4>
-                                    <div className="space-y-2">
-                                        <div>
-                                            <div className="mb-0.5 text-[10px] font-medium text-slate-500">Title</div>
-                                            <div className="text-xs leading-relaxed font-semibold text-slate-900">
+                                    <div className="space-y-3">
+                                        <div className="rounded-lg bg-purple-50 p-3">
+                                            <div className="mb-1.5 text-[10px] font-semibold text-purple-600 uppercase tracking-wide">Project Title</div>
+                                            <div className="text-sm leading-relaxed font-bold text-slate-900">
                                                 {currentInvoice.purchase_order?.project?.project_title}
                                             </div>
                                         </div>
                                         {currentInvoice.purchase_order?.project?.cer_number && (
                                             <>
                                                 <Separator />
-                                                <div>
-                                                    <div className="mb-0.5 text-[10px] font-medium text-slate-500">CER Number</div>
-                                                    <div className="font-mono text-xs font-bold text-slate-900">
+                                                <div className="rounded-lg bg-indigo-50 p-3">
+                                                    <div className="mb-1 text-[10px] font-semibold text-indigo-600 uppercase tracking-wide">CER Number</div>
+                                                    <div className="font-mono text-sm font-bold text-indigo-700">
                                                         {currentInvoice.purchase_order?.project?.cer_number}
                                                     </div>
                                                 </div>
@@ -176,69 +205,79 @@ export default function BulkInvoiceDetails({
                                     </div>
                                 </div>
 
-                                {/* Files */}
-                                <div className="rounded-lg border border-slate-200 bg-white p-3">
-                                    <h4 className="mb-2 flex items-center gap-1.5 text-xs font-bold text-slate-900">
-                                        <div className="rounded bg-slate-100 p-1">
-                                            <FileCheck className="h-3 w-3 text-slate-600" />
+                                {/* Enhanced Files */}
+                                <div className="rounded-xl border-2 border-slate-200 bg-white p-4 shadow-sm">
+                                    <h4 className="mb-3 flex items-center gap-2 text-sm font-bold text-slate-900">
+                                        <div className="rounded-lg bg-gradient-to-br from-blue-100 to-blue-200 p-2">
+                                            <FileCheck className="h-4 w-4 text-blue-600" />
                                         </div>
-                                        Files
+                                        Attached Files
+                                        {currentInvoice.files && currentInvoice.files.length > 0 && (
+                                            <Badge className="ml-auto bg-blue-100 text-blue-700 font-semibold">
+                                                {currentInvoice.files.length}
+                                            </Badge>
+                                        )}
                                     </h4>
                                     {currentInvoice.files && currentInvoice.files.length > 0 ? (
                                         <ScrollArea className="max-h-[300px]">
-                                            <div className="space-y-1.5">
+                                            <div className="space-y-2">
                                                 {currentInvoice.files.map((file) => (
                                                     <div
                                                         key={file.id}
-                                                        className="group flex items-center justify-between rounded-md border border-slate-200 bg-slate-50 p-2 transition-all hover:border-blue-300 hover:bg-blue-50/50"
+                                                        className="group flex items-center justify-between rounded-xl border-2 border-slate-200 bg-gradient-to-r from-slate-50 to-white p-3 transition-all hover:border-blue-300 hover:shadow-md"
                                                     >
-                                                        <div className="flex items-center gap-2 overflow-hidden">
-                                                            <div className="rounded bg-blue-100 p-1">
-                                                                <FileText className="h-3 w-3 text-blue-600" />
+                                                        <div className="flex items-center gap-2.5 overflow-hidden">
+                                                            <div className="rounded-lg bg-gradient-to-br from-blue-100 to-blue-200 p-2">
+                                                                <FileText className="h-4 w-4 text-blue-600" />
                                                             </div>
                                                             <div className="min-w-0 flex-1">
-                                                                <div className="truncate text-xs font-semibold text-slate-900">{file.file_name}</div>
-                                                                <div className="text-[10px] text-slate-500">
-                                                                    {(file.file_size / 1024).toFixed(2)} KB
+                                                                <div className="truncate text-xs font-bold text-slate-900">{file.file_name}</div>
+                                                                <div className="flex items-center gap-2 text-[10px] text-slate-500">
+                                                                    <span className="font-medium">{(file.file_size / 1024).toFixed(2)} KB</span>
                                                                 </div>
                                                             </div>
                                                         </div>
                                                         <Button
                                                             size="sm"
                                                             variant="ghost"
-                                                            className="h-7 w-7 shrink-0 p-0 opacity-0 transition-opacity group-hover:opacity-100"
+                                                            className="h-8 w-8 shrink-0 p-0 opacity-0 transition-all group-hover:opacity-100 hover:bg-blue-100"
                                                         >
-                                                            <Download className="h-3.5 w-3.5" />
+                                                            <Download className="h-4 w-4 text-blue-600" />
                                                         </Button>
                                                     </div>
                                                 ))}
                                             </div>
                                         </ScrollArea>
                                     ) : (
-                                        <div className="rounded-lg border-2 border-dashed border-slate-200 bg-slate-50/50 p-4 text-center">
-                                            <FileX2 className="mx-auto mb-1.5 h-6 w-6 text-slate-400" />
-                                            <p className="text-[10px] font-medium text-slate-500">No files attached</p>
+                                        <div className="rounded-xl border-2 border-dashed border-slate-300 bg-slate-50/50 p-8 text-center">
+                                            <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-slate-100">
+                                                <FileX2 className="h-8 w-8 text-slate-400" />
+                                            </div>
+                                            <p className="text-xs font-semibold text-slate-600 mb-1">No files attached</p>
+                                            <p className="text-[10px] text-slate-400">Files will appear here when uploaded</p>
                                         </div>
                                     )}
                                 </div>
                             </div>
 
-                            {/* Column 3: Notes */}
+                            {/* Column 3: Enhanced Notes */}
                             <div>
-                                <div className="rounded-lg border-2 border-amber-200 bg-gradient-to-br from-amber-50 to-white p-3">
-                                    <Label htmlFor="notes" className="mb-2 flex items-center gap-1.5 text-xs font-bold text-amber-900">
-                                        <div className="rounded bg-amber-100 p-1">
-                                            <FileText className="h-3 w-3 text-amber-700" />
+                                <div className="rounded-xl border-2 border-amber-300 bg-gradient-to-br from-amber-50 via-white to-amber-50 p-4 shadow-sm h-full">
+                                    <Label htmlFor="notes" className="mb-3 flex items-center gap-2 text-sm font-bold text-amber-900">
+                                        <div className="rounded-lg bg-gradient-to-br from-amber-100 to-amber-200 p-2">
+                                            <FileText className="h-4 w-4 text-amber-700" />
                                         </div>
-                                        Review Notes
+                                        <div>
+                                            <div>Review Notes</div>
+                                            <p className="text-[10px] font-normal text-amber-700">Add observations or flags</p>
+                                        </div>
                                     </Label>
                                     <Textarea
                                         id="notes"
-                                        placeholder="Add review notes, observations, or important flags..."
+                                        placeholder="Enter your review notes here...&#10;&#10;• Observations&#10;• Issues found&#10;• Important flags&#10;• Recommendations"
                                         value={reviewNotes}
                                         onChange={(e) => setReviewNotes(e.target.value)}
-                                        rows={20}
-                                        className="resize-none border-amber-200 bg-white text-xs shadow-sm focus-visible:ring-amber-400"
+                                        className="resize-none border-2 border-amber-200 bg-white text-sm shadow-sm focus-visible:ring-amber-400 placeholder:text-slate-400 h-[calc(100%-60px)] font-mono"
                                     />
                                 </div>
                             </div>
@@ -246,13 +285,13 @@ export default function BulkInvoiceDetails({
                     </CardContent>
                 </>
             ) : (
-                <div className="flex h-[calc(100vh-180px)] items-center justify-center">
+                <div className="flex h-[calc(100vh-180px)] items-center justify-center bg-gradient-to-br from-slate-50 to-white">
                     <div className="text-center">
-                        <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-slate-100">
-                            <Eye className="h-8 w-8 text-slate-400" />
+                        <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-slate-100 to-slate-200 shadow-md">
+                            <Eye className="h-10 w-10 text-slate-400" />
                         </div>
-                        <p className="text-sm font-semibold text-slate-700">Select an invoice to review</p>
-                        <p className="mt-1 text-xs text-slate-500">Choose from the list on the left</p>
+                        <p className="text-base font-bold text-slate-700 mb-2">Select an invoice to review</p>
+                        <p className="text-sm text-slate-500">Choose from the list on the left to view details</p>
                     </div>
                 </div>
             )}
