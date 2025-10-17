@@ -257,7 +257,7 @@ const EditInvoice = ({ invoice, purchaseOrders }) => {
                                                     {selectedPO ? (
                                                         <div className="flex flex-col items-start py-1">
                                                             <div className="font-medium">{selectedPO.po_number}</div>
-                                                            <div className="text-sm text-slate-600 truncate">
+                                                            <div className="text-sm text-slate-600 text-wrap truncate">
                                                                 {selectedPO.vendor_name} • {selectedPO.project_title}
                                                             </div>
                                                             <div className="text-xs text-slate-500">

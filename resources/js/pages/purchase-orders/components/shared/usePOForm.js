@@ -1,10 +1,12 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useForm } from '@inertiajs/react';
 import { toast } from 'sonner';
+import { validateFormData, validateFiles } from './poValidationRules.js';
 
 /**
  * Custom hook for managing Purchase Order form state and operations
  * Used by both CreatePOForm and EditPOForm to maintain consistent behavior
+ * Includes client-side validation before submission
  * 
  * @param {Object} initialData - Initial form data (for edit mode, pass existing PO data)
  * @param {string} mode - 'create' or 'edit'
@@ -16,6 +18,8 @@ export const usePOForm = (initialData = null, mode = 'create', onSuccess = null)
         initialData?.po_status === 'draft' || false
     );
     const [files, setFiles] = useState([]);
+    const [clientErrors, setClientErrors] = useState({});
+    const fileInputRef = useRef(null);
 
     // Initialize form data
     const defaultFormData = {
@@ -53,13 +57,65 @@ export const usePOForm = (initialData = null, mode = 'create', onSuccess = null)
     );
 
     /**
+     * Validate form before submission
+     * @returns {boolean} - True if validation passes
+     */
+    const validateBeforeSubmit = useCallback(() => {
+        const newErrors = validateFormData(data);
+        
+        // Validate files if any are selected
+        if (files && files.length > 0) {
+            const fileError = validateFiles(files);
+            if (fileError) {
+                newErrors.files = fileError;
+            }
+        }
+
+        setClientErrors(newErrors);
+
+        // Show toast if there are errors
+        if (Object.keys(newErrors).length > 0) {
+            const errorCount = Object.keys(newErrors).length;
+            toast.error(`Please fix ${errorCount} validation error${errorCount > 1 ? 's' : ''}`);
+            return false;
+        }
+
+        return true;
+    }, [data, files]);
+
+    /**
+     * Handle field change with real-time validation
+     */
+    const handleFieldChange = useCallback((fieldName, value) => {
+        setData(fieldName, value);
+
+        // Clear error for this field when user starts typing
+        if (clientErrors[fieldName]) {
+            setClientErrors(prev => {
+                const updated = { ...prev };
+                delete updated[fieldName];
+                return updated;
+            });
+        }
+    }, [setData, clientErrors]);
+
+    /**
      * Handle file selection and update form state
      */
     const handleFileChange = useCallback((e) => {
         const selectedFiles = Array.from(e.target.files);
         setFiles(selectedFiles);
         setData('files', selectedFiles);
-    }, [setData]);
+
+        // Clear file error when files are selected
+        if (clientErrors.files) {
+            setClientErrors(prev => {
+                const updated = { ...prev };
+                delete updated.files;
+                return updated;
+            });
+        }
+    }, [setData, clientErrors]);
 
     /**
      * Handle draft status toggle
@@ -76,26 +132,39 @@ export const usePOForm = (initialData = null, mode = 'create', onSuccess = null)
     const handleCreateSubmit = useCallback((e) => {
         e.preventDefault();
 
+        // Validate before submitting
+        if (!validateBeforeSubmit()) {
+            return;
+        }
+
         post('/purchase-orders', {
             forceFormData: true,
             onSuccess: () => {
                 toast.success('PO added successfully.');
                 reset();
                 setFiles([]);
+                setClientErrors({});
                 onSuccess?.();
             },
-            onError: (errors) => {
-                console.error('Create errors:', errors);
+            onError: (serverErrors) => {
+                console.error('Create errors:', serverErrors);
+                // Server errors take precedence over client errors
+                setClientErrors({});
                 toast.error('Failed to create Purchase Order.');
             }
         });
-    }, [post, reset, onSuccess]);
+    }, [post, reset, onSuccess, validateBeforeSubmit]);
 
     /**
      * Handle form submission for edit mode
      */
     const handleEditSubmit = useCallback((e, poId) => {
         e.preventDefault();
+
+        // Validate before submitting
+        if (!validateBeforeSubmit()) {
+            return;
+        }
 
         post(`/purchase-orders/${poId}`, {
             _method: 'patch',
@@ -105,14 +174,17 @@ export const usePOForm = (initialData = null, mode = 'create', onSuccess = null)
                     toast.success('Purchase Order updated successfully.');
                 }, 500);
                 setFiles([]);
+                setClientErrors({});
                 onSuccess?.();
             },
-            onError: (errors) => {
-                console.error('Update errors:', errors);
+            onError: (serverErrors) => {
+                console.error('Update errors:', serverErrors);
+                // Server errors take precedence over client errors
+                setClientErrors({});
                 toast.error('Failed to update Purchase Order.');
             }
         });
-    }, [post, onSuccess]);
+    }, [post, onSuccess, validateBeforeSubmit]);
 
     /**
      * Get appropriate submit handler based on mode
@@ -127,21 +199,32 @@ export const usePOForm = (initialData = null, mode = 'create', onSuccess = null)
         };
     }, [mode, handleCreateSubmit, handleEditSubmit]);
 
+    /**
+     * Combine client-side and server-side errors
+     */
+    const combinedErrors = {
+        ...clientErrors,
+        ...errors,
+    };
+
     return {
         // State
         data,
         isDraft,
         files,
         processing,
-        errors,
+        errors: combinedErrors,
+        clientErrors,
 
         // Methods
-        setData,
+        setData: handleFieldChange,
         handleFileChange,
         handleDraft,
         getSubmitHandler,
         handleCreateSubmit,
         handleEditSubmit,
+        validateBeforeSubmit,
         reset,
+        fileInputRef,
     };
 };

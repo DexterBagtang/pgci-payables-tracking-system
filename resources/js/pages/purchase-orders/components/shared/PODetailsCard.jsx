@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input.js';
 import { Label } from '@/components/ui/label.js';
 import { Separator } from '@/components/ui/separator.js';
 import { Textarea } from '@/components/ui/textarea.js';
-import { FileText } from 'lucide-react';
+import { FileText, AlertCircle } from 'lucide-react';
 import { lazy, Suspense } from 'react';
 
 const PoDateSelection = lazy(()=> import('@/pages/purchase-orders/components/create/PoDateSelection.jsx'));
@@ -16,12 +16,12 @@ const VendorSelection = lazy(()=> import('@/pages/purchase-orders/components/cre
 /**
  * PODetailsCard Component
  * Shared UI component for displaying and editing PO basic details
- * Used by both CreatePOForm and EditPOForm
+ * Used by both CreatePOForm and EditPOForm with client-side validation
  * 
  * @param {Object} props
  * @param {Object} props.data - Form data object
  * @param {Function} props.setData - Function to update form data
- * @param {Object} props.errors - Form validation errors
+ * @param {Object} props.errors - Form validation errors (combined client & server)
  * @param {Array} props.vendors - List of vendor options
  * @param {Array} props.projects - List of project options
  * @param {string} props.mode - 'create' or 'edit'
@@ -40,6 +40,13 @@ export default function PODetailsCard({
     onDraftChange,
     projectId,
 }) {
+    /**
+     * Get styling for input based on error state
+     */
+    const getInputClassName = (fieldName) => {
+        return errors?.[fieldName] ? 'border-red-500 focus:ring-red-500' : '';
+    };
+
     return (
         <>
             {/* Combined Information Card */}
@@ -80,22 +87,42 @@ export default function PODetailsCard({
 
                     {/* Top Section: PO Number, Date, Amount */}
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                        {/* PO Number */}
                         <div className="space-y-2">
-                            <Label htmlFor="po_number">PO Number</Label>
+                            <Label htmlFor="po_number" className={errors?.po_number ? 'text-red-600' : ''}>
+                                PO Number <span className="text-red-500">*</span>
+                            </Label>
                             <Input
                                 id="po_number"
                                 value={data.po_number}
                                 onChange={(e) => setData('po_number', e.target.value)}
                                 placeholder="e.g., PO-2024-001"
-                                error={errors.po_number}
+                                className={getInputClassName('po_number')}
                             />
-                            {errors.po_number && <p className="text-sm text-red-600">{errors.po_number}</p>}
+                            {errors?.po_number && (
+                                <p className="text-sm text-red-600 flex items-center gap-1">
+                                    <AlertCircle className="h-3 w-3" />
+                                    {errors.po_number}
+                                </p>
+                            )}
                         </div>
 
-                        <PoDateSelection data={data} setData={setData} errors={errors} />
+                        {/* PO Date */}
+                        <div>
+                            <PoDateSelection data={data} setData={setData} errors={errors} />
+                            {errors?.po_date && (
+                                <p className="text-sm text-red-600 flex items-center gap-1 mt-1">
+                                    <AlertCircle className="h-3 w-3" />
+                                    {errors.po_date}
+                                </p>
+                            )}
+                        </div>
 
+                        {/* PO Amount */}
                         <div className="space-y-2">
-                            <Label htmlFor="po_amount">PO Amount *</Label>
+                            <Label htmlFor="po_amount" className={errors?.po_amount ? 'text-red-600' : ''}>
+                                PO Amount <span className="text-red-500">*</span>
+                            </Label>
                             <div className="relative">
                                 <span className="absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground">₱</span>
                                 <Input
@@ -105,14 +132,19 @@ export default function PODetailsCard({
                                     min="0"
                                     value={data.po_amount}
                                     onChange={(e) => setData('po_amount', e.target.value)}
-                                    className="pl-8"
+                                    className={`pl-8 ${getInputClassName('po_amount')}`}
                                     placeholder="0.00"
                                 />
                             </div>
-                            {errors.po_amount && <p className="text-sm text-red-600">{errors.po_amount}</p>}
+                            {errors?.po_amount && (
+                                <p className="text-sm text-red-600 flex items-center gap-1">
+                                    <AlertCircle className="h-3 w-3" />
+                                    {errors.po_amount}
+                                </p>
+                            )}
 
                             {/* Tax Breakdown */}
-                            {data.po_amount && (
+                            {data.po_amount && !errors?.po_amount && (
                                 <div className="mt-1 rounded-md bg-muted/40 p-2 text-xs">
                                     <div className="flex justify-between">
                                         <span className="text-muted-foreground">VAT Ex (₱)</span>
@@ -137,30 +169,45 @@ export default function PODetailsCard({
 
                     {/* Middle Section: Description */}
                     <div className="space-y-2">
-                        <Label htmlFor="description">Description</Label>
+                        <Label htmlFor="description" className={errors?.description ? 'text-red-600' : ''}>
+                            Description
+                        </Label>
                         <Textarea
                             id="description"
                             value={data.description}
                             onChange={(e) => setData('description', e.target.value)}
                             placeholder="Enter purchase order description..."
                             rows={mode === 'edit' ? 3 : 2}
+                            className={getInputClassName('description')}
                         />
-                        {errors.description && <p className="text-sm text-red-600">{errors.description}</p>}
+                        {errors?.description && (
+                            <p className="text-sm text-red-600 flex items-center gap-1">
+                                <AlertCircle className="h-3 w-3" />
+                                {errors.description}
+                            </p>
+                        )}
                     </div>
 
                     {/* Financial & Timeline Information */}
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                         <div className="space-y-2">
-                            <Label htmlFor="payment_term">Payment Terms</Label>
+                            <Label htmlFor="payment_term" className={errors?.payment_term ? 'text-red-600' : ''}>
+                                Payment Terms
+                            </Label>
                             <Textarea
                                 id="payment_term"
                                 value={data.payment_term}
                                 onChange={(e) => setData('payment_term', e.target.value)}
                                 placeholder="e.g., Net 30, Due on receipt, 2% 10 Net 30"
-                                className="w-full"
+                                className={`w-full ${getInputClassName('payment_term')}`}
                                 rows={2}
                             />
-                            {errors.payment_term && <p className="text-sm text-red-600">{errors.payment_term}</p>}
+                            {errors?.payment_term && (
+                                <p className="text-sm text-red-600 flex items-center gap-1">
+                                    <AlertCircle className="h-3 w-3" />
+                                    {errors.payment_term}
+                                </p>
+                            )}
                         </div>
                     </div>
 

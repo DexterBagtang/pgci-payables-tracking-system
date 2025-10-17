@@ -13,6 +13,7 @@ import { Link, useForm } from '@inertiajs/react';
 import { ArrowLeft, Check, CheckSquare, FileText, Info, Save, Search, Square, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
+import BackButton from '@/components/custom/BackButton.jsx';
 
 const EditCheckRequisition = ({ checkRequisition, currentInvoices, availableInvoices, filters, filterOptions }) => {
     const [selectedInvoices, setSelectedInvoices] = useState(new Set(currentInvoices?.map((inv) => inv.id) || []));
@@ -212,12 +213,7 @@ const EditCheckRequisition = ({ checkRequisition, currentInvoices, availableInvo
                 {/* Header */}
                 <div className="mb-4 flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                        <Link href={`/check-requisitions/${checkRequisition.id}`}>
-                            <Button variant="outline" size="sm">
-                                <ArrowLeft className="mr-2 h-4 w-4" />
-                                Back
-                            </Button>
-                        </Link>
+                        <BackButton />
                         <div>
                             <h1 className="text-xl font-semibold text-slate-800">Edit Check Requisition</h1>
                             <p className="text-xs text-slate-500">

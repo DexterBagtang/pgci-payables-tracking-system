@@ -2,19 +2,19 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input.js';
 import { Label } from '@/components/ui/label.js';
 import { Button } from '@/components/ui/button.js';
-import { Download } from 'lucide-react';
+import { Download, AlertCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { getFileIcon } from '@/components/custom/helpers.jsx';
 
 /**
  * POAttachmentsCard Component
- * Shared UI component for managing PO attachments/files
+ * Shared UI component for managing PO attachments/files with validation
  * Used by both CreatePOForm and EditPOForm
  * 
  * @param {Object} props
  * @param {Array} props.files - New files to be uploaded (File objects)
  * @param {Function} props.onFileChange - Callback when files are selected
- * @param {Object} props.errors - Form validation errors
+ * @param {Object} props.errors - Form validation errors (combined client & server)
  * @param {Array} props.existingFiles - Existing files for the PO (for edit mode)
  * @param {Function} props.onDownloadFile - Callback to handle file download
  * @param {string} props.mode - 'create' or 'edit'
@@ -76,7 +76,7 @@ export default function POAttachmentsCard({
 
                     {/* New File Upload */}
                     <div className="space-y-2">
-                        <Label htmlFor="files">
+                        <Label htmlFor="files" className={errors?.files ? 'text-red-600' : ''}>
                             {mode === 'edit' ? 'Upload Additional Files' : 'Upload Files'}
                         </Label>
                         <Input
@@ -84,17 +84,32 @@ export default function POAttachmentsCard({
                             type="file"
                             multiple
                             onChange={onFileChange}
-                            className="cursor-pointer"
+                            className={`cursor-pointer ${errors?.files ? 'border-red-500 focus:ring-red-500' : ''}`}
                         />
-                        <p className="text-sm text-muted-foreground">
-                            Maximum file size: 10MB per file.
-                            {mode === 'edit' && ' New files will be added to existing attachments.'}
-                        </p>
-                        {errors?.files && <p className="text-sm text-red-600">{errors.files}</p>}
+                        <div className="space-y-1">
+                            <p className="text-sm text-muted-foreground">
+                                Maximum file size: 10MB per file.
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                                Allowed formats: PDF, DOC, DOCX, XLS, XLSX, JPG, PNG
+                            </p>
+                            {mode === 'edit' && (
+                                <p className="text-sm text-muted-foreground">
+                                    New files will be added to existing attachments.
+                                </p>
+                            )}
+                        </div>
+                        
+                        {errors?.files && (
+                            <p className="text-sm text-red-600 flex items-center gap-1">
+                                <AlertCircle className="h-3 w-3" />
+                                {errors.files}
+                            </p>
+                        )}
 
-                        {files && files.length > 0 && (
+                        {files && files.length > 0 && !errors?.files && (
                             <p className="text-sm text-green-600">
-                                {files.length} new file(s) selected for upload
+                                ✓ {files.length} file(s) selected for upload
                             </p>
                         )}
                     </div>

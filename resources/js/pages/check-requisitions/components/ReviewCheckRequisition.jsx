@@ -59,6 +59,7 @@ import {
     TabsTrigger,
 } from '@/components/ui/tabs';
 import StatusBadge from '@/components/custom/StatusBadge.jsx';
+import BackButton from '@/components/custom/BackButton.jsx';
 
 export default function ReviewCheckRequisition({
                                                    checkRequisition,
@@ -218,12 +219,7 @@ export default function ReviewCheckRequisition({
                 {/* Header */}
                 <div className="flex justify-between items-center mb-6">
                     <div className="flex items-center gap-4">
-                        <Link href="/check-requisitions">
-                            <Button variant="outline" size="sm">
-                                <ArrowLeft className="mr-2 h-4 w-4" />
-                                Back
-                            </Button>
-                        </Link>
+                        <BackButton />
                         <div>
                             <h1 className="text-xl font-semibold text-slate-800">
                                 Review Check Requisition
