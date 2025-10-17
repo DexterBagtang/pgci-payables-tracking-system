@@ -245,12 +245,12 @@ export default function ProjectShow({ project }) {
                                 </div>
                                 <div>
                                     <div className="flex items-center gap-3">
-                                        <h1 className="text-3xl font-bold text-gray-900">
+                                        <h1 className="text-3xl font-bold text-gray-900 max-w-2xl" >
                                             {project.project_title}
                                         </h1>
-                                        <Badge variant={project.project_status === 'active' ? "default" : "secondary"}>
-                                            {project.project_status || 'Draft'}
-                                        </Badge>
+                                        {/*<Badge variant={project.project_status === 'active' ? "default" : "secondary"}>*/}
+                                        {/*    {project.project_status || 'Draft'}*/}
+                                        {/*</Badge>*/}
                                         <Badge
                                             variant="outline"
                                             className={`border-${healthStatus.color}-200 text-${healthStatus.color}-700 bg-${healthStatus.color}-50`}

@@ -41,6 +41,11 @@ class CheckRequisitionController extends Controller
             $query->where('requisition_status', $request->status);
         }
 
+        // Purchase Order filter
+        if ($request->filled('purchase_order') && $request->purchase_order !== 'all') {
+            $query->where('po_number', $request->purchase_order);
+        }
+
         // Sorting
         $sortBy = $request->get('sort_by', 'created_at');
         $sortOrder = $request->get('sort_order', 'desc');
@@ -59,13 +64,23 @@ class CheckRequisitionController extends Controller
 
         $checkRequisitions = $query->paginate(15)->withQueryString();
 
+        // Get unique purchase order numbers for filter
+        $purchaseOrders = PurchaseOrder::select('id', 'po_number', 'vendor_id')
+            ->with('vendor:id,name')
+            ->orderBy('po_number', 'desc')
+            ->get();
+
         return inertia('check-requisitions/index', [
             'checkRequisitions' => $checkRequisitions,
             'filters' => [
                 'search' => $request->search,
                 'status' => $request->status,
+                'purchase_order' => $request->purchase_order,
                 'sort_by' => $sortBy,
                 'sort_order' => $sortOrder,
+            ],
+            'filterOptions' => [
+                'purchaseOrders' => $purchaseOrders,
             ],
         ]);
     }

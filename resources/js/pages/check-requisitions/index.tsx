@@ -18,14 +18,15 @@ const breadcrumbs: BreadcrumbItem[] = [
 interface PageProps {
     checkRequisitions: unknown[];
     filters: unknown[];
+    filterOptions: unknown[];
 }
 
-export default function ReviewInvoicesPage({ checkRequisitions ,filters}: PageProps) {
+export default function ReviewInvoicesPage({ checkRequisitions, filters, filterOptions }: PageProps) {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Check Requisitions" />
             <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
-                <CheckReqTable checkRequisitions={checkRequisitions} filters={filters} />
+                <CheckReqTable checkRequisitions={checkRequisitions} filters={filters} filterOptions={filterOptions} />
             </div>
         </AppLayout>
     );

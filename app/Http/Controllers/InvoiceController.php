@@ -390,6 +390,11 @@ class InvoiceController extends Controller
             });
         }
 
+        // Purchase Order filter
+        if ($request->has('purchase_order') && $request->purchase_order !== 'all') {
+            $query->where('purchase_order_id', $request->purchase_order);
+        }
+
         // Status filter
         if ($request->has('status') && $request->status !== 'all') {
             $query->where('invoice_status', $request->status);
@@ -425,6 +430,9 @@ class InvoiceController extends Controller
         $invoices->appends($request->query());
 
         $vendors = Vendor::where('is_active', true)->orderBy('name')->get(['id', 'name']);
+        $purchaseOrders = PurchaseOrder::with(['vendor:id,name'])
+            ->orderBy('po_number')
+            ->get(['id', 'po_number', 'vendor_id']);
 
         return inertia('invoices/bulk-review', [
             'invoices' => $invoices,
@@ -432,6 +440,7 @@ class InvoiceController extends Controller
                 'search' => $request->get('search', ''),
                 'sort_field' => $request->get('sort_field', 'created_at'),
                 'vendor' => $request->vendor !== 'all' ? (int)$request->vendor : 'all',
+                'purchase_order' => $request->purchase_order !== 'all' ? (int)$request->purchase_order : 'all',
                 'status' => $request->status !== 'all' ? $request->status : 'all',
                 'sort_direction' => $request->get('sort_direction', 'desc'),
                 'date_from' => $request->get('date_from'),
@@ -440,6 +449,7 @@ class InvoiceController extends Controller
             ],
             'filterOptions' => [
                 'vendors' => $vendors,
+                'purchaseOrders' => $purchaseOrders,
             ],
         ]);
     }

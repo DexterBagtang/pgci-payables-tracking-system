@@ -5,6 +5,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Combobox } from '@/components/ui/combobox';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -44,10 +45,12 @@ const BulkInvoiceReview = ({ invoices, filters, filterOptions }) => {
     const [currentInvoiceIndex, setCurrentInvoiceIndex] = useState(0);
     const [searchValue, setSearchValue] = useState(filters.search || '');
     const [vendorFilter, setVendorFilter] = useState(filters.vendor || 'all');
+    const [purchaseOrderFilter, setPurchaseOrderFilter] = useState(filters.purchase_order || 'all');
     const [statusFilter, setStatusFilter] = useState(filters.status || 'all');
     const [showConfirmDialog, setShowConfirmDialog] = useState(false);
     const [bulkAction, setBulkAction] = useState(null);
     const [vendorSearch, setVendorSearch] = useState('');
+    const [poSearch, setPoSearch] = useState('');
     const [reviewNotes, setReviewNotes] = useState('');
 
     const formatCurrency = (amount) => {
@@ -155,6 +158,12 @@ const BulkInvoiceReview = ({ invoices, filters, filterOptions }) => {
         setVendorFilter(value);
         setVendorSearch('');
         handleFilterChange({ vendor: value, page: 1 });
+    };
+
+    const handlePurchaseOrderChange = (value) => {
+        const newValue = value === '' ? 'all' : value;
+        setPurchaseOrderFilter(newValue);
+        handleFilterChange({ purchase_order: newValue, page: 1 });
     };
 
     const handleStatusChange = (value) => {
@@ -297,7 +306,7 @@ const BulkInvoiceReview = ({ invoices, filters, filterOptions }) => {
                 {/* Compact Filters */}
                 <Card className="mb-4 border-0 shadow-sm">
                     <CardContent className="p-3">
-                        <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
+                        <div className="grid grid-cols-1 gap-2 md:grid-cols-4">
                             <Select value={vendorFilter} onValueChange={handleVendorChange}>
                                 <SelectTrigger className="h-9 border-slate-200">
                                     <SelectValue placeholder="All Vendors" />
@@ -327,6 +336,22 @@ const BulkInvoiceReview = ({ invoices, filters, filterOptions }) => {
                                         ))}
                                 </SelectContent>
                             </Select>
+
+                            <Combobox
+                                value={purchaseOrderFilter === 'all' ? '' : purchaseOrderFilter.toString()}
+                                onValueChange={handlePurchaseOrderChange}
+                                placeholder="All Purchase Orders"
+                                searchPlaceholder="Search PO..."
+                                emptyMessage="No purchase orders found."
+                                className="h-9 border-slate-200"
+                                options={[
+                                    { value: 'all', label: 'All Purchase Orders' },
+                                    ...(filterOptions?.purchaseOrders?.map((po) => ({
+                                        value: po.id.toString(),
+                                        label: `${po.po_number} - ${po.vendor?.name || 'No Vendor'}`
+                                    })) || [])
+                                ]}
+                            />
 
                             <Select value={statusFilter} onValueChange={handleStatusChange}>
                                 <SelectTrigger className="h-9 border-slate-200">

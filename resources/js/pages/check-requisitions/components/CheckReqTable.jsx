@@ -18,6 +18,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Combobox } from '@/components/ui/combobox';
 import { Plus, Search, ArrowUpDown, ArrowUp, ArrowDown, X, ExternalLink, FileText, Calendar, DollarSign, Filter } from 'lucide-react';
 import {
     Card,
@@ -29,9 +30,10 @@ import {
 import { getStatusBadge } from '@/components/custom/helpers.jsx';
 import StatusBadge from '@/components/custom/StatusBadge.jsx';
 
-export default function CheckReqTable({ checkRequisitions, filters }) {
+export default function CheckReqTable({ checkRequisitions, filters, filterOptions }) {
     const [search, setSearch] = useState(filters.search || '');
     const [status, setStatus] = useState(filters.status || '');
+    const [purchaseOrder, setPurchaseOrder] = useState(filters.purchase_order || '');
     const [sortBy, setSortBy] = useState(filters.sort_by || 'created_at');
     const [sortOrder, setSortOrder] = useState(filters.sort_order || 'desc');
 
@@ -40,7 +42,7 @@ export default function CheckReqTable({ checkRequisitions, filters }) {
     // Debounce search
     useEffect(() => {
         const timeoutId = setTimeout(() => {
-            applyFilters(search, status, sortBy, sortOrder);
+            applyFilters(search, status, purchaseOrder, sortBy, sortOrder);
         }, 500);
 
         return () => clearTimeout(timeoutId);
@@ -48,12 +50,12 @@ export default function CheckReqTable({ checkRequisitions, filters }) {
 
     // Apply filters immediately for status and sort
     useEffect(() => {
-        if (filters.status !== null || filters.sort_by !== 'created_at') {
-            applyFilters(search, status, sortBy, sortOrder);
+        if (filters.status !== null || filters.sort_by !== 'created_at' || filters.purchase_order !== null) {
+            applyFilters(search, status, purchaseOrder, sortBy, sortOrder);
         }
-    }, [status, sortBy, sortOrder]);
+    }, [status, purchaseOrder, sortBy, sortOrder]);
 
-    const applyFilters = (searchValue, statusValue, sortByValue, sortOrderValue) => {
+    const applyFilters = (searchValue, statusValue, purchaseOrderValue, sortByValue, sortOrderValue) => {
         if (isInitialMount.current) {
             isInitialMount.current = false;
             return;
@@ -64,6 +66,7 @@ export default function CheckReqTable({ checkRequisitions, filters }) {
             {
                 search: searchValue || undefined,
                 status: statusValue && statusValue !== 'all' ? statusValue : undefined,
+                purchase_order: purchaseOrderValue && purchaseOrderValue !== 'all' ? purchaseOrderValue : undefined,
                 sort_by: sortByValue,
                 sort_order: sortOrderValue,
             },
@@ -84,9 +87,15 @@ export default function CheckReqTable({ checkRequisitions, filters }) {
     const handleReset = () => {
         setSearch('');
         setStatus('all');
+        setPurchaseOrder('all');
         setSortBy('created_at');
         setSortOrder('desc');
         router.get('/check-requisitions');
+    };
+
+    const handlePurchaseOrderChange = (value) => {
+        const newValue = value === '' ? 'all' : value;
+        setPurchaseOrder(newValue);
     };
 
     const getSortIcon = (column) => {
@@ -115,7 +124,7 @@ export default function CheckReqTable({ checkRequisitions, filters }) {
         });
     };
 
-    const hasActiveFilters = search || (status && status !== 'all');
+    const hasActiveFilters = search || (status && status !== 'all') || (purchaseOrder && purchaseOrder !== 'all');
 
     return (
         <div className="py-8">
@@ -177,6 +186,22 @@ export default function CheckReqTable({ checkRequisitions, filters }) {
                                             <SelectItem value="rejected">Rejected</SelectItem>
                                         </SelectContent>
                                     </Select>
+
+                                    <Combobox
+                                        value={purchaseOrder === 'all' || !purchaseOrder ? '' : purchaseOrder}
+                                        onValueChange={handlePurchaseOrderChange}
+                                        placeholder="All Purchase Orders"
+                                        searchPlaceholder="Search PO..."
+                                        emptyMessage="No purchase orders found."
+                                        className="w-full sm:w-[250px] h-10 border-gray-300 bg-white"
+                                        options={[
+                                            { value: 'all', label: 'All Purchase Orders' },
+                                            ...(filterOptions?.purchaseOrders?.map((po) => ({
+                                                value: po.po_number,
+                                                label: `${po.po_number}${po.vendor?.name ? ' - ' + po.vendor.name : ''}`
+                                            })) || [])
+                                        ]}
+                                    />
 
                                     <Select
                                         value={`${sortBy}-${sortOrder}`}
