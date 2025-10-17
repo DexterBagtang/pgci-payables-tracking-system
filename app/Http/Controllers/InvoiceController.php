@@ -58,6 +58,10 @@ class InvoiceController extends Controller
             });
         }
 
+        if ($request->has('purchase_order') && $request->purchase_order !== 'all') {
+            $query->where('purchase_order_id', $request->purchase_order);
+        }
+
         if ($request->has('status') && $request->status !== 'all') {
             $query->where('invoice_status', $request->status);
         }
@@ -88,6 +92,9 @@ class InvoiceController extends Controller
 
         $vendors = Vendor::where('is_active', true)->orderBy('name')->get(['id', 'name']);
         $projects = Project::all(['id', 'project_title']);
+        $purchaseOrders = PurchaseOrder::with(['vendor:id,name'])
+            ->orderBy('po_number')
+            ->get(['id', 'po_number', 'vendor_id']);
 
 //        $invoices->append(['vendor','project']);
 
@@ -98,6 +105,7 @@ class InvoiceController extends Controller
                 'sort_field' => $request->get('sort_field', 'po_date'),
                 'vendor' => $request->vendor !== 'all' ? (int)$request->vendor : 'all',
                 'project' => $request->project !== 'all' ? (int)$request->project : 'all',
+                'purchase_order' => $request->purchase_order !== 'all' ? (int)$request->purchase_order : 'all',
                 'status' => $request->status !== 'all' ? $request->status : 'all',
                 'sort_direction' => $request->get('sort_direction', 'desc'),
                 'per_page' => $request->get('per_page', 10),
@@ -105,6 +113,7 @@ class InvoiceController extends Controller
             'filterOptions' => [
                 'vendors' => $vendors,
                 'projects' => $projects,
+                'purchaseOrders' => $purchaseOrders,
             ],
         ]);
     }

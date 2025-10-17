@@ -35,15 +35,17 @@ import {
 import { useEffect, useState } from 'react';
 import StatusBadge, { AgingBadge, OverdueBadge } from '@/components/custom/StatusBadge.jsx';
 
-const InvoicesTable = ({ invoices, filters, filterOptions, user }) => {
+const InvoicesTable = ({ invoices, filters, filterOptions }) => {
     console.log(invoices);
     const [searchValue, setSearchValue] = useState('');
     const [sortField, setSortField] = useState(filters.sort_field);
     const [sortDirection, setSortDirection] = useState(filters.sort_direction);
     const [vendor, setVendor] = useState(filters.vendor || 'all');
     const [project, setProject] = useState(filters.project || 'all');
+    const [purchaseOrder, setPurchaseOrder] = useState(filters.purchase_order || 'all');
     const [projectSearch, setProjectSearch] = useState('');
     const [vendorSearch, setVendorSearch] = useState('');
+    const [purchaseOrderSearch, setPurchaseOrderSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState(filters.status || 'all');
     const [activeTab, setActiveTab] = useState('all');
 
@@ -126,7 +128,7 @@ const InvoicesTable = ({ invoices, filters, filterOptions, user }) => {
     const calculateSummary = () => {
         const data = invoices.data || [];
         return {
-            total: data.length,
+            total: invoices.total,
             totalAmount: data.reduce((sum, inv) => sum + parseFloat(inv.invoice_amount || 0), 0),
             pending: data.filter((inv) => inv.invoice_status === 'pending').length,
             approved: data.filter((inv) => inv.invoice_status === 'approved').length,
@@ -194,6 +196,12 @@ const InvoicesTable = ({ invoices, filters, filterOptions, user }) => {
         setProject(value);
         setProjectSearch('');
         handleFilterChange({ project: value === 'all' ? null : value, page: 1 });
+    };
+
+    const handlePurchaseOrderChange = (value) => {
+        setPurchaseOrder(value);
+        setPurchaseOrderSearch('');
+        handleFilterChange({ purchase_order: value === 'all' ? null : value, page: 1 });
     };
 
     const handleStatusChange = (status) => {
@@ -320,9 +328,9 @@ const InvoicesTable = ({ invoices, filters, filterOptions, user }) => {
                         </Tabs>
 
                         {/* Filters */}
-                        <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-4">
+                        <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-5">
                             {/* Search Input */}
-                            <div className="relative md:col-span-2">
+                            <div className="relative">
                                 <Search className="absolute top-2.5 left-2.5 h-4 w-4 text-muted-foreground" />
                                 <Input
                                     type="search"
@@ -359,6 +367,42 @@ const InvoicesTable = ({ invoices, filters, filterOptions, user }) => {
                                         .map((v) => (
                                             <SelectItem key={v.id} value={v.id.toString()}>
                                                 {v.name}
+                                            </SelectItem>
+                                        ))}
+                                </SelectContent>
+                            </Select>
+
+                            {/* Purchase Order Select */}
+                            <Select value={purchaseOrder} onValueChange={handlePurchaseOrderChange}>
+                                <SelectTrigger className="w-full truncate">
+                                    <SelectValue placeholder="All Purchase Orders" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <div className="border-b p-2">
+                                        <div className="relative">
+                                            <Search className="absolute top-1/2 left-2 h-3 w-3 -translate-y-1/2 text-muted-foreground" />
+                                            <input
+                                                type="text"
+                                                placeholder="Search PO..."
+                                                value={purchaseOrderSearch}
+                                                onChange={(e) => setPurchaseOrderSearch(e.target.value)}
+                                                className="h-8 w-full rounded-md border border-input bg-background px-7 text-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                                onClick={(e) => e.stopPropagation()}
+                                                onKeyDown={(e) => e.stopPropagation()}
+                                            />
+                                        </div>
+                                    </div>
+                                    <SelectItem value="all">All Purchase Orders</SelectItem>
+                                    {filterOptions.purchaseOrders
+                                        .filter((po) => po.po_number.toLowerCase().includes(purchaseOrderSearch.toLowerCase()))
+                                        .map((po) => (
+                                            <SelectItem key={po.id} value={po.id.toString()}>
+                                                <div className="flex items-center gap-2">
+                                                    <span>{po.po_number}</span>
+                                                    {po.vendor && (
+                                                        <span className="text-xs text-muted-foreground">({po.vendor.name})</span>
+                                                    )}
+                                                </div>
                                             </SelectItem>
                                         ))}
                                 </SelectContent>
