@@ -19,7 +19,7 @@ const ExpectedDateSelectionButton = lazy(()=> import('@/pages/purchase-orders/co
 const ProjectSelection = lazy(() => import('@/pages/purchase-orders/components/create/ProjectSelection.jsx'));
 const VendorSelection = lazy(()=> import('@/pages/purchase-orders/components/create/VendorSelection.jsx'));
 
-export default function EditPOForm({ purchaseOrder, vendors, projects, onSuccess = null, }) {
+export default function EditPOForm({ purchaseOrder, vendors, projects, onSuccess = null, isDialog = false }) {
     const [isDraft, setIsDraft] = useState(purchaseOrder.po_status === 'draft');
     const [files, setFiles] = useState([]);
 
@@ -99,6 +99,225 @@ export default function EditPOForm({ purchaseOrder, vendors, projects, onSuccess
         document.body.removeChild(link);
     };
 
+    const FormContent = () => (
+        <form className="space-y-6">
+            {/* Combined Information Card */}
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <FileText className="h-5 w-5" />
+                        Purchase Order Details
+                    </CardTitle>
+                    <CardDescription>Update the details for the purchase order</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    {/* Project & Vendor Selection */}
+                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                        <Suspense fallback={<div>Loading...</div>}>
+                            <ProjectSelection projects={projects} data={data} setData={setData} errors={errors} />
+                        </Suspense>
+
+                        <Suspense fallback={<div>Loading...</div>}>
+                            <VendorSelection vendors={vendors} data={data} setData={setData} errors={errors} />
+                        </Suspense>
+                    </div>
+                    {/* Top Section: PO Number, Date, Amount */}
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                        <div className="space-y-2">
+                            <Label htmlFor="po_number">PO Number</Label>
+                            <Input
+                                id="po_number"
+                                value={data.po_number}
+                                onChange={(e) => setData('po_number', e.target.value)}
+                                placeholder="e.g., PO-2024-001"
+                                error={errors.po_number}
+                            />
+                            {errors.po_number && <p className="text-sm text-red-600">{errors.po_number}</p>}
+                        </div>
+
+                        {/*PO Date Selection*/}
+                        <PoDateSelection data={data} setData={setData} errors={errors} />
+
+                        <div className="space-y-2">
+                            <Label htmlFor="po_amount">PO Amount *</Label>
+                            <div className="relative">
+                                <span className="absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground">₱</span>
+                                <Input
+                                    id="po_amount"
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    value={data.po_amount}
+                                    onChange={(e) => setData('po_amount', e.target.value)}
+                                    className="pl-8"
+                                    placeholder="0.00"
+                                />
+                            </div>
+                            {errors.po_amount && (
+                                <p className="text-sm text-red-600">{errors.po_amount}</p>
+                            )}
+
+                            {/* Tax Breakdown */}
+                            {data.po_amount && (
+                                <div className="mt-1 rounded-md bg-muted/40 p-2 text-xs">
+                                    <div className="flex justify-between">
+                                        <span className="text-muted-foreground">VAT Ex (₱)</span>
+                                        <span className="font-medium text-muted-foreground">
+                                          {formatCurrency((parseFloat(data.po_amount) || 0) / 1.12)}
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-muted-foreground">VAT (12%)</span>
+                                        <span className="font-medium text-muted-foreground">
+                                          {formatCurrency(((parseFloat(data.po_amount) || 0) * 0.12) / 1.12)}
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className={"text-sm text-muted-foreground"}>Total</span>
+                                        <p className="text-sm font-medium">
+                                            {formatCurrency(data.po_amount)}
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Middle Section: Description */}
+                    <div className="space-y-2">
+                        <Label htmlFor="description">Description</Label>
+                        <Textarea
+                            id="description"
+                            value={data.description}
+                            onChange={(e) => setData('description', e.target.value)}
+                            placeholder="Enter purchase order description..."
+                            rows={3}
+                        />
+                        {errors.description && <p className="text-sm text-red-600">{errors.description}</p>}
+                    </div>
+
+
+                    {/* Financial & Timeline Information */}
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        <div className="space-y-2">
+                            <Label htmlFor="payment_term">Payment Terms</Label>
+                            <Input
+                                id="payment_term"
+                                value={data.payment_term}
+                                onChange={(e) => setData('payment_term', e.target.value)}
+                                placeholder="e.g., Net 30, Due on receipt, 2% 10 Net 30"
+                                className="w-full"
+                            />
+                            {errors.payment_term && <p className="text-sm text-red-600">{errors.payment_term}</p>}
+                        </div>
+
+                        {/*<ExpectedDateSelectionButton data={data} setData={setData} errors={errors} />*/}
+                    </div>
+
+                    {/* Attachments Section */}
+
+                    <div className="space-y-4">
+                            {/* Existing Files Display */}
+                            {purchaseOrder.files && purchaseOrder.files.length > 0 && (
+                                <div className="space-y-2">
+                                    <Label>Attachments</Label>
+                                    <div className="grid gap-1">
+                                        {purchaseOrder.files.map((file) => (
+                                            <div
+                                                key={file.id}
+                                                className="flex items-center justify-between p-2 border rounded-lg bg-muted/20"
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    {getFileIcon(file.file_type)}
+                                                    <div className="flex flex-col">
+                                                        <span className="text-sm font-medium">{file.file_name}</span>
+                                                        <span className="text-xs text-muted-foreground">
+                                                            {(file.file_size / 1024 / 1024).toFixed(2)} MB . {format(file.created_at,'yyyy-MM-dd hh:mm a')}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => downloadFile(file)}
+                                                >
+                                                    <Download className="h-4 w-4" />
+                                                </Button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* New File Upload */}
+                            <div className="space-y-2">
+                                <Label htmlFor="files">Upload Additional Files</Label>
+                                <Input
+                                    id="files"
+                                    type="file"
+                                    multiple
+                                    onChange={handleFileChange}
+                                    className="cursor-pointer"
+                                />
+                                <p className="text-sm text-muted-foreground">
+                                    Maximum file size: 10MB per file. New files will be added to existing attachments.
+                                </p>
+                                {errors.files && <p className="text-sm text-red-600">{errors.files}</p>}
+
+                                {data.files.length > 0 && (
+                                    <p className="text-sm text-green-600">
+                                        {data.files.length} new file(s) selected for upload
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+
+
+
+                    {/* Bottom Section: Save as Draft Checkbox */}
+                    <div className="flex items-center space-x-2 border-t pt-4">
+                        <Checkbox id="is_draft" checked={isDraft} onCheckedChange={(checked) => handleDraft(checked)} />
+                        <Label
+                            htmlFor="is_draft"
+                            className="text-sm leading-none font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                        >
+                            Save as Draft
+                        </Label>
+                        <Separator orientation="vertical" className={'mx-6'} />
+                        <Label>Status:</Label>
+                        {isDraft ? (
+                            <Badge variant="secondary" className="ml-2">
+                                Draft
+                            </Badge>
+                        ) : (
+                            <Badge variant="default" className="ml-2">
+                                Open
+                            </Badge>
+                        )}
+                    </div>
+                </CardContent>
+            </Card>
+
+
+            {/* Action Buttons */}
+            <div className={`flex items-center ${isDialog ? 'justify-end' : 'justify-between'} pt-6`}>
+                {!isDialog && <BackButton />}
+
+                <Button type="button" disabled={processing} onClick={handleSubmit}>
+                    <Save className="mr-2 h-4 w-4" />
+                    {processing ? 'Updating...' : 'Update Purchase Order'}
+                </Button>
+            </div>
+        </form>
+    );
+
+    // If used in dialog, only return form content
+    if (isDialog) {
+        return <FormContent />;
+    }
+
+    // If used in full page, return with Head and wrapper
     return (
         <>
             <Head title={`Edit Purchase Order - ${purchaseOrder.po_number}`} />
@@ -117,216 +336,7 @@ export default function EditPOForm({ purchaseOrder, vendors, projects, onSuccess
                         </div>
                     </div>
 
-                    <form className="space-y-6">
-                        {/* Combined Information Card */}
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    <FileText className="h-5 w-5" />
-                                    Purchase Order Details
-                                </CardTitle>
-                                <CardDescription>Update the details for the purchase order</CardDescription>
-                            </CardHeader>
-                            <CardContent className="space-y-6">
-                                {/* Project & Vendor Selection */}
-                                <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                                    <Suspense fallback={<div>Loading...</div>}>
-                                        <ProjectSelection projects={projects} data={data} setData={setData} errors={errors} />
-                                    </Suspense>
-
-                                    <Suspense fallback={<div>Loading...</div>}>
-                                        <VendorSelection vendors={vendors} data={data} setData={setData} errors={errors} />
-                                    </Suspense>
-                                </div>
-                                {/* Top Section: PO Number, Date, Amount */}
-                                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="po_number">PO Number</Label>
-                                        <Input
-                                            id="po_number"
-                                            value={data.po_number}
-                                            onChange={(e) => setData('po_number', e.target.value)}
-                                            placeholder="e.g., PO-2024-001"
-                                            error={errors.po_number}
-                                        />
-                                        {errors.po_number && <p className="text-sm text-red-600">{errors.po_number}</p>}
-                                    </div>
-
-                                    {/*PO Date Selection*/}
-                                    <PoDateSelection data={data} setData={setData} errors={errors} />
-
-                                    <div className="space-y-2">
-                                        <Label htmlFor="po_amount">PO Amount *</Label>
-                                        <div className="relative">
-                                            <span className="absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground">₱</span>
-                                            <Input
-                                                id="po_amount"
-                                                type="number"
-                                                step="0.01"
-                                                min="0"
-                                                value={data.po_amount}
-                                                onChange={(e) => setData('po_amount', e.target.value)}
-                                                className="pl-8"
-                                                placeholder="0.00"
-                                            />
-                                        </div>
-                                        {errors.po_amount && (
-                                            <p className="text-sm text-red-600">{errors.po_amount}</p>
-                                        )}
-
-                                        {/* Tax Breakdown */}
-                                        {data.po_amount && (
-                                            <div className="mt-1 rounded-md bg-muted/40 p-2 text-xs">
-                                                <div className="flex justify-between">
-                                                    <span className="text-muted-foreground">VAT Ex (₱)</span>
-                                                    <span className="font-medium text-muted-foreground">
-                                                      {formatCurrency((parseFloat(data.po_amount) || 0) / 1.12)}
-                                                    </span>
-                                                </div>
-                                                <div className="flex justify-between">
-                                                    <span className="text-muted-foreground">VAT (12%)</span>
-                                                    <span className="font-medium text-muted-foreground">
-                                                      {formatCurrency(((parseFloat(data.po_amount) || 0) * 0.12) / 1.12)}
-                                                    </span>
-                                                </div>
-                                                <div className="flex justify-between">
-                                                    <span className={"text-sm text-muted-foreground"}>Total</span>
-                                                    <p className="text-sm font-medium">
-                                                        {formatCurrency(data.po_amount)}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-
-                                {/* Middle Section: Description */}
-                                <div className="space-y-2">
-                                    <Label htmlFor="description">Description</Label>
-                                    <Textarea
-                                        id="description"
-                                        value={data.description}
-                                        onChange={(e) => setData('description', e.target.value)}
-                                        placeholder="Enter purchase order description..."
-                                        rows={3}
-                                    />
-                                    {errors.description && <p className="text-sm text-red-600">{errors.description}</p>}
-                                </div>
-
-
-                                {/* Financial & Timeline Information */}
-                                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="payment_term">Payment Terms</Label>
-                                        <Input
-                                            id="payment_term"
-                                            value={data.payment_term}
-                                            onChange={(e) => setData('payment_term', e.target.value)}
-                                            placeholder="e.g., Net 30, Due on receipt, 2% 10 Net 30"
-                                            className="w-full"
-                                        />
-                                        {errors.payment_term && <p className="text-sm text-red-600">{errors.payment_term}</p>}
-                                    </div>
-
-                                    {/*<ExpectedDateSelectionButton data={data} setData={setData} errors={errors} />*/}
-                                </div>
-
-                                {/* Attachments Section */}
-
-                                <div className="space-y-4">
-                                        {/* Existing Files Display */}
-                                        {purchaseOrder.files && purchaseOrder.files.length > 0 && (
-                                            <div className="space-y-2">
-                                                <Label>Attachments</Label>
-                                                <div className="grid gap-1">
-                                                    {purchaseOrder.files.map((file) => (
-                                                        <div
-                                                            key={file.id}
-                                                            className="flex items-center justify-between p-2 border rounded-lg bg-muted/20"
-                                                        >
-                                                            <div className="flex items-center gap-3">
-                                                                {getFileIcon(file.file_type)}
-                                                                <div className="flex flex-col">
-                                                                    <span className="text-sm font-medium">{file.file_name}</span>
-                                                                    <span className="text-xs text-muted-foreground">
-                                                                        {(file.file_size / 1024 / 1024).toFixed(2)} MB . {format(file.created_at,'yyyy-MM-dd hh:mm a')}
-                                                                    </span>
-                                                                </div>
-                                                            </div>
-                                                            <Button
-                                                                type="button"
-                                                                variant="ghost"
-                                                                size="sm"
-                                                                onClick={() => downloadFile(file)}
-                                                            >
-                                                                <Download className="h-4 w-4" />
-                                                            </Button>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        {/* New File Upload */}
-                                        <div className="space-y-2">
-                                            <Label htmlFor="files">Upload Additional Files</Label>
-                                            <Input
-                                                id="files"
-                                                type="file"
-                                                multiple
-                                                onChange={handleFileChange}
-                                                className="cursor-pointer"
-                                            />
-                                            <p className="text-sm text-muted-foreground">
-                                                Maximum file size: 10MB per file. New files will be added to existing attachments.
-                                            </p>
-                                            {errors.files && <p className="text-sm text-red-600">{errors.files}</p>}
-
-                                            {data.files.length > 0 && (
-                                                <p className="text-sm text-green-600">
-                                                    {data.files.length} new file(s) selected for upload
-                                                </p>
-                                            )}
-                                        </div>
-                                    </div>
-
-
-
-                                {/* Bottom Section: Save as Draft Checkbox */}
-                                <div className="flex items-center space-x-2 border-t pt-4">
-                                    <Checkbox id="is_draft" checked={isDraft} onCheckedChange={(checked) => handleDraft(checked)} />
-                                    <Label
-                                        htmlFor="is_draft"
-                                        className="text-sm leading-none font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                                    >
-                                        Save as Draft
-                                    </Label>
-                                    <Separator orientation="vertical" className={'mx-6'} />
-                                    <Label>Status:</Label>
-                                    {isDraft ? (
-                                        <Badge variant="secondary" className="ml-2">
-                                            Draft
-                                        </Badge>
-                                    ) : (
-                                        <Badge variant="default" className="ml-2">
-                                            Open
-                                        </Badge>
-                                    )}
-                                </div>
-                            </CardContent>
-                        </Card>
-
-
-                        {/* Action Buttons */}
-                        <div className="flex items-center justify-between pt-6">
-                            <BackButton />
-
-                            <Button type="button" disabled={processing} onClick={handleSubmit}>
-                                <Save className="mr-2 h-4 w-4" />
-                                {processing ? 'Updating...' : 'Update Purchase Order'}
-                            </Button>
-                        </div>
-                    </form>
+                    <FormContent />
                 </div>
             </div>
         </>

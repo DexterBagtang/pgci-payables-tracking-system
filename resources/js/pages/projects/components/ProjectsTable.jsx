@@ -33,8 +33,9 @@ import {
     Building
 } from "lucide-react";
 import PaginationServerSide from '@/components/custom/Pagination.jsx';
+import DialogLoadingFallback from '@/components/custom/DialogLoadingFallback.jsx';
 
-// Lazy load the heavy dialog components
+// Lazy load dialog components
 const AddProjectDialog = lazy(() => import('@/pages/projects/components/AddProjectDialog.jsx'));
 
 export default function ProjectsTable({ projects, filters = {} }) {
@@ -137,12 +138,10 @@ export default function ProjectsTable({ projects, filters = {} }) {
                             Projects Management
                         </CardTitle>
 
-                        <Suspense fallback={<Button className="gap-2" disabled><Plus className="h-4 w-4" />Add Project</Button>}>
-                            <Button className="gap-2" onClick={() => setIsAddDialogOpen(true)}>
-                                <Plus className="h-4 w-4" />
-                                Add Project
-                            </Button>
-                        </Suspense>
+                        <Button className="gap-2" onClick={() => setIsAddDialogOpen(true)}>
+                            <Plus className="h-4 w-4" />
+                            Add Project
+                        </Button>
                     </div>
                 </CardHeader>
                 <CardContent>
@@ -249,7 +248,7 @@ export default function ProjectsTable({ projects, filters = {} }) {
             </Card>
 
             {/* Add Project Dialog */}
-            <Suspense fallback={null}>
+            <Suspense fallback={<DialogLoadingFallback message="Loading form..." />}>
                 <AddProjectDialog
                     open={isAddDialogOpen}
                     onOpenChange={setIsAddDialogOpen}
@@ -258,7 +257,7 @@ export default function ProjectsTable({ projects, filters = {} }) {
 
             {/* Edit Project Dialog */}
             {selectedProject && (
-                <Suspense fallback={null}>
+                <Suspense fallback={<DialogLoadingFallback message="Loading form..." />}>
                     <AddProjectDialog
                         key={selectedProject.id}
                         open={isEditDialogOpen}

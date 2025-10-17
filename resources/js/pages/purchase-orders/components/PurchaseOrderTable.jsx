@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense, lazy } from 'react';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import {
     Table,
@@ -52,17 +52,12 @@ import {
 } from 'lucide-react';
 import PaginationServerSide from '@/components/custom/Pagination.jsx';
 import { differenceInDays } from 'date-fns';
-import {
-    Dialog,
-    DialogClose,
-    DialogContent, DialogDescription, DialogFooter,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger
-} from '@/components/ui/dialog.js';
-import { Label } from '@/components/ui/label.js';
-import CreatePOForm from '@/pages/purchase-orders/components/CreatePOForm.jsx';
 import StatusBadge from '@/components/custom/StatusBadge.jsx';
+import DialogLoadingFallback from '@/components/custom/DialogLoadingFallback.jsx';
+
+// Lazy load dialog components
+const AddPurchaseOrderDialog = lazy(() => import('@/pages/purchase-orders/components/AddPurchaseOrderDialog.jsx'));
+const EditPurchaseOrderDialog = lazy(() => import('@/pages/purchase-orders/components/EditPurchaseOrderDialog.jsx'));
 
 export default function PurchaseOrderTable({ purchaseOrders, filters, filterOptions }) {
     console.log(filters,filterOptions);
@@ -81,6 +76,8 @@ export default function PurchaseOrderTable({ purchaseOrders, filters, filterOpti
     const [activeTab, setActiveTab] = useState(filters.status || 'all');
 
     const [isCreateOpen, setCreateOpen] = useState(false);
+    const [isEditOpen, setEditOpen] = useState(false);
+    const [selectedPO, setSelectedPO] = useState(null);
 
     // SAP-like status configuration
     const getStatusConfig = (status) => {
@@ -321,17 +318,17 @@ export default function PurchaseOrderTable({ purchaseOrders, filters, filterOpti
                                     <Download className="mr-2 h-4 w-4" />
                                     Export
                                 </Button>
-                                <Button asChild size="sm">
-                                    <Link href='/purchase-orders/create' prefetch>
-                                        <Plus className="mr-2 h-4 w-4" />
-                                        Create PO
-                                    </Link>
-                                </Button>
-
-                                {/*<Button onClick={()=>setCreateOpen(true)}>*/}
-                                {/*    <Plus className="mr-2 h-4 w-4" />*/}
-                                {/*    Create PO*/}
+                                {/*<Button asChild size="sm">*/}
+                                {/*    <Link href='/purchase-orders/create' prefetch>*/}
+                                {/*        <Plus className="mr-2 h-4 w-4" />*/}
+                                {/*        Create PO*/}
+                                {/*    </Link>*/}
                                 {/*</Button>*/}
+
+                                <Button onClick={()=>setCreateOpen(true)} size="sm">
+                                    <Plus className="mr-2 h-4 w-4" />
+                                    Create PO
+                                </Button>
 
                             </div>
                         </div>
@@ -628,7 +625,11 @@ export default function PurchaseOrderTable({ purchaseOrders, filters, filterOpti
                                                                             variant="ghost"
                                                                             size="icon"
                                                                             className="h-8 w-8"
-                                                                            onClick={() => router.get(`/purchase-orders/${po.id}/edit`)}
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                setSelectedPO(po);
+                                                                                setEditOpen(true);
+                                                                            }}
                                                                         >
                                                                             <Edit className="h-4 w-4" />
                                                                         </Button>
@@ -676,11 +677,26 @@ export default function PurchaseOrderTable({ purchaseOrders, filters, filterOpti
                     </CardContent>
                 </Card>
 
-                {/*<Dialog open={isCreateOpen} onOpenChange={setCreateOpen}>*/}
-                {/*    <DialogContent className="!max-w-7xl">*/}
-                {/*        <CreatePOForm vendors={filterOptions.vendors} projects={filterOptions.projects}  />*/}
-                {/*    </DialogContent>*/}
-                {/*</Dialog>*/}
+                <Suspense fallback={<DialogLoadingFallback message="Loading form..." />}>
+                    <AddPurchaseOrderDialog
+                        open={isCreateOpen}
+                        onOpenChange={setCreateOpen}
+                        vendors={filterOptions.vendors}
+                        projects={filterOptions.projects}
+                    />
+                </Suspense>
+
+                {selectedPO && (
+                    <Suspense fallback={<DialogLoadingFallback message="Loading form..." />}>
+                        <EditPurchaseOrderDialog
+                            open={isEditOpen}
+                            onOpenChange={setEditOpen}
+                            purchaseOrder={selectedPO}
+                            vendors={filterOptions.vendors}
+                            projects={filterOptions.projects}
+                        />
+                    </Suspense>
+                )}
 
 
             </div>

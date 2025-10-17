@@ -27,9 +27,12 @@ import {
     Phone, Calendar
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import DialogLoadingFallback from '@/components/custom/DialogLoadingFallback.jsx';
+import PaginationServerSide from '@/components/custom/Pagination.jsx';
+
+// Lazy load dialog components
 const AddVendorDialog = lazy(() => import('@/pages/vendors/components/AddVendorDialog.jsx'));
 const EditVendorDialog = lazy(() => import('@/pages/vendors/components/EditVendorDialog.jsx'));
-import PaginationServerSide from '@/components/custom/Pagination.jsx';
 
 export default function VendorsTable({ vendors, filters = {} }) {
     const [searchTerm, setSearchTerm] = useState(filters.search || '');
@@ -115,7 +118,7 @@ export default function VendorsTable({ vendors, filters = {} }) {
                             Vendors Management
                         </CardTitle>
 
-                        <Suspense fallback={<Button className="gap-2" disabled><Plus className="h-4 w-4" />Add Vendor</Button>}>
+                        <Suspense fallback={<DialogLoadingFallback message="Loading form..." />}>
                             <AddVendorDialog
                                 trigger={
                                     <Button className="gap-2">
@@ -236,7 +239,7 @@ export default function VendorsTable({ vendors, filters = {} }) {
 
             {/* Single Edit Dialog Instance */}
             {selectedVendor && (
-                <Suspense fallback={null}>
+                <Suspense fallback={<DialogLoadingFallback message="Loading form..." />}>
                     <EditVendorDialog
                         key={selectedVendor.id}
                         vendor={selectedVendor}

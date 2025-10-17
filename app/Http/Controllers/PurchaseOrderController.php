@@ -78,8 +78,8 @@ class PurchaseOrderController extends Controller
         $purchaseOrders->appends($request->query());
 
         // Get filter options
-        $vendors = Vendor::where('is_active', true)->orderBy('name')->get(['id', 'name']);
-        $projects = Project::all(['id', 'project_title']);
+        $vendors = Vendor::where('is_active', true)->orderBy('name')->get(['id', 'name','category']);
+        $projects = Project::all(['id', 'project_title','total_project_cost','cer_number']);
 
         return inertia('purchase-orders/index', [
             'purchaseOrders' => $purchaseOrders,

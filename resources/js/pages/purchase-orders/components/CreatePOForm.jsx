@@ -12,6 +12,7 @@ import { ArrowLeft, FileText, Save } from 'lucide-react';
 import { lazy, Suspense, useState } from 'react';
 import { toast } from 'sonner';
 import BackButton from '@/components/custom/BackButton.jsx';
+import { Spinner } from '@/components/ui/spinner.js';
 
 const PoDateSelection = lazy(()=> import('@/pages/purchase-orders/components/create/PoDateSelection.jsx'));
 const ExpectedDateSelectionButton = lazy(()=> import('@/pages/purchase-orders/components/create/ExpectedDateSelection.jsx'));
@@ -62,17 +63,17 @@ export default function CreatePOForm({ vendors, projects,project_id }) {
 
     return (
         <>
-            <Head title="Create Purchase Order" />
+            {/*<Head title="Create Purchase Order" />*/}
 
-            <div className="py-6">
-                <div className="mx-auto max-w-4xl sm:px-6 lg:px-8">
-                    {/* Header */}
-                    <div className="mb-6">
-                        <div>
-                            <h1 className="text-2xl font-semibold text-gray-900">Create New Purchase Order</h1>
-                            <p className="mt-2 text-sm text-gray-600">Fill out the form below to create a new purchase order</p>
-                        </div>
-                    </div>
+            {/*<div className="py-6">*/}
+            {/*    <div className="mx-auto max-w-4xl sm:px-6 lg:px-8">*/}
+            {/*        /!* Header *!/*/}
+            {/*        <div className="mb-6">*/}
+            {/*            <div>*/}
+            {/*                <h1 className="text-2xl font-semibold text-gray-900">Create New Purchase Order</h1>*/}
+            {/*                <p className="mt-2 text-sm text-gray-600">Fill out the form below to create a new purchase order</p>*/}
+            {/*            </div>*/}
+            {/*        </div>*/}
 
                     <form onSubmit={handleSubmit} className="space-y-6">
                         {/* Combined Information Card */}
@@ -162,17 +163,16 @@ export default function CreatePOForm({ vendors, projects,project_id }) {
                                         value={data.description}
                                         onChange={(e) => setData('description', e.target.value)}
                                         placeholder="Enter purchase order description..."
-                                        rows={3}
                                     />
                                     {errors.description && <p className="text-sm text-red-600">{errors.description}</p>}
                                 </div>
 
 
                                 {/* Financial & Timeline Information */}
-                                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                <div className="grid grid-cols-1 gap-4">
                                     <div className="space-y-2">
                                         <Label htmlFor="payment_term">Payment Terms</Label>
-                                        <Input
+                                        <Textarea
                                             id="payment_term"
                                             value={data.payment_term}
                                             onChange={(e) => setData('payment_term', e.target.value)}
@@ -235,16 +235,16 @@ export default function CreatePOForm({ vendors, projects,project_id }) {
 
                         {/* Action Buttons */}
                         <div className="flex items-center justify-between pt-6">
-                           <BackButton />
+                           {/*<BackButton />*/}
 
                             <Button type="submit" disabled={processing}>
-                                <Save className="mr-2 h-4 w-4" />
+                                {processing ? <Spinner className="mr-2 h-4 w-4" /> : <Save className="mr-2 h-4 w-4" />}
                                 {isDraft ? 'Save as Draft' : 'Create'}
                             </Button>
                         </div>
                     </form>
-                </div>
-            </div>
+            {/*    </div>*/}
+            {/*</div>*/}
         </>
     );
 }
