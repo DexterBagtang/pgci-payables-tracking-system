@@ -35,7 +35,7 @@ import {
 import { useEffect, useState } from 'react';
 import StatusBadge, { AgingBadge, OverdueBadge } from '@/components/custom/StatusBadge.jsx';
 
-const InvoicesTable = ({ invoices, filters, filterOptions }) => {
+const InvoicesTable = ({ invoices, filters, filterOptions, statusCounts, currentPageTotal }) => {
     console.log(invoices);
     const [searchValue, setSearchValue] = useState('');
     const [sortField, setSortField] = useState(filters.sort_field);
@@ -124,15 +124,17 @@ const InvoicesTable = ({ invoices, filters, filterOptions }) => {
         return 'bg-red-50 text-red-700 border-red-200';
     };
 
-    // Calculate summary statistics
+    // Calculate summary statistics using backend-provided counts
     const calculateSummary = () => {
         const data = invoices.data || [];
         return {
-            total: invoices.total,
-            totalAmount: data.reduce((sum, inv) => sum + parseFloat(inv.invoice_amount || 0), 0),
-            pending: data.filter((inv) => inv.invoice_status === 'pending').length,
-            approved: data.filter((inv) => inv.invoice_status === 'approved').length,
-            pendingDisbursement: data.filter((inv) => inv.invoice_status === 'pending_disbursement').length,
+            total: statusCounts?.all || 0,
+            totalAmount: currentPageTotal || 0, // Amount for current page only
+            pending: statusCounts?.pending || 0,
+            received: statusCounts?.received || 0,
+            approved: statusCounts?.approved || 0,
+            rejected: statusCounts?.rejected || 0,
+            pendingDisbursement: statusCounts?.pending_disbursement || 0,
             overdue: data.filter((inv) => isOverdue(inv.due_date, inv.invoice_status)).length,
         };
     };
@@ -303,32 +305,168 @@ const InvoicesTable = ({ invoices, filters, filterOptions }) => {
                     </CardHeader>
 
                     <CardContent>
-                        {/* Status Tabs - SAP Style */}
-                        <Tabs value={activeTab} onValueChange={handleTabChange} className="mb-4">
-                            <TabsList className="grid w-full grid-cols-6">
-                                <TabsTrigger value="all" className="text-xs">
-                                    All ({summary.total})
-                                </TabsTrigger>
-                                <TabsTrigger value="pending" className="text-xs">
-                                    Pending ({summary.pending})
-                                </TabsTrigger>
-                                <TabsTrigger value="received" className="text-xs">
-                                    Received
-                                </TabsTrigger>
-                                <TabsTrigger value="approved" className="text-xs">
-                                    Approved ({summary.approved})
-                                </TabsTrigger>
-                                <TabsTrigger value="pending_disbursement" className="text-xs">
-                                    For Disbursement ({summary.pendingDisbursement})
-                                </TabsTrigger>
-                                <TabsTrigger value="rejected" className="text-xs">
-                                    Rejected
-                                </TabsTrigger>
-                            </TabsList>
-                        </Tabs>
+                        {/* Modern Status Filter Pills */}
+                        <div className="mb-6 space-y-3">
+                            <div className="flex flex-wrap gap-2">
+                                {[
+                                    { 
+                                        value: 'all', 
+                                        label: 'All Invoices', 
+                                        icon: FileText,
+                                        activeClasses: 'border-blue-500 bg-blue-50 shadow-sm',
+                                        iconActiveClasses: 'text-blue-600',
+                                        textActiveClasses: 'text-blue-700',
+                                        indicatorClasses: 'bg-blue-500'
+                                    },
+                                    { 
+                                        value: 'pending', 
+                                        label: 'Pending', 
+                                        icon: Clock,
+                                        activeClasses: 'border-amber-500 bg-amber-50 shadow-sm',
+                                        iconActiveClasses: 'text-amber-600',
+                                        textActiveClasses: 'text-amber-700',
+                                        indicatorClasses: 'bg-amber-500'
+                                    },
+                                    { 
+                                        value: 'received', 
+                                        label: 'Received', 
+                                        icon: Receipt,
+                                        activeClasses: 'border-sky-500 bg-sky-50 shadow-sm',
+                                        iconActiveClasses: 'text-sky-600',
+                                        textActiveClasses: 'text-sky-700',
+                                        indicatorClasses: 'bg-sky-500'
+                                    },
+                                    { 
+                                        value: 'approved', 
+                                        label: 'Approved', 
+                                        icon: CheckCircle2,
+                                        activeClasses: 'border-green-500 bg-green-50 shadow-sm',
+                                        iconActiveClasses: 'text-green-600',
+                                        textActiveClasses: 'text-green-700',
+                                        indicatorClasses: 'bg-green-500'
+                                    },
+                                    { 
+                                        value: 'pending_disbursement', 
+                                        label: 'For Disbursement', 
+                                        icon: DollarSign,
+                                        activeClasses: 'border-purple-500 bg-purple-50 shadow-sm',
+                                        iconActiveClasses: 'text-purple-600',
+                                        textActiveClasses: 'text-purple-700',
+                                        indicatorClasses: 'bg-purple-500'
+                                    },
+                                    { 
+                                        value: 'rejected', 
+                                        label: 'Rejected', 
+                                        icon: XCircle,
+                                        activeClasses: 'border-red-500 bg-red-50 shadow-sm',
+                                        iconActiveClasses: 'text-red-600',
+                                        textActiveClasses: 'text-red-700',
+                                        indicatorClasses: 'bg-red-500'
+                                    },
+                                ].map((status) => {
+                                    const Icon = status.icon;
+                                    const isActive = activeTab === status.value;
+                                    
+                                    return (
+                                        <button
+                                            key={status.value}
+                                            onClick={() => handleTabChange(status.value)}
+                                            className={`
+                                                group relative flex items-center gap-2 rounded-lg border-2 px-4 py-2.5 transition-all duration-200
+                                                ${isActive 
+                                                    ? status.activeClasses 
+                                                    : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm'
+                                                }
+                                            `}
+                                        >
+                                            <Icon className={`h-4 w-4 transition-colors ${
+                                                isActive ? status.iconActiveClasses : 'text-gray-500 group-hover:text-gray-700'
+                                            }`} />
+                                            <span className={`text-sm font-medium transition-colors ${
+                                                isActive ? status.textActiveClasses : 'text-gray-700 group-hover:text-gray-900'
+                                            }`}>
+                                                {status.label}
+                                            </span>
+                                            {isActive && (
+                                                <div className={`absolute -bottom-2 left-1/2 h-1 w-3/4 -translate-x-1/2 rounded-full ${status.indicatorClasses}`} />
+                                            )}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        {/* Active Filters Indicator */}
+                        {(searchValue || vendor !== 'all' || project !== 'all' || purchaseOrder !== 'all') && (
+                            <div className="mb-4 flex flex-wrap items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 p-3">
+                                <div className="flex items-center gap-2 text-sm font-medium text-blue-700">
+                                    <Filter className="h-4 w-4" />
+                                    Active Filters:
+                                </div>
+                                {searchValue && (
+                                    <Badge variant="secondary" className="bg-white border border-blue-200">
+                                        <Search className="mr-1 h-3 w-3" />
+                                        Search: {searchValue}
+                                        <button
+                                            onClick={() => setSearchValue('')}
+                                            className="ml-1.5 rounded-full hover:bg-gray-200"
+                                        >
+                                            <XCircle className="h-3 w-3" />
+                                        </button>
+                                    </Badge>
+                                )}
+                                {vendor !== 'all' && (
+                                    <Badge variant="secondary" className="bg-white border border-blue-200">
+                                        <Building2 className="mr-1 h-3 w-3" />
+                                        Vendor: {filterOptions.vendors.find(v => v.id.toString() === vendor)?.name}
+                                        <button
+                                            onClick={() => handleVendorChange('all')}
+                                            className="ml-1.5 rounded-full hover:bg-gray-200"
+                                        >
+                                            <XCircle className="h-3 w-3" />
+                                        </button>
+                                    </Badge>
+                                )}
+                                {project !== 'all' && (
+                                    <Badge variant="secondary" className="bg-white border border-blue-200">
+                                        <FoldersIcon className="mr-1 h-3 w-3" />
+                                        Project: {filterOptions.projects.find(p => p.id.toString() === project)?.project_title}
+                                        <button
+                                            onClick={() => handleProjectChange('all')}
+                                            className="ml-1.5 rounded-full hover:bg-gray-200"
+                                        >
+                                            <XCircle className="h-3 w-3" />
+                                        </button>
+                                    </Badge>
+                                )}
+                                {purchaseOrder !== 'all' && (
+                                    <Badge variant="secondary" className="bg-white border border-blue-200">
+                                        <FileText className="mr-1 h-3 w-3" />
+                                        PO: {filterOptions.purchaseOrders.find(po => po.id.toString() === purchaseOrder)?.po_number}
+                                        <button
+                                            onClick={() => handlePurchaseOrderChange('all')}
+                                            className="ml-1.5 rounded-full hover:bg-gray-200"
+                                        >
+                                            <XCircle className="h-3 w-3" />
+                                        </button>
+                                    </Badge>
+                                )}
+                                <button
+                                    onClick={() => {
+                                        setSearchValue('');
+                                        handleVendorChange('all');
+                                        handleProjectChange('all');
+                                        handlePurchaseOrderChange('all');
+                                    }}
+                                    className="ml-auto text-xs text-blue-600 hover:text-blue-800 font-medium underline"
+                                >
+                                    Clear All Filters
+                                </button>
+                            </div>
+                        )}
 
                         {/* Filters */}
-                        <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-5">
+                        <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-4">
                             {/* Search Input */}
                             <div className="relative">
                                 <Search className="absolute top-2.5 left-2.5 h-4 w-4 text-muted-foreground" />

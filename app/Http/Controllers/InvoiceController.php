@@ -22,7 +22,7 @@ class InvoiceController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Invoice::with(['vendor','project',
+        $baseQuery = Invoice::with(['vendor','project',
             'purchaseOrder' => function ($q) {
                 $q->with(['project', 'vendor']);
             }
@@ -31,7 +31,7 @@ class InvoiceController extends Controller
             ->leftJoin('purchase_orders', 'purchase_orders.id', '=', 'invoices.purchase_order_id');
 
         if ($request->has('search')) {
-            $query->where(function ($query) use ($request) {
+            $baseQuery->where(function ($query) use ($request) {
                 $query->where('si_number', 'like', '%' . $request->search . '%')
                     ->orWhereHas('purchaseOrder.project', function ($q) use ($request) {
                         $q->where('project_title', 'like', '%' . $request->search . '%')
@@ -47,48 +47,62 @@ class InvoiceController extends Controller
         }
 
         if ($request->has('vendor') && $request->vendor !== 'all') {
-            $query->whereHas('purchaseOrder.vendor', function ($q) use ($request) {
+            $baseQuery->whereHas('purchaseOrder.vendor', function ($q) use ($request) {
                 $q->where('vendor_id', $request->vendor);
             });
         }
 
         if ($request->has('project') && $request->project !== 'all') {
-            $query->whereHas('purchaseOrder.project', function ($q) use ($request) {
+            $baseQuery->whereHas('purchaseOrder.project', function ($q) use ($request) {
                 $q->where('project_id', $request->project);
             });
         }
 
         if ($request->has('purchase_order') && $request->purchase_order !== 'all') {
-            $query->where('purchase_order_id', $request->purchase_order);
+            $baseQuery->where('purchase_order_id', $request->purchase_order);
         }
 
         if ($request->has('status') && $request->status !== 'all') {
-            $query->where('invoice_status', $request->status);
+            $baseQuery->where('invoice_status', $request->status);
         }
+
+        // Calculate status counts BEFORE pagination (counts all matching records)
+        $statusCounts = [
+            'all' => (clone $baseQuery)->count(),
+            'pending' => (clone $baseQuery)->where('invoice_status', 'pending')->count(),
+            'received' => (clone $baseQuery)->where('invoice_status', 'received')->count(),
+            'approved' => (clone $baseQuery)->where('invoice_status', 'approved')->count(),
+            'rejected' => (clone $baseQuery)->where('invoice_status', 'rejected')->count(),
+            'pending_disbursement' => (clone $baseQuery)->where('invoice_status', 'pending_disbursement')->count(),
+        ];
 
         $sortField = $request->get('sort_field', 'created_at');
         $sortDirection = $request->get('sort_direction', 'desc');
-
-//        dd($sortField, $sortDirection);
 
         $sortMapping = [
             'si_number' => 'si_number',
             'created_at' => 'invoices.created_at',
             'invoice_amount' => 'invoice_amount',
+            'due_date' => 'due_date',
         ];
 
         if (array_key_exists($sortField, $sortMapping)) {
-            $query->orderBy($sortMapping[$sortField], $sortDirection);
+            $baseQuery->orderBy($sortMapping[$sortField], $sortDirection);
         } else {
-            $query->orderBy('updated_at', 'desc');
+            $baseQuery->orderBy('invoices.updated_at', 'desc');
         }
 
         $perPage = $request->get('per_page', 10);
         $perPage = in_array($perPage, [10, 15, 25, 50]) ? $perPage : 10;
 
-        $invoices = $query->paginate($request->get($perPage));
+        $invoices = $baseQuery->paginate($perPage);
 
         $invoices->appends($request->query());
+
+        // Calculate financial total for current page
+        $currentPageTotal = $invoices->sum(function ($invoice) {
+            return (float) $invoice->invoice_amount;
+        });
 
         $vendors = Vendor::where('is_active', true)->orderBy('name')->get(['id', 'name']);
         $projects = Project::all(['id', 'project_title']);
@@ -96,13 +110,13 @@ class InvoiceController extends Controller
             ->orderBy('po_number')
             ->get(['id', 'po_number', 'vendor_id']);
 
-//        $invoices->append(['vendor','project']);
-
         return inertia('invoices/index', [
             'invoices' => $invoices,
+            'statusCounts' => $statusCounts,
+            'currentPageTotal' => $currentPageTotal,
             'filters' => [
                 'search' => $request->get('search', ''),
-                'sort_field' => $request->get('sort_field', 'po_date'),
+                'sort_field' => $request->get('sort_field', 'created_at'),
                 'vendor' => $request->vendor !== 'all' ? (int)$request->vendor : 'all',
                 'project' => $request->project !== 'all' ? (int)$request->project : 'all',
                 'purchase_order' => $request->purchase_order !== 'all' ? (int)$request->purchase_order : 'all',

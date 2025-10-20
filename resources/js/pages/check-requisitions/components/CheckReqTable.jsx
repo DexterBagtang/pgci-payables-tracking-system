@@ -32,8 +32,8 @@ import StatusBadge from '@/components/custom/StatusBadge.jsx';
 
 export default function CheckReqTable({ checkRequisitions, filters, filterOptions }) {
     const [search, setSearch] = useState(filters.search || '');
-    const [status, setStatus] = useState(filters.status || '');
-    const [purchaseOrder, setPurchaseOrder] = useState(filters.purchase_order || '');
+    const [status, setStatus] = useState(filters.status || 'all');
+    const [purchaseOrder, setPurchaseOrder] = useState(filters.purchase_order || 'all');
     const [sortBy, setSortBy] = useState(filters.sort_by || 'created_at');
     const [sortOrder, setSortOrder] = useState(filters.sort_order || 'desc');
 
@@ -41,34 +41,35 @@ export default function CheckReqTable({ checkRequisitions, filters, filterOption
 
     // Debounce search
     useEffect(() => {
-        const timeoutId = setTimeout(() => {
-            applyFilters(search, status, purchaseOrder, sortBy, sortOrder);
-        }, 500);
-
-        return () => clearTimeout(timeoutId);
-    }, [search]);
-
-    // Apply filters immediately for status and sort
-    useEffect(() => {
-        if (filters.status !== null || filters.sort_by !== 'created_at' || filters.purchase_order !== null) {
-            applyFilters(search, status, purchaseOrder, sortBy, sortOrder);
-        }
-    }, [status, purchaseOrder, sortBy, sortOrder]);
-
-    const applyFilters = (searchValue, statusValue, purchaseOrderValue, sortByValue, sortOrderValue) => {
         if (isInitialMount.current) {
             isInitialMount.current = false;
             return;
         }
 
+        const timeoutId = setTimeout(() => {
+            applyFilters();
+        }, 500);
+
+        return () => clearTimeout(timeoutId);
+    }, [search]);
+
+    // Apply filters immediately for status, purchase order, and sort
+    useEffect(() => {
+        if (isInitialMount.current) {
+            return;
+        }
+        applyFilters();
+    }, [status, purchaseOrder, sortBy, sortOrder]);
+
+    const applyFilters = () => {
         router.get(
             '/check-requisitions',
             {
-                search: searchValue || undefined,
-                status: statusValue && statusValue !== 'all' ? statusValue : undefined,
-                purchase_order: purchaseOrderValue && purchaseOrderValue !== 'all' ? purchaseOrderValue : undefined,
-                sort_by: sortByValue,
-                sort_order: sortOrderValue,
+                search: search || undefined,
+                status: status && status !== 'all' ? status : undefined,
+                purchase_order: purchaseOrder && purchaseOrder !== 'all' ? purchaseOrder : undefined,
+                sort_by: sortBy,
+                sort_order: sortOrder,
             },
             {
                 preserveState: true,
@@ -90,7 +91,11 @@ export default function CheckReqTable({ checkRequisitions, filters, filterOption
         setPurchaseOrder('all');
         setSortBy('created_at');
         setSortOrder('desc');
-        router.get('/check-requisitions');
+        
+        router.get('/check-requisitions', {}, {
+            preserveState: false,
+            preserveScroll: false,
+        });
     };
 
     const handlePurchaseOrderChange = (value) => {
@@ -180,9 +185,8 @@ export default function CheckReqTable({ checkRequisitions, filters, filterOption
                                         </SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="all">All Status</SelectItem>
-                                            <SelectItem value="pending">Pending</SelectItem>
+                                            <SelectItem value="pending_approval">Pending Approval</SelectItem>
                                             <SelectItem value="approved">Approved</SelectItem>
-                                            <SelectItem value="processed">Processed</SelectItem>
                                             <SelectItem value="rejected">Rejected</SelectItem>
                                         </SelectContent>
                                     </Select>

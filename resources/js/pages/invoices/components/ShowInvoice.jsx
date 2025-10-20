@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label.js';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea.js';
 import { cn } from '@/lib/utils';
-import { Link, useForm, usePage } from '@inertiajs/react';
+import { Link, useForm, usePage, useRemember } from '@inertiajs/react';
 import { format } from 'date-fns';
 import { numberToWords } from 'number-to-words';
 
@@ -66,7 +66,7 @@ const ShowInvoice = ({ invoice }) => {
 
     const { user } = usePage().props.auth;
 
-    const [tab, setTab] = useState('details');
+    const [tab, setTab] = useRemember('details','invoice-detail-tab');
     const [showCreateReqDialog, setShowCreateReqDialog] = useState(false);
 
     // Helper function to get status color

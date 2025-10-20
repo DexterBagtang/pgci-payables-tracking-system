@@ -1,5 +1,5 @@
 import React, { useMemo, useState, lazy, Suspense } from 'react';
-import { Head, Link, router, usePage } from '@inertiajs/react';
+import { Head, Link, router, usePage, useRemember } from '@inertiajs/react';
 import {
     Card,
     CardContent,
@@ -61,7 +61,7 @@ const Remarks = lazy(() => import("@/components/custom/Remarks.jsx"));
 export default function ProjectShow({ project }) {
     const { auth } = usePage().props;
     const { purchase_orders, remarks = [] } = project;
-    const [activeTab, setActiveTab] = useState('overview');
+    const [activeTab, setActiveTab] = useRemember('overview','project-details-tab');
 
     // Memoized financial calculations
     const financialData = useMemo(() => {

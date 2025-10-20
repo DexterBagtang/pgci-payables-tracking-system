@@ -23,7 +23,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select.js";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Input } from "@/components/ui/input.js";
 import { Button } from "@/components/ui/button.js";
@@ -335,26 +335,143 @@ export default function PurchaseOrderTable({ purchaseOrders, filters, filterOpti
                     </CardHeader>
 
                     <CardContent>
-                        {/* Status Tabs - SAP Style */}
-                        <Tabs value={activeTab} onValueChange={handleTabChange} className="mb-4">
-                            <TabsList className="grid w-full grid-cols-5">
-                                <TabsTrigger value="all" className="text-xs">
-                                    All ({summary.total})
-                                </TabsTrigger>
-                                <TabsTrigger value="draft" className="text-xs">
-                                    Draft ({summary.draft})
-                                </TabsTrigger>
-                                <TabsTrigger value="open" className="text-xs">
-                                    Open ({summary.open})
-                                </TabsTrigger>
-                                <TabsTrigger value="closed" className="text-xs">
-                                    Closed ({summary.closed})
-                                </TabsTrigger>
-                                <TabsTrigger value="cancelled" className="text-xs">
-                                    Cancelled ({summary.cancelled})
-                                </TabsTrigger>
-                            </TabsList>
-                        </Tabs>
+                        {/* Modern Status Pills Navigation */}
+                        <div className="mb-6 space-y-3">
+                            <div className="flex flex-wrap gap-2">
+                                {[
+                                    {
+                                        value: 'all',
+                                        label: `All POs`,
+                                        icon: FileText,
+                                        activeClasses: 'border-blue-500 bg-blue-50 shadow-sm',
+                                        iconActiveClasses: 'text-blue-600',
+                                        textActiveClasses: 'text-blue-700',
+                                        indicatorClasses: 'bg-blue-500'
+                                    },
+                                    {
+                                        value: 'draft',
+                                        label: `Draft `,
+                                        icon: FileText,
+                                        activeClasses: 'border-gray-500 bg-gray-50 shadow-sm',
+                                        iconActiveClasses: 'text-gray-600',
+                                        textActiveClasses: 'text-gray-700',
+                                        indicatorClasses: 'bg-gray-500'
+                                    },
+                                    {
+                                        value: 'open',
+                                        label: `Open `,
+                                        icon: Package,
+                                        activeClasses: 'border-sky-500 bg-sky-50 shadow-sm',
+                                        iconActiveClasses: 'text-sky-600',
+                                        textActiveClasses: 'text-sky-700',
+                                        indicatorClasses: 'bg-sky-500'
+                                    },
+                                    {
+                                        value: 'closed',
+                                        label: `Closed `,
+                                        icon: CheckCircle2,
+                                        activeClasses: 'border-green-500 bg-green-50 shadow-sm',
+                                        iconActiveClasses: 'text-green-600',
+                                        textActiveClasses: 'text-green-700',
+                                        indicatorClasses: 'bg-green-500'
+                                    },
+                                    {
+                                        value: 'cancelled',
+                                        label: `Cancelled `,
+                                        icon: XCircle,
+                                        activeClasses: 'border-red-500 bg-red-50 shadow-sm',
+                                        iconActiveClasses: 'text-red-600',
+                                        textActiveClasses: 'text-red-700',
+                                        indicatorClasses: 'bg-red-500'
+                                    },
+                                ].map((statusTab) => {
+                                    const Icon = statusTab.icon;
+                                    const isActive = activeTab === statusTab.value;
+
+                                    return (
+                                        <button
+                                            key={statusTab.value}
+                                            onClick={() => handleTabChange(statusTab.value)}
+                                            className={`
+                                                group relative flex items-center gap-2 rounded-lg border-2 px-4 py-2.5 transition-all duration-200
+                                                ${isActive
+                                                    ? statusTab.activeClasses
+                                                    : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm'
+                                                }
+                                            `}
+                                        >
+                                            <Icon className={`h-4 w-4 transition-colors ${
+                                                isActive ? statusTab.iconActiveClasses : 'text-gray-500 group-hover:text-gray-700'
+                                            }`} />
+                                            <span className={`text-sm font-medium transition-colors ${
+                                                isActive ? statusTab.textActiveClasses : 'text-gray-700 group-hover:text-gray-900'
+                                            }`}>
+                                                {statusTab.label}
+                                            </span>
+                                            {isActive && (
+                                                <div className={`absolute -bottom-2 left-1/2 h-1 w-3/4 -translate-x-1/2 rounded-full ${statusTab.indicatorClasses}`} />
+                                            )}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        {/* Active Filters Indicator */}
+                        {(localFilters.search || localFilters.vendor !== 'all' || localFilters.project !== 'all') && (
+                            <div className="mb-4 flex flex-wrap items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 p-3">
+                                <div className="flex items-center gap-2 text-sm font-medium text-blue-700">
+                                    <AlertCircle className="h-4 w-4" />
+                                    Active Filters:
+                                </div>
+                                {localFilters.search && (
+                                    <Badge variant="secondary" className="bg-white border border-blue-200">
+                                        <Search className="mr-1 h-3 w-3" />
+                                        Search: {localFilters.search}
+                                        <button
+                                            onClick={() => handleFilterChange('search', '')}
+                                            className="ml-1.5 rounded-full hover:bg-gray-200"
+                                        >
+                                            <XCircle className="h-3 w-3" />
+                                        </button>
+                                    </Badge>
+                                )}
+                                {localFilters.vendor !== 'all' && (
+                                    <Badge variant="secondary" className="bg-white border border-blue-200">
+                                        <Building2 className="mr-1 h-3 w-3" />
+                                        Vendor: {filterOptions.vendors.find(v => v.id.toString() === localFilters.vendor)?.name}
+                                        <button
+                                            onClick={() => handleFilterChange('vendor', 'all')}
+                                            className="ml-1.5 rounded-full hover:bg-gray-200"
+                                        >
+                                            <XCircle className="h-3 w-3" />
+                                        </button>
+                                    </Badge>
+                                )}
+                                {localFilters.project !== 'all' && (
+                                    <Badge variant="secondary" className="bg-white border border-blue-200">
+                                        <Briefcase className="mr-1 h-3 w-3" />
+                                        Project: {filterOptions.projects.find(p => p.id.toString() === localFilters.project)?.project_title}
+                                        <button
+                                            onClick={() => handleFilterChange('project', 'all')}
+                                            className="ml-1.5 rounded-full hover:bg-gray-200"
+                                        >
+                                            <XCircle className="h-3 w-3" />
+                                        </button>
+                                    </Badge>
+                                )}
+                                <button
+                                    onClick={() => {
+                                        handleFilterChange('search', '');
+                                        handleFilterChange('vendor', 'all');
+                                        handleFilterChange('project', 'all');
+                                    }}
+                                    className="ml-auto text-xs text-blue-600 hover:text-blue-800 font-medium underline"
+                                >
+                                    Clear All Filters
+                                </button>
+                            </div>
+                        )}
 
                         {/* Filters */}
                         <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-4">

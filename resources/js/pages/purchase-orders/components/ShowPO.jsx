@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
-import { Link, router, useForm, usePage } from '@inertiajs/react';
+import { Link, router, useForm, usePage, useRemember } from '@inertiajs/react';
 import { format } from 'date-fns';
 import {
     ArrowLeft,
@@ -38,7 +38,8 @@ const Remarks = lazy(()=> import('@/components/custom/Remarks.jsx'));
 
 export default function ShowPO({ purchaseOrder, vendors, projects , backUrl}) {
     const [isEditing, setIsEditing] = useState(false);
-    const [tab, setTab] = useState('overview');
+    // const [tab, setTab] = useState('overview');
+    const [tab, setTab] = useRemember('overview','po-detail-tab');
     const [showCreateReqDialog, setShowCreateReqDialog] = useState(false);
     const { user } = usePage().props.auth;
 
@@ -400,14 +401,96 @@ export default function ShowPO({ purchaseOrder, vendors, projects , backUrl}) {
 
                     {/* Tabbed Content */}
                     <Tabs value={tab} onValueChange={setTab} className="space-y-4">
-                        <TabsList className="grid w-full grid-cols-1 md:grid-cols-6">
-                            <TabsTrigger value="overview">Overview</TabsTrigger>
-                            <TabsTrigger value="financial">Financial</TabsTrigger>
-                            <TabsTrigger value="invoices">Invoices ({purchaseOrder.invoices?.length || 0})</TabsTrigger>
-                            <TabsTrigger value="attachments">Attachments ({purchaseOrder.files?.length || 0})</TabsTrigger>
-                            <TabsTrigger value="remarks">Remarks ({remarks?.length || 0})</TabsTrigger>
-                            <TabsTrigger value="timeline">Activity Logs</TabsTrigger>
-                        </TabsList>
+                        {/* Modern Status Pills Navigation */}
+                        <div className="space-y-3">
+                            <div className="flex flex-wrap gap-2">
+                                {[
+                                    { 
+                                        value: 'overview', 
+                                        label: 'Overview', 
+                                        icon: Info,
+                                        activeClasses: 'border-blue-500 bg-blue-50 shadow-sm',
+                                        iconActiveClasses: 'text-blue-600',
+                                        textActiveClasses: 'text-blue-700',
+                                        indicatorClasses: 'bg-blue-500'
+                                    },
+                                    { 
+                                        value: 'financial', 
+                                        label: 'Financial', 
+                                        icon: DollarSign,
+                                        activeClasses: 'border-green-500 bg-green-50 shadow-sm',
+                                        iconActiveClasses: 'text-green-600',
+                                        textActiveClasses: 'text-green-700',
+                                        indicatorClasses: 'bg-green-500'
+                                    },
+                                    { 
+                                        value: 'invoices', 
+                                        label: `Invoices (${purchaseOrder.invoices?.length || 0})`, 
+                                        icon: Receipt,
+                                        activeClasses: 'border-orange-500 bg-orange-50 shadow-sm',
+                                        iconActiveClasses: 'text-orange-600',
+                                        textActiveClasses: 'text-orange-700',
+                                        indicatorClasses: 'bg-orange-500'
+                                    },
+                                    { 
+                                        value: 'attachments', 
+                                        label: `Attachments (${purchaseOrder.files?.length || 0})`, 
+                                        icon: FileText,
+                                        activeClasses: 'border-purple-500 bg-purple-50 shadow-sm',
+                                        iconActiveClasses: 'text-purple-600',
+                                        textActiveClasses: 'text-purple-700',
+                                        indicatorClasses: 'bg-purple-500'
+                                    },
+                                    { 
+                                        value: 'remarks', 
+                                        label: `Remarks (${remarks?.length || 0})`, 
+                                        icon: FileText,
+                                        activeClasses: 'border-indigo-500 bg-indigo-50 shadow-sm',
+                                        iconActiveClasses: 'text-indigo-600',
+                                        textActiveClasses: 'text-indigo-700',
+                                        indicatorClasses: 'bg-indigo-500'
+                                    },
+                                    { 
+                                        value: 'timeline', 
+                                        label: 'Activity Logs', 
+                                        icon: Clock,
+                                        activeClasses: 'border-slate-500 bg-slate-50 shadow-sm',
+                                        iconActiveClasses: 'text-slate-600',
+                                        textActiveClasses: 'text-slate-700',
+                                        indicatorClasses: 'bg-slate-500'
+                                    },
+                                ].map((tabConfig) => {
+                                    const Icon = tabConfig.icon;
+                                    const isActive = tab === tabConfig.value;
+                                    
+                                    return (
+                                        <button
+                                            key={tabConfig.value}
+                                            onClick={() => setTab(tabConfig.value)}
+                                            className={`
+                                                group relative flex items-center gap-2 rounded-lg border-2 px-4 py-2.5 transition-all duration-200
+                                                ${isActive 
+                                                    ? tabConfig.activeClasses 
+                                                    : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm'
+                                                }
+                                            `}
+                                        >
+                                            <Icon className={`h-4 w-4 transition-colors ${
+                                                isActive ? tabConfig.iconActiveClasses : 'text-gray-500 group-hover:text-gray-700'
+                                            }`} />
+                                            <span className={`text-sm font-medium transition-colors ${
+                                                isActive ? tabConfig.textActiveClasses : 'text-gray-700 group-hover:text-gray-900'
+                                            }`}>
+                                                {tabConfig.label}
+                                            </span>
+                                            {isActive && (
+                                                <div className={`absolute -bottom-2 left-1/2 h-1 w-3/4 -translate-x-1/2 rounded-full ${tabConfig.indicatorClasses}`} />
+                                            )}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
 
                         {/* Overview Tab */}
                         <TabsContent value="overview" className="space-y-6">

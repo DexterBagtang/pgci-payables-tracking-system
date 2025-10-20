@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link, router, useRemember } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -68,6 +68,7 @@ export default function ShowCheckRequisition({ checkRequisition, invoices, files
     const [searchInvoice, setSearchInvoice] = useState('');
     const [invoiceFilter, setInvoiceFilter] = useState('all');
     const [showCalculator, setShowCalculator] = useState(false);
+    const [tab, setTab] = useRemember('details','check-details-tab')
 
     const mainPdfFile = files?.find(f => f.file_purpose === 'check_requisition');
 
@@ -350,7 +351,7 @@ return (
                         </CardHeader>
 
                         <CardContent>
-                            <Tabs defaultValue="details" className="w-full">
+                            <Tabs value={tab} onValueChange={setTab} className="w-full">
                                 <TabsList className="grid w-full grid-cols-4 mb-6">
                                     <TabsTrigger value="details">Details</TabsTrigger>
                                     <TabsTrigger value="invoices">Invoices ({invoices?.length || 0})</TabsTrigger>
