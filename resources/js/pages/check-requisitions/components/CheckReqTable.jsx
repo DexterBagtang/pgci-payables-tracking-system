@@ -19,7 +19,28 @@ import {
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Combobox } from '@/components/ui/combobox';
-import { Plus, Search, ArrowUpDown, ArrowUp, ArrowDown, X, ExternalLink, FileText, Calendar, DollarSign, Filter } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+    Plus,
+    Search,
+    ArrowUpDown,
+    ArrowUp,
+    ArrowDown,
+    X,
+    ExternalLink,
+    FileText,
+    Calendar,
+    DollarSign,
+    Filter,
+    CheckCircle2,
+    XCircle,
+    Clock,
+    TrendingUp,
+    Eye,
+    AlertCircle,
+    Download,
+    Briefcase
+} from 'lucide-react';
 import {
     Card,
     CardContent,
@@ -29,312 +50,455 @@ import {
 } from '@/components/ui/card';
 import { getStatusBadge } from '@/components/custom/helpers.jsx';
 import StatusBadge from '@/components/custom/StatusBadge.jsx';
+import PaginationServerSide from '@/components/custom/Pagination.jsx';
 
 export default function CheckReqTable({ checkRequisitions, filters, filterOptions }) {
-    const [search, setSearch] = useState(filters.search || '');
-    const [status, setStatus] = useState(filters.status || 'all');
-    const [purchaseOrder, setPurchaseOrder] = useState(filters.purchase_order || 'all');
+    const { data } = checkRequisitions;
+    const [localFilters, setLocalFilters] = useState({
+        search: filters.search || '',
+        status: filters.status || 'all',
+        purchase_order: filters.purchase_order || 'all',
+    });
     const [sortBy, setSortBy] = useState(filters.sort_by || 'created_at');
     const [sortOrder, setSortOrder] = useState(filters.sort_order || 'desc');
+    const [activeTab, setActiveTab] = useState(filters.status || 'all');
 
     const isInitialMount = useRef(true);
 
-    // Debounce search
-    useEffect(() => {
-        if (isInitialMount.current) {
-            isInitialMount.current = false;
-            return;
+    // Calculate summary statistics
+    const calculateSummary = () => {
+        return {
+            total: data.length,
+            totalAmount: data.reduce((sum, req) => sum + parseFloat(req.php_amount || 0), 0),
+            pending: data.filter((req) => req.requisition_status === 'pending_approval').length,
+            approved: data.filter((req) => req.requisition_status === 'approved').length,
+            rejected: data.filter((req) => req.requisition_status === 'rejected').length,
+        };
+    };
+
+    const summary = calculateSummary();
+
+    const handleFilterChange = (key, value) => {
+        const newFilters = { ...localFilters, [key]: value };
+        setLocalFilters(newFilters);
+
+        // Debounce the search input
+        if (key === 'search') {
+            clearTimeout(window.searchTimeout);
+            window.searchTimeout = setTimeout(() => {
+                updateFilters(newFilters);
+            }, 500);
+        } else {
+            updateFilters(newFilters);
         }
+    };
 
-        const timeoutId = setTimeout(() => {
-            applyFilters();
-        }, 500);
+    const updateFilters = (newFilters) => {
+        const updatedFilters = {
+            ...filters,
+            ...newFilters,
+            sort_by: sortBy,
+            sort_order: sortOrder,
+            page: 1
+        };
 
-        return () => clearTimeout(timeoutId);
-    }, [search]);
-
-    // Apply filters immediately for status, purchase order, and sort
-    useEffect(() => {
-        if (isInitialMount.current) {
-            return;
-        }
-        applyFilters();
-    }, [status, purchaseOrder, sortBy, sortOrder]);
-
-    const applyFilters = () => {
-        router.get(
-            '/check-requisitions',
-            {
-                search: search || undefined,
-                status: status && status !== 'all' ? status : undefined,
-                purchase_order: purchaseOrder && purchaseOrder !== 'all' ? purchaseOrder : undefined,
-                sort_by: sortBy,
-                sort_order: sortOrder,
-            },
-            {
-                preserveState: true,
-                preserveScroll: true,
-                replace: true,
+        // Remove empty filters
+        Object.keys(updatedFilters).forEach(key => {
+            if (!updatedFilters[key] || updatedFilters[key] === 'all') {
+                delete updatedFilters[key];
             }
-        );
-    };
+        });
 
-    const handleSort = (column) => {
-        const newOrder = sortBy === column && sortOrder === 'asc' ? 'desc' : 'asc';
-        setSortBy(column);
-        setSortOrder(newOrder);
-    };
-
-    const handleReset = () => {
-        setSearch('');
-        setStatus('all');
-        setPurchaseOrder('all');
-        setSortBy('created_at');
-        setSortOrder('desc');
-        
-        router.get('/check-requisitions', {}, {
-            preserveState: false,
-            preserveScroll: false,
+        router.get('/check-requisitions', updatedFilters, {
+            preserveState: true,
+            replace: true,
+            only: ['checkRequisitions', 'filters'],
         });
     };
 
-    const handlePurchaseOrderChange = (value) => {
-        const newValue = value === '' ? 'all' : value;
-        setPurchaseOrder(newValue);
+    const handleSort = (column) => {
+        let newOrder = 'desc';
+        if (sortBy === column) {
+            newOrder = sortOrder === 'asc' ? 'desc' : 'asc';
+        }
+
+        setSortBy(column);
+        setSortOrder(newOrder);
+
+        updateFilters({
+            ...localFilters,
+            sort_by: column,
+            sort_order: newOrder,
+        });
     };
 
-    const getSortIcon = (column) => {
-        if (sortBy !== column) {
-            return <ArrowUpDown className="ml-2 h-4 w-4 text-muted-foreground opacity-50" />;
-        }
-        return sortOrder === 'asc' ? (
-            <ArrowUp className="ml-2 h-4 w-4 text-primary" />
-        ) : (
-            <ArrowDown className="ml-2 h-4 w-4 text-primary" />
-        );
+    const handleTabChange = (tab) => {
+        setActiveTab(tab);
+        handleFilterChange('status', tab);
+    };
+
+    const handlePageChange = ({ page }) => {
+        const params = {
+            ...localFilters,
+            sort_by: sortBy,
+            sort_order: sortOrder,
+            page: page,
+        };
+
+        // Remove empty filters
+        Object.keys(params).forEach(key => {
+            if (!params[key] || params[key] === 'all') {
+                delete params[key];
+            }
+        });
+
+        router.get('/check-requisitions', params, {
+            preserveState: true,
+            replace: true,
+            only: ['checkRequisitions', 'filters'],
+        });
+    };
+
+    const getSortIcon = (field) => {
+        if (sortBy !== field) return <ArrowUpDown className="h-4 w-4" />;
+        return sortOrder === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />;
     };
 
     const formatCurrency = (amount) => {
         return new Intl.NumberFormat('en-PH', {
             style: 'currency',
             currency: 'PHP',
+            minimumFractionDigits: 2,
         }).format(amount);
     };
 
-    const formatDate = (date) => {
-        return new Date(date).toLocaleDateString('en-PH', {
+    const formatDate = (dateString) => {
+        if (!dateString) return '-';
+        return new Date(dateString).toLocaleDateString('en-PH', {
             year: 'numeric',
             month: 'short',
             day: 'numeric',
         });
     };
 
-    const hasActiveFilters = search || (status && status !== 'all') || (purchaseOrder && purchaseOrder !== 'all');
-
     return (
-        <div className="py-8">
-            <div className="sm:px-6 lg:px-8">
-                <Card className="border border-gray-200 shadow-sm">
-                    <CardHeader className="border-b bg-white pb-6">
-                        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-                            <div className="space-y-1">
-                                <CardTitle className="text-2xl font-semibold text-gray-900">
-                                    Check Requisitions
-                                </CardTitle>
-                                <CardDescription className="text-sm text-gray-500">
-                                    Manage and track all check requisitions
-                                </CardDescription>
+        <div className="py-6">
+            <div className="mx-auto sm:px-6 lg:px-8">
+                {/* Summary Cards - SAP Dashboard Style */}
+                <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+                    <Card className="border-l-4 border-l-blue-500">
+                        <CardContent className="p-4">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-xs font-medium text-gray-500">Total Requisitions</p>
+                                    <p className="text-2xl font-bold">{summary.total}</p>
+                                </div>
+                                <FileText className="h-8 w-8 text-blue-500" />
                             </div>
-                            <Link href={'check-requisitions/create'}>
-                                <Button size="default" className="bg-blue-600 hover:bg-blue-700">
-                                    <Plus className="mr-2 h-4 w-4" />
-                                    New Requisition
+                        </CardContent>
+                    </Card>
+
+                    <Card className="border-l-4 border-l-green-500">
+                        <CardContent className="p-4">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-xs font-medium text-gray-500">Total Value</p>
+                                    <p className="text-lg font-bold">{formatCurrency(summary.totalAmount)}</p>
+                                </div>
+                                <TrendingUp className="h-8 w-8 text-green-500" />
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="border-l-4 border-l-yellow-500">
+                        <CardContent className="p-4">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-xs font-medium text-gray-500">Pending</p>
+                                    <p className="text-2xl font-bold">{summary.pending}</p>
+                                </div>
+                                <Clock className="h-8 w-8 text-yellow-500" />
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="border-l-4 border-l-green-500">
+                        <CardContent className="p-4">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-xs font-medium text-gray-500">Approved</p>
+                                    <p className="text-2xl font-bold">{summary.approved}</p>
+                                </div>
+                                <CheckCircle2 className="h-8 w-8 text-green-500" />
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+
+                <Card>
+                    <CardHeader>
+                        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                                <CardTitle className="text-xl">Check Requisition Management</CardTitle>
+                                <CardDescription>Payment Request Tracking System</CardDescription>
+                            </div>
+                            <div className="flex items-center space-x-3">
+                                <Button variant="outline" size="sm">
+                                    <Download className="mr-2 h-4 w-4" />
+                                    Export
                                 </Button>
-                            </Link>
+                                <Link href="/check-requisitions/create">
+                                    <Button size="sm">
+                                        <Plus className="mr-2 h-4 w-4" />
+                                        New Requisition
+                                    </Button>
+                                </Link>
+                            </div>
                         </div>
                     </CardHeader>
 
-                    <CardContent className="p-6">
-                        {/* Filters Section */}
-                        <div className="bg-gray-50 rounded-lg p-4 mb-6 border border-gray-200">
-                            <div className="flex flex-col gap-3">
-                                <div className="flex flex-col sm:flex-row gap-3">
-                                    <div className="flex-1">
-                                        <div className="relative">
-                                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                                            <Input
-                                                placeholder="Search by requisition number, payee, PO, CER, or SI..."
-                                                value={search}
-                                                onChange={(e) => setSearch(e.target.value)}
-                                                className="pl-10 h-10 border-gray-300 focus:border-blue-500 focus:ring-blue-500 bg-white"
-                                            />
-                                            {search && (
-                                                <button
-                                                    onClick={() => setSearch('')}
-                                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                                                >
-                                                    <X className="h-4 w-4" />
-                                                </button>
-                                            )}
-                                        </div>
-                                    </div>
+                    <CardContent>
+                        {/* Modern Status Pills Navigation */}
+                        <div className="mb-6 space-y-3">
+                            <div className="flex flex-wrap gap-2">
+                                {[
+                                    {
+                                        value: 'all',
+                                        label: `All Requisitions`,
+                                        icon: FileText,
+                                        activeClasses: 'border-blue-500 bg-blue-50 shadow-sm',
+                                        iconActiveClasses: 'text-blue-600',
+                                        textActiveClasses: 'text-blue-700',
+                                        indicatorClasses: 'bg-blue-500'
+                                    },
+                                    {
+                                        value: 'pending_approval',
+                                        label: `Pending`,
+                                        icon: Clock,
+                                        activeClasses: 'border-yellow-500 bg-yellow-50 shadow-sm',
+                                        iconActiveClasses: 'text-yellow-600',
+                                        textActiveClasses: 'text-yellow-700',
+                                        indicatorClasses: 'bg-yellow-500'
+                                    },
+                                    {
+                                        value: 'approved',
+                                        label: `Approved`,
+                                        icon: CheckCircle2,
+                                        activeClasses: 'border-green-500 bg-green-50 shadow-sm',
+                                        iconActiveClasses: 'text-green-600',
+                                        textActiveClasses: 'text-green-700',
+                                        indicatorClasses: 'bg-green-500'
+                                    },
+                                    {
+                                        value: 'rejected',
+                                        label: `Rejected`,
+                                        icon: XCircle,
+                                        activeClasses: 'border-red-500 bg-red-50 shadow-sm',
+                                        iconActiveClasses: 'text-red-600',
+                                        textActiveClasses: 'text-red-700',
+                                        indicatorClasses: 'bg-red-500'
+                                    },
+                                ].map((statusTab) => {
+                                    const Icon = statusTab.icon;
+                                    const isActive = activeTab === statusTab.value;
 
-                                    <Select value={status || 'all'} onValueChange={setStatus}>
-                                        <SelectTrigger className="w-full sm:w-[200px] h-10 border-gray-300 bg-white">
-                                            <SelectValue placeholder="Filter by status" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="all">All Status</SelectItem>
-                                            <SelectItem value="pending_approval">Pending Approval</SelectItem>
-                                            <SelectItem value="approved">Approved</SelectItem>
-                                            <SelectItem value="rejected">Rejected</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-
-                                    <Combobox
-                                        value={purchaseOrder === 'all' || !purchaseOrder ? '' : purchaseOrder}
-                                        onValueChange={handlePurchaseOrderChange}
-                                        placeholder="All Purchase Orders"
-                                        searchPlaceholder="Search PO..."
-                                        emptyMessage="No purchase orders found."
-                                        className="w-full sm:w-[250px] h-10 border-gray-300 bg-white"
-                                        options={[
-                                            { value: 'all', label: 'All Purchase Orders' },
-                                            ...(filterOptions?.purchaseOrders?.map((po) => ({
-                                                value: po.po_number,
-                                                label: `${po.po_number}${po.vendor?.name ? ' - ' + po.vendor.name : ''}`
-                                            })) || [])
-                                        ]}
-                                    />
-
-                                    <Select
-                                        value={`${sortBy}-${sortOrder}`}
-                                        onValueChange={(value) => {
-                                            const [col, order] = value.split('-');
-                                            setSortBy(col);
-                                            setSortOrder(order);
-                                        }}
-                                    >
-                                        <SelectTrigger className="w-full sm:w-[200px] h-10 border-gray-300 bg-white">
-                                            <SelectValue placeholder="Sort by" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="created_at-desc">Newest First</SelectItem>
-                                            <SelectItem value="created_at-asc">Oldest First</SelectItem>
-                                            <SelectItem value="php_amount-desc">Amount: High to Low</SelectItem>
-                                            <SelectItem value="php_amount-asc">Amount: Low to High</SelectItem>
-                                            <SelectItem value="request_date-desc">Request Date: Newest</SelectItem>
-                                            <SelectItem value="request_date-asc">Request Date: Oldest</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-
-                                    {hasActiveFilters && (
-                                        <Button 
-                                            onClick={handleReset} 
-                                            variant="outline" 
-                                            className="h-10 border-gray-300 hover:bg-gray-100"
+                                    return (
+                                        <button
+                                            key={statusTab.value}
+                                            onClick={() => handleTabChange(statusTab.value)}
+                                            className={`
+                                                group relative flex items-center gap-2 rounded-lg border-2 px-4 py-2.5 transition-all duration-200
+                                                ${isActive
+                                                    ? statusTab.activeClasses
+                                                    : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm'
+                                                }
+                                            `}
                                         >
-                                            <X className="mr-2 h-4 w-4" />
-                                            Clear
-                                        </Button>
-                                    )}
+                                            <Icon className={`h-4 w-4 transition-colors ${
+                                                isActive ? statusTab.iconActiveClasses : 'text-gray-500 group-hover:text-gray-700'
+                                            }`} />
+                                            <span className={`text-sm font-medium transition-colors ${
+                                                isActive ? statusTab.textActiveClasses : 'text-gray-700 group-hover:text-gray-900'
+                                            }`}>
+                                                {statusTab.label}
+                                            </span>
+                                            {isActive && (
+                                                <div className={`absolute -bottom-2 left-1/2 h-1 w-3/4 -translate-x-1/2 rounded-full ${statusTab.indicatorClasses}`} />
+                                            )}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        {/* Active Filters Indicator */}
+                        {(localFilters.search || localFilters.purchase_order !== 'all') && (
+                            <div className="mb-4 flex flex-wrap items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 p-3">
+                                <div className="flex items-center gap-2 text-sm font-medium text-blue-700">
+                                    <AlertCircle className="h-4 w-4" />
+                                    Active Filters:
                                 </div>
+                                {localFilters.search && (
+                                    <Badge variant="secondary" className="bg-white border border-blue-200">
+                                        <Search className="mr-1 h-3 w-3" />
+                                        Search: {localFilters.search}
+                                        <button
+                                            onClick={() => handleFilterChange('search', '')}
+                                            className="ml-1.5 rounded-full hover:bg-gray-200"
+                                        >
+                                            <XCircle className="h-3 w-3" />
+                                        </button>
+                                    </Badge>
+                                )}
+                                {localFilters.purchase_order !== 'all' && (
+                                    <Badge variant="secondary" className="bg-white border border-blue-200">
+                                        <Briefcase className="mr-1 h-3 w-3" />
+                                        PO: {localFilters.purchase_order}
+                                        <button
+                                            onClick={() => handleFilterChange('purchase_order', 'all')}
+                                            className="ml-1.5 rounded-full hover:bg-gray-200"
+                                        >
+                                            <XCircle className="h-3 w-3" />
+                                        </button>
+                                    </Badge>
+                                )}
+                                <button
+                                    onClick={() => {
+                                        handleFilterChange('search', '');
+                                        handleFilterChange('purchase_order', 'all');
+                                    }}
+                                    className="ml-auto text-xs text-blue-600 hover:text-blue-800 font-medium underline"
+                                >
+                                    Clear All Filters
+                                </button>
                             </div>
+                        )}
+
+                        {/* Filters */}
+                        <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+                            {/* Search Input */}
+                            <div className="relative md:col-span-2">
+                                <Search className="absolute top-2.5 left-2.5 h-4 w-4 text-muted-foreground" />
+                                <Input
+                                    type="search"
+                                    placeholder="Search by requisition #, payee, PO, CER, or SI..."
+                                    className="pl-8"
+                                    value={localFilters.search}
+                                    onChange={(e) => handleFilterChange('search', e.target.value)}
+                                />
+                            </div>
+
+                            {/* Purchase Order Combobox */}
+                            <Combobox
+                                value={localFilters.purchase_order === 'all' || !localFilters.purchase_order ? '' : localFilters.purchase_order}
+                                onValueChange={(value) => handleFilterChange('purchase_order', value === '' ? 'all' : value)}
+                                placeholder="All Purchase Orders"
+                                searchPlaceholder="Search PO..."
+                                emptyMessage="No purchase orders found."
+                                options={[
+                                    { value: 'all', label: 'All Purchase Orders' },
+                                    ...(filterOptions?.purchaseOrders?.map((po) => ({
+                                        value: po.po_number,
+                                        label: `${po.po_number}${po.vendor?.name ? ' - ' + po.vendor.name : ''}`
+                                    })) || [])
+                                ]}
+                            />
                         </div>
 
-                        {/* Results Summary */}
-                        <div className="flex items-center justify-between mb-4 text-sm text-gray-600">
-                            <div>
-                                Showing <span className="font-medium text-gray-900">{checkRequisitions.from || 0}</span> to{' '}
-                                <span className="font-medium text-gray-900">{checkRequisitions.to || 0}</span> of{' '}
-                                <span className="font-medium text-gray-900">{checkRequisitions.total}</span> requisitions
-                            </div>
-                        </div>
-
-                        {/* Table Section */}
-                        <div className="rounded-lg border border-gray-200 overflow-hidden bg-white">
+                        {/* Table */}
+                        <div className="rounded-md border">
                             <Table>
                                 <TableHeader>
-                                    <TableRow className="bg-gray-50 hover:bg-gray-50 border-b border-gray-200">
-                                        <TableHead
-                                            className="cursor-pointer font-semibold select-none text-gray-700 hover:text-gray-900"
-                                            onClick={() => handleSort('requisition_number')}
-                                        >
-                                            <div className="flex items-center">
-                                                Requisition #
-                                                {getSortIcon('requisition_number')}
-                                            </div>
+                                    <TableRow className="bg-slate-50">
+                                        <TableHead className="font-semibold">
+                                            <Button variant="ghost" size="sm" onClick={() => handleSort('requisition_number')} className="h-8">
+                                                Requisition # {getSortIcon('requisition_number')}
+                                            </Button>
                                         </TableHead>
-                                        <TableHead className="font-semibold text-gray-700">Payee</TableHead>
-                                        <TableHead
-                                            className="cursor-pointer font-semibold select-none text-gray-700 hover:text-gray-900"
-                                            onClick={() => handleSort('php_amount')}
-                                        >
-                                            <div className="flex items-center">
-                                                Amount
-                                                {getSortIcon('php_amount')}
-                                            </div>
+                                        <TableHead className="font-semibold">Payee Details</TableHead>
+                                        <TableHead className="font-semibold">
+                                            <Button variant="ghost" size="sm" onClick={() => handleSort('php_amount')} className="h-8">
+                                                Amount {getSortIcon('php_amount')}
+                                            </Button>
                                         </TableHead>
-                                        <TableHead
-                                            className="cursor-pointer font-semibold select-none text-gray-700 hover:text-gray-900"
-                                            onClick={() => handleSort('requisition_status')}
-                                        >
-                                            <div className="flex items-center">
-                                                Status
-                                                {getSortIcon('requisition_status')}
-                                            </div>
+                                        <TableHead className="font-semibold">
+                                            <Button variant="ghost" size="sm" onClick={() => handleSort('request_date')} className="h-8">
+                                                Request Date {getSortIcon('request_date')}
+                                            </Button>
                                         </TableHead>
-                                        <TableHead
-                                            className="cursor-pointer font-semibold select-none text-gray-700 hover:text-gray-900"
-                                            onClick={() => handleSort('request_date')}
-                                        >
-                                            <div className="flex items-center">
-                                                Request Date
-                                                {getSortIcon('request_date')}
-                                            </div>
-                                        </TableHead>
-                                        <TableHead className="font-semibold text-gray-700">References</TableHead>
-                                        <TableHead className="text-right font-semibold text-gray-700">Actions</TableHead>
+                                        <TableHead className="font-semibold">Status</TableHead>
+                                        <TableHead className="font-semibold">References</TableHead>
+                                        <TableHead className="text-right font-semibold">Actions</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {checkRequisitions.data.length === 0 ? (
+                                    {data.length === 0 ? (
                                         <TableRow>
-                                            <TableCell colSpan={7} className="text-center py-12">
-                                                <div className="flex flex-col items-center justify-center text-gray-400">
-                                                    <div className="bg-gray-100 rounded-full p-4 mb-3">
-                                                        <Search className="h-10 w-10 text-gray-400" />
-                                                    </div>
-                                                    <p className="text-base font-medium text-gray-600">No check requisitions found</p>
-                                                    <p className="text-sm mt-1 text-gray-500">Try adjusting your filters or search terms</p>
+                                            <TableCell colSpan={7} className="py-12 text-center">
+                                                <div className="flex flex-col items-center justify-center gap-2 text-gray-500">
+                                                    <FileText className="h-12 w-12" />
+                                                    <p className="text-sm font-medium">No check requisitions found</p>
+                                                    <p className="text-xs">Try adjusting your filters or search criteria</p>
                                                 </div>
                                             </TableCell>
                                         </TableRow>
                                     ) : (
-                                        checkRequisitions.data.map((requisition, index) => (
+                                        data.map((requisition) => (
                                             <TableRow
                                                 key={requisition.id}
-                                                className="hover:bg-gray-50 transition-colors border-b border-gray-100"
+                                                onClick={() => router.get(`/check-requisitions/${requisition.id}`)}
+                                                className="cursor-pointer hover:bg-slate-50"
                                             >
-                                                <TableCell className="font-medium text-blue-600">
-                                                    {requisition.requisition_number}
+                                                {/* Requisition Number */}
+                                                <TableCell className="font-medium">
+                                                    <TooltipProvider>
+                                                        <Tooltip>
+                                                            <TooltipTrigger asChild>
+                                                                <div className="flex items-center">
+                                                                    <FileText className="mr-2 h-4 w-4 text-blue-600" />
+                                                                    <span className="font-semibold text-blue-600">{requisition.requisition_number}</span>
+                                                                </div>
+                                                            </TooltipTrigger>
+                                                            <TooltipContent>
+                                                                <p>Check Requisition Number</p>
+                                                            </TooltipContent>
+                                                        </Tooltip>
+                                                    </TooltipProvider>
                                                 </TableCell>
+
+                                                {/* Payee */}
                                                 <TableCell>
-                                                    <div className="max-w-[200px]">
-                                                        <p className="truncate text-gray-900" title={requisition.payee_name}>
+                                                    <div className="flex flex-col space-y-1">
+                                                        <span className="font-medium text-sm line-clamp-1" title={requisition.payee_name}>
                                                             {requisition.payee_name}
-                                                        </p>
+                                                        </span>
                                                     </div>
                                                 </TableCell>
-                                                <TableCell className="font-semibold text-gray-900">
-                                                    {formatCurrency(requisition.php_amount)}
-                                                </TableCell>
+
+                                                {/* Amount */}
                                                 <TableCell>
-                                                    <StatusBadge status={requisition.requisition_status} />
+                                                    <div className="flex flex-col">
+                                                        <span className="text-lg font-bold text-green-700">
+                                                            {formatCurrency(requisition.php_amount)}
+                                                        </span>
+                                                        <span className="text-xs text-gray-500">Payment Amount</span>
+                                                    </div>
                                                 </TableCell>
-                                                <TableCell className="text-gray-600">
-                                                    {formatDate(requisition.request_date)}
+
+                                                {/* Request Date */}
+                                                <TableCell>
+                                                    <div className="flex items-center text-sm">
+                                                        <Calendar className="mr-1 h-4 w-4 text-gray-400" />
+                                                        <span className="font-medium">{formatDate(requisition.request_date)}</span>
+                                                    </div>
                                                 </TableCell>
+
+                                                {/* Status */}
+                                                <TableCell>
+                                                    <StatusBadge status={requisition.requisition_status} className="text-xs font-medium" />
+                                                </TableCell>
+
+                                                {/* References */}
                                                 <TableCell>
                                                     <div className="text-xs space-y-1">
                                                         {requisition.po_number && (
@@ -360,17 +524,26 @@ export default function CheckReqTable({ checkRequisitions, filters, filterOption
                                                         )}
                                                     </div>
                                                 </TableCell>
-                                                <TableCell className="text-right">
-                                                    <Link href={`check-requisitions/${requisition.id}`}>
-                                                        <Button 
-                                                            size="sm" 
-                                                            variant="outline"
-                                                            className="border-gray-300 hover:bg-gray-100"
-                                                        >
-                                                            View
-                                                            <ExternalLink className="ml-1.5 h-3.5 w-3.5" />
-                                                        </Button>
-                                                    </Link>
+
+                                                {/* Actions */}
+                                                <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                                                    <TooltipProvider>
+                                                        <Tooltip>
+                                                            <TooltipTrigger asChild>
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    className="h-8 w-8"
+                                                                    onClick={() => router.get(`/check-requisitions/${requisition.id}`)}
+                                                                >
+                                                                    <Eye className="h-4 w-4" />
+                                                                </Button>
+                                                            </TooltipTrigger>
+                                                            <TooltipContent>
+                                                                <p>View Details</p>
+                                                            </TooltipContent>
+                                                        </Tooltip>
+                                                    </TooltipProvider>
                                                 </TableCell>
                                             </TableRow>
                                         ))
@@ -379,38 +552,8 @@ export default function CheckReqTable({ checkRequisitions, filters, filterOption
                             </Table>
                         </div>
 
-                        {/* Pagination Section */}
-                        {checkRequisitions.links && (
-                            <div className="flex flex-col sm:flex-row items-center justify-between mt-6 gap-4">
-                                <div className="text-sm text-gray-600">
-                                    Page {checkRequisitions.current_page} of {checkRequisitions.last_page}
-                                </div>
-                                <div className="flex gap-1">
-                                    {checkRequisitions.links.map((link, index) => (
-                                        <Button
-                                            key={index}
-                                            variant={link.active ? 'default' : 'outline'}
-                                            size="sm"
-                                            disabled={!link.url}
-                                            onClick={() =>
-                                                link.url &&
-                                                router.visit(link.url, {
-                                                    preserveState: true,
-                                                    preserveScroll: true,
-                                                })
-                                            }
-                                            dangerouslySetInnerHTML={{ __html: link.label }}
-                                            className={`
-                                                ${link.active 
-                                                    ? 'bg-blue-600 hover:bg-blue-700' 
-                                                    : 'border-gray-300 hover:bg-gray-100'
-                                                }
-                                            `}
-                                        />
-                                    ))}
-                                </div>
-                            </div>
-                        )}
+                        {/* Pagination */}
+                        <PaginationServerSide items={checkRequisitions} onChange={handlePageChange} />
                     </CardContent>
                 </Card>
             </div>
