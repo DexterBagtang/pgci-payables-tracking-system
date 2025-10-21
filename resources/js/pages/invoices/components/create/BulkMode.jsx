@@ -19,6 +19,7 @@ export default function BulkMode({
     updateBulkInvoice,
     errors,
     handleBulkInvoiceFileChange,
+    removeBulkInvoiceFile,
     handleBulkDateSelect,
     paymentTermsOptions,
     duplicateBulkInvoice,
@@ -277,9 +278,9 @@ export default function BulkMode({
                 <CardHeader className="pb-3">
                     <CardTitle className="flex items-center text-lg">
                         <Upload className="mr-2 h-4 w-4 text-orange-600" />
-                        Individual Invoice Attachments
+                        Individual Invoice Attachments <span className="ml-1 text-xs text-red-600">*</span>
                     </CardTitle>
-                    <CardDescription className="text-sm">Each invoice can have separate attachments</CardDescription>
+                    <CardDescription className="text-sm">Each invoice must have at least one attachment</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div className="max-h-96 overflow-y-auto">
@@ -293,13 +294,22 @@ export default function BulkMode({
                                             <h4 className="truncate text-sm font-medium text-slate-900">
                                                 {invoice.si_number || `Invoice ${index + 1}`}
                                             </h4>
-                                            <p className="text-xs text-slate-500">
+                                            <p className={cn(
+                                                "text-xs",
+                                                errors[`bulk_${index}_files`] ? "text-red-600 font-medium" : "text-slate-500"
+                                            )}>
                                                 {invoice.files?.length || 0} file{invoice.files?.length === 1 ? '' : 's'}
+                                                {errors[`bulk_${index}_files`] && " - Required!"}
                                             </p>
                                         </div>
                                         <label
                                             htmlFor={`bulk-files-${index}`}
-                                            className="flex cursor-pointer items-center rounded-md bg-blue-100 px-2 py-1 text-xs text-blue-700 transition-colors hover:bg-blue-200"
+                                            className={cn(
+                                                "flex cursor-pointer items-center rounded-md px-2 py-1 text-xs transition-colors",
+                                                errors[`bulk_${index}_files`]
+                                                    ? "bg-red-100 text-red-700 hover:bg-red-200 ring-2 ring-red-500"
+                                                    : "bg-blue-100 text-blue-700 hover:bg-blue-200"
+                                            )}
                                         >
                                             <Upload className="mr-1 h-3 w-3" />
                                             Add
@@ -313,6 +323,13 @@ export default function BulkMode({
                                             className="hidden"
                                         />
                                     </div>
+
+                                    {/* Error message */}
+                                    {errors[`bulk_${index}_files`] && (
+                                        <div className="mb-2 rounded border border-red-200 bg-red-50 p-2">
+                                            <p className="text-xs text-red-600">{errors[`bulk_${index}_files`]}</p>
+                                        </div>
+                                    )}
 
                                     {/* Files list */}
                                     <div className="space-y-1.5">

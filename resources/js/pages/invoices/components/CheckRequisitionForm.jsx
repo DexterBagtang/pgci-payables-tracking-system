@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import {
     Check,
     FileText,
@@ -37,6 +37,16 @@ import {
     Alert,
     AlertDescription,
 } from "@/components/ui/alert";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const CheckRequisitionForm = ({ invoices, filters, filterOptions }) => {
     const [selectedInvoices, setSelectedInvoices] = useState(new Set());
@@ -44,6 +54,7 @@ const CheckRequisitionForm = ({ invoices, filters, filterOptions }) => {
     const [vendorFilter, setVendorFilter] = useState(filters?.vendor || "all");
     const [amountFilter, setAmountFilter] = useState("all");
     const [showValidation, setShowValidation] = useState(false);
+    const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
     const { data, setData, post, processing, errors, reset } = useForm({
         request_date: new Date().toISOString().split("T")[0],
@@ -63,7 +74,13 @@ const CheckRequisitionForm = ({ invoices, filters, filterOptions }) => {
     });
 
     const isInitialMount = useRef(true);
+    
+    // FIX #1: Track previous selection to prevent infinite loop
+    // This ref stores the last selection state to detect actual changes
+    const prevSelectionRef = useRef(new Set());
 
+    // Calculate total amount from selected invoices
+    // Only recalculates when selection or invoice data changes
     const selectedTotal = useMemo(() => {
         return Array.from(selectedInvoices).reduce((sum, invId) => {
             const invoice = invoices?.data?.find((inv) => inv.id === invId);
@@ -71,13 +88,12 @@ const CheckRequisitionForm = ({ invoices, filters, filterOptions }) => {
         }, 0);
     }, [selectedInvoices, invoices]);
 
-    // console.log(selectedTotal);
-
+    // Get full invoice objects for selected IDs
     const selectedInvoicesList = useMemo(() => {
         return invoices?.data?.filter((inv) => selectedInvoices.has(inv.id)) || [];
     }, [selectedInvoices, invoices]);
 
-    // Format SI numbers with range support
+    // Format SI numbers with range support for compact display
     const formatSINumbers = (invoicesList) => {
         if (invoicesList.length === 0) return "";
         if (invoicesList.length <= 5) {
@@ -90,7 +106,7 @@ const CheckRequisitionForm = ({ invoices, filters, filterOptions }) => {
         return `${first} - ${last} (${siNumbers.length} invoices)`;
     };
 
-    // Filter invoices by amount
+    // Filter invoices by amount range
     const filteredInvoices = useMemo(() => {
         let filtered = invoices?.data || [];
 
@@ -115,7 +131,7 @@ const CheckRequisitionForm = ({ invoices, filters, filterOptions }) => {
         return filtered;
     }, [invoices, amountFilter]);
 
-    // Statistics
+    // Calculate statistics for display
     const statistics = useMemo(() => {
         const amounts = filteredInvoices
             .map(inv => Number(inv.invoice_amount) || 0)
@@ -129,7 +145,7 @@ const CheckRequisitionForm = ({ invoices, filters, filterOptions }) => {
         return { total, avg, max, min, count: filteredInvoices.length };
     }, [filteredInvoices]);
 
-    // Validation checks
+    // Check for validation issues with selected invoices
     const validationIssues = useMemo(() => {
         const issues = [];
         const vendorSet = new Set(selectedInvoicesList.map(inv => inv.purchase_order?.vendor?.id));
@@ -150,62 +166,79 @@ const CheckRequisitionForm = ({ invoices, filters, filterOptions }) => {
         return issues;
     }, [selectedInvoicesList, selectedTotal]);
 
-    // debounce search
+    // FIX #2: Prevent memory leak by checking if component is still mounted
+    // Debounce search to avoid excessive API calls
     useEffect(() => {
+        let isMounted = true;
         const timer = setTimeout(() => {
-            if (searchValue || searchValue === "") {
+            // Only trigger search if component is still mounted
+            if (isMounted && (searchValue || searchValue === "")) {
                 handleFilterChange({ search: searchValue, page: 1 });
             }
         }, 400);
-        return () => clearTimeout(timer);
+        
+        return () => {
+            isMounted = false;
+            clearTimeout(timer);
+        };
     }, [searchValue]);
 
-    // populate form when selecting invoices
+    // FIX #3: Use selectedTotal from useMemo instead of recalculating
+    // Populate form fields when invoice selection changes
     useEffect(() => {
-        if (selectedInvoices.size > 0) {
-            const selectedInvs = invoices?.data?.filter((inv) => selectedInvoices.has(inv.id)) || [];
+        if (selectedInvoices.size === 0) return;
 
-            // Recalculate total here instead of relying on selectedTotal
-            const total = selectedInvs.reduce((sum, inv) => {
-                const amount = Number(inv.invoice_amount) || 0;
-                return sum + (typeof amount === 'number' ? amount : 0);
-            }, 0);
+        // Check if selection actually changed to prevent unnecessary updates
+        const selectionChanged = 
+            prevSelectionRef.current.size !== selectedInvoices.size ||
+            ![...selectedInvoices].every(id => prevSelectionRef.current.has(id));
 
-            console.log(total);
+        if (!selectionChanged) return;
 
-            const firstInvoice = selectedInvs[0];
-            const uniqueVendors = new Set(
-                selectedInvs.map((inv) => inv.purchase_order?.vendor?.name).filter(Boolean)
-            );
+        // Update the ref with current selection
+        prevSelectionRef.current = new Set(selectedInvoices);
 
-            const payeeName = uniqueVendors.size === 1
-                ? firstInvoice?.purchase_order?.vendor?.name || ""
-                : "Multiple Vendors";
+        const selectedInvs = invoices?.data?.filter((inv) => 
+            selectedInvoices.has(inv.id)
+        ) || [];
 
-            const siNumbersFormatted = formatSINumbers(selectedInvs);
+        const firstInvoice = selectedInvs[0];
+        const uniqueVendors = new Set(
+            selectedInvs.map((inv) => inv.purchase_order?.vendor?.name).filter(Boolean)
+        );
 
-            setData({
-                ...data,
-                php_amount: total,  // Use local calculation
-                amount_in_words: numberToWords(total) || "",
-                payee_name: payeeName,
-                po_number: firstInvoice?.purchase_order?.po_number || "",
-                cer_number: firstInvoice?.purchase_order?.project?.cer_number || "",
-                si_number: siNumbersFormatted,
-                purpose: `Payment for Invoice(s) ${siNumbersFormatted}`,
-                invoice_ids: Array.from(selectedInvoices),
-            });
-        }
-    }, [selectedInvoices, invoices]);  // Remove selectedTotal from dependency
+        const payeeName = uniqueVendors.size === 1
+            ? firstInvoice?.purchase_order?.vendor?.name || ""
+            : "Multiple Vendors";
 
-    const handleFilterChange = (newFilters) => {
+        const siNumbersFormatted = formatSINumbers(selectedInvs);
 
+        // Use memoized selectedTotal instead of recalculating
+        setData({
+            ...data,
+            php_amount: selectedTotal,
+            amount_in_words: numberToWords(selectedTotal) || "",
+            payee_name: payeeName,
+            po_number: firstInvoice?.purchase_order?.po_number || "",
+            cer_number: firstInvoice?.purchase_order?.project?.cer_number || "",
+            si_number: siNumbersFormatted,
+            purpose: `Payment for Invoice(s) ${siNumbersFormatted}`,
+            invoice_ids: Array.from(selectedInvoices),
+        });
+    }, [selectedInvoices, invoices, selectedTotal]);
+
+    // FIX #4: Wrap in useCallback to prevent recreation on every render
+    // Handle filter changes and update URL params
+    const handleFilterChange = useCallback((newFilters) => {
+        // Skip first render to avoid unnecessary API call
         if (isInitialMount.current) {
             isInitialMount.current = false;
             return;
         }
 
         const updatedFilters = { ...filters, ...newFilters };
+        
+        // Remove empty or "all" filters
         Object.keys(updatedFilters).forEach((key) => {
             if (!updatedFilters[key] || updatedFilters[key] === "all") {
                 delete updatedFilters[key];
@@ -217,42 +250,48 @@ const CheckRequisitionForm = ({ invoices, filters, filterOptions }) => {
             preserveScroll: true,
             only: ["invoices"],
         });
-    };
+    }, [filters]);
 
-    const handleVendorChange = (value) => {
+    // FIX #4: Wrap in useCallback
+    const handleVendorChange = useCallback((value) => {
         setVendorFilter(value);
         handleFilterChange({ vendor: value, page: 1 });
-    };
+    }, [handleFilterChange]);
 
-    const handleInvoiceToggle = (invoiceId) => {
+    // FIX #4: Wrap in useCallback
+    // Toggle invoice selection
+    const handleInvoiceToggle = useCallback((invoiceId) => {
         setSelectedInvoices((prev) => {
             const newSet = new Set(prev);
             newSet.has(invoiceId) ? newSet.delete(invoiceId) : newSet.add(invoiceId);
             return newSet;
         });
-    };
+    }, []);
 
-    // Select/Deselect all invoices
-    const handleSelectAll = () => {
+    // FIX #4: Wrap in useCallback
+    // Select or deselect all filtered invoices
+    const handleSelectAll = useCallback(() => {
         if (selectedInvoices.size === filteredInvoices.length) {
             setSelectedInvoices(new Set());
         } else {
             setSelectedInvoices(new Set(filteredInvoices.map(inv => inv.id)));
         }
-    };
+    }, [selectedInvoices.size, filteredInvoices]);
 
-    // Select by vendor
-    const handleSelectByVendor = (vendorId) => {
+    // FIX #4: Wrap in useCallback
+    // Select all invoices from a specific vendor
+    const handleSelectByVendor = useCallback((vendorId) => {
         const vendorInvoices = filteredInvoices.filter(
             inv => inv.purchase_order?.vendor?.id === vendorId
         );
         const newSet = new Set(selectedInvoices);
         vendorInvoices.forEach(inv => newSet.add(inv.id));
         setSelectedInvoices(newSet);
-    };
+    }, [filteredInvoices, selectedInvoices]);
 
-    // Copy to clipboard
-    const handleCopyDetails = () => {
+    // FIX #4: Wrap in useCallback
+    // Copy requisition details to clipboard
+    const handleCopyDetails = useCallback(() => {
         const details = `
 Check Requisition Details
 Date: ${data.request_date}
@@ -266,10 +305,11 @@ CER Number: ${data.cer_number}
 
         navigator.clipboard.writeText(details);
         toast.success("Details copied to clipboard");
-    };
+    }, [data]);
 
-    // Export selected invoices
-    const handleExportCSV = () => {
+    // FIX #4: Wrap in useCallback
+    // Export selected invoices to CSV
+    const handleExportCSV = useCallback(() => {
         const csvContent = [
             ["SI Number", "Vendor", "Amount", "PO Number", "Date"],
             ...selectedInvoicesList.map(inv => [
@@ -288,9 +328,11 @@ CER Number: ${data.cer_number}
         a.download = `check-requisition-${Date.now()}.csv`;
         a.click();
         toast.success("CSV exported successfully");
-    };
+    }, [selectedInvoicesList]);
 
-    const handleSubmit = () => {
+    // FIX #5: Improve error handling to show all errors
+    // Validate and show confirmation dialog
+    const handleSubmit = useCallback(() => {
         if (selectedInvoices.size === 0) {
             toast.error("Please select at least one invoice");
             return;
@@ -302,6 +344,14 @@ CER Number: ${data.cer_number}
             return;
         }
 
+        // Show confirmation dialog
+        setShowConfirmDialog(true);
+    }, [selectedInvoices, validationIssues]);
+
+    // Submit check requisition form after confirmation
+    const confirmSubmit = useCallback(() => {
+        setShowConfirmDialog(false);
+        
         post("/check-requisitions", {
             preserveScroll: true,
             onSuccess: () => {
@@ -311,10 +361,16 @@ CER Number: ${data.cer_number}
                 reset();
             },
             onError: (errors) => {
-                toast.error(Object.values(errors)[0] || "Submission failed");
+                // Show all errors instead of just the first one
+                const errorMessages = Object.values(errors);
+                if (errorMessages.length > 0) {
+                    errorMessages.forEach(error => toast.error(error));
+                } else {
+                    toast.error("Submission failed");
+                }
             },
         });
-    };
+    }, [post, reset]);
 
     const allSelected = filteredInvoices.length > 0 && selectedInvoices.size === filteredInvoices.length;
 
@@ -674,16 +730,84 @@ CER Number: ${data.cer_number}
                                 <Button
                                     onClick={handleSubmit}
                                     disabled={selectedInvoices.size === 0 || processing}
-                                    className="w-full h-9 text-sm bg-blue-600 hover:bg-blue-700"
+                                    className="w-full h-9 text-sm bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
                                 >
-                                    <Save className="mr-2 h-4 w-4" />
-                                    {processing ? "Submitting..." : "Submit Requisition"}
+                                    {processing ? (
+                                        <>
+                                            <svg
+                                                className="mr-2 h-4 w-4 animate-spin"
+                                                xmlns="http://www.w3.org/2000/svg"
+                                                fill="none"
+                                                viewBox="0 0 24 24"
+                                            >
+                                                <circle
+                                                    className="opacity-25"
+                                                    cx="12"
+                                                    cy="12"
+                                                    r="10"
+                                                    stroke="currentColor"
+                                                    strokeWidth="4"
+                                                ></circle>
+                                                <path
+                                                    className="opacity-75"
+                                                    fill="currentColor"
+                                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                                ></path>
+                                            </svg>
+                                            Submitting...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Save className="mr-2 h-4 w-4" />
+                                            Submit Requisition
+                                        </>
+                                    )}
                                 </Button>
                             </div>
                         </CardContent>
                     </Card>
                 </div>
             </div>
+
+            {/* Confirmation Dialog */}
+            <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Confirm Submission</AlertDialogTitle>
+                        <AlertDialogDescription className="space-y-2">
+                            <p>Are you sure you want to submit this check requisition?</p>
+                            <div className="mt-4 space-y-2 text-sm">
+                                <div className="flex justify-between border-b pb-2">
+                                    <span className="font-medium">Payee:</span>
+                                    <span>{data.payee_name}</span>
+                                </div>
+                                <div className="flex justify-between border-b pb-2">
+                                    <span className="font-medium">Amount:</span>
+                                    <span className="font-semibold text-blue-600">{formatCurrency(data.php_amount)}</span>
+                                </div>
+                                <div className="flex justify-between border-b pb-2">
+                                    <span className="font-medium">Invoices:</span>
+                                    <span>{selectedInvoices.size} selected</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="font-medium">Date:</span>
+                                    <span>{data.request_date}</span>
+                                </div>
+                            </div>
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={processing}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={confirmSubmit}
+                            disabled={processing}
+                            className="bg-blue-600 hover:bg-blue-700"
+                        >
+                            {processing ? "Submitting..." : "Confirm & Submit"}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 };

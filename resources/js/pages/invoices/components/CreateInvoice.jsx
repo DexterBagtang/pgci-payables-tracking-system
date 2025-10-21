@@ -334,6 +334,10 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
                 if (invoice.terms_of_payment === 'others' && !bulkConfig.sharedFields.terms_of_payment && !invoice.other_payment_terms) {
                     newErrors[`bulk_${index}_other_payment_terms`] = `Invoice ${index + 1}: Please specify other payment terms`;
                 }
+                // Validate file upload - REQUIRED
+                if (!invoice.files || invoice.files.length === 0) {
+                    newErrors[`bulk_${index}_files`] = `Invoice ${index + 1}: At least one file is required`;
+                }
             });
         } else {
             // Validate single invoice
@@ -347,6 +351,10 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
             if (!singleData.terms_of_payment) newErrors.terms_of_payment = 'Payment terms are required';
             if (singleData.terms_of_payment === 'others' && !singleData.other_payment_terms) {
                 newErrors.other_payment_terms = 'Please specify other payment terms';
+            }
+            // Validate file upload - REQUIRED
+            if (!singleData.files || singleData.files.length === 0) {
+                newErrors.files = 'At least one file is required';
             }
         }
 
@@ -514,6 +522,7 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
                                         updateBulkInvoice={updateBulkInvoice}
                                         errors={errors}
                                         handleBulkInvoiceFileChange={handleBulkInvoiceFileChange}
+                                        removeBulkInvoiceFile={removeBulkInvoiceFile}
                                         handleBulkDateSelect={handleBulkDateSelect}
                                         paymentTermsOptions={paymentTermsOptions}
                                         duplicateBulkInvoice={duplicateBulkInvoice}
@@ -544,6 +553,7 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
                                         paymentTermsOptions={paymentTermsOptions}
                                         handleFileChange={handleFileChange}
                                         selectedFiles={selectedFiles}
+                                        removeFile={removeFile}
                                     />
                                 </Suspense>
 

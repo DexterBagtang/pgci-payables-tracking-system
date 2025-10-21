@@ -1,6 +1,16 @@
 import { DatePicker } from '@/components/custom/DatePicker.jsx';
 import { numberToWords } from '@/components/custom/helpers.jsx';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -20,6 +30,7 @@ const EditCheckRequisition = ({ checkRequisition, currentInvoices, availableInvo
     const [searchValue, setSearchValue] = useState(filters?.search || '');
     const [vendorFilter, setVendorFilter] = useState(filters?.vendor || 'all');
     const [amountFilter, setAmountFilter] = useState('all');
+    const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
     // Combine current and available invoices
     const allInvoices = useMemo(() => {
@@ -167,11 +178,25 @@ const EditCheckRequisition = ({ checkRequisition, currentInvoices, availableInvo
         }
     };
 
+    // Validate and show confirmation dialog
     const handleSubmit = () => {
         if (selectedInvoices.size === 0) {
             toast.error('Please select at least one invoice');
             return;
         }
+
+        if (!hasChanges) {
+            toast.info('No changes detected');
+            return;
+        }
+
+        // Show confirmation dialog
+        setShowConfirmDialog(true);
+    };
+
+    // Submit after confirmation
+    const confirmSubmit = () => {
+        setShowConfirmDialog(false);
 
         put(`/check-requisitions/${checkRequisition.id}`, {
             preserveScroll: true,
@@ -179,7 +204,12 @@ const EditCheckRequisition = ({ checkRequisition, currentInvoices, availableInvo
                 toast.success('Check requisition updated successfully!');
             },
             onError: (errors) => {
-                toast.error(Object.values(errors)[0] || 'Update failed');
+                const errorMessages = Object.values(errors);
+                if (errorMessages.length > 0) {
+                    errorMessages.forEach(error => toast.error(error));
+                } else {
+                    toast.error('Update failed');
+                }
             },
         });
     };
@@ -473,10 +503,38 @@ const EditCheckRequisition = ({ checkRequisition, currentInvoices, availableInvo
                                     <Button
                                         onClick={handleSubmit}
                                         disabled={selectedInvoices.size === 0 || processing || !hasChanges}
-                                        className="h-9 flex-1 bg-blue-600 text-sm hover:bg-blue-700"
+                                        className="h-9 flex-1 bg-blue-600 text-sm hover:bg-blue-700 disabled:opacity-50"
                                     >
-                                        <Save className="mr-2 h-4 w-4" />
-                                        {processing ? 'Updating...' : 'Update Requisition'}
+                                        {processing ? (
+                                            <>
+                                                <svg
+                                                    className="mr-2 h-4 w-4 animate-spin"
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                    fill="none"
+                                                    viewBox="0 0 24 24"
+                                                >
+                                                    <circle
+                                                        className="opacity-25"
+                                                        cx="12"
+                                                        cy="12"
+                                                        r="10"
+                                                        stroke="currentColor"
+                                                        strokeWidth="4"
+                                                    ></circle>
+                                                    <path
+                                                        className="opacity-75"
+                                                        fill="currentColor"
+                                                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                                    ></path>
+                                                </svg>
+                                                Updating...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Save className="mr-2 h-4 w-4" />
+                                                Update Requisition
+                                            </>
+                                        )}
                                     </Button>
                                     <Link href={`/check-requisitions/${checkRequisition.id}`}>
                                         <Button variant="outline" className="h-9 text-sm" disabled={processing}>
@@ -493,6 +551,50 @@ const EditCheckRequisition = ({ checkRequisition, currentInvoices, availableInvo
                     </Card>
                 </div>
             </div>
+
+            {/* Confirmation Dialog */}
+            <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Confirm Update</AlertDialogTitle>
+                        <AlertDialogDescription className="space-y-2">
+                            <p>Are you sure you want to update this check requisition?</p>
+                            <div className="mt-4 space-y-2 text-sm">
+                                <div className="flex justify-between border-b pb-2">
+                                    <span className="font-medium">Requisition #:</span>
+                                    <span>{checkRequisition.requisition_number}</span>
+                                </div>
+                                <div className="flex justify-between border-b pb-2">
+                                    <span className="font-medium">Payee:</span>
+                                    <span>{data.payee_name}</span>
+                                </div>
+                                <div className="flex justify-between border-b pb-2">
+                                    <span className="font-medium">Amount:</span>
+                                    <span className="font-semibold text-blue-600">{formatCurrency(data.php_amount)}</span>
+                                </div>
+                                <div className="flex justify-between border-b pb-2">
+                                    <span className="font-medium">Invoices:</span>
+                                    <span>{selectedInvoices.size} selected</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="font-medium">Date:</span>
+                                    <span>{data.request_date}</span>
+                                </div>
+                            </div>
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={processing}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={confirmSubmit}
+                            disabled={processing}
+                            className="bg-blue-600 hover:bg-blue-700"
+                        >
+                            {processing ? 'Updating...' : 'Confirm & Update'}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 };

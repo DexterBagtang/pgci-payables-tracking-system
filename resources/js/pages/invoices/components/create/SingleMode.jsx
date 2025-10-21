@@ -25,6 +25,7 @@ export default function SingleMode({
     paymentTermsOptions,
     handleFileChange,
     selectedFiles,
+    removeFile,
 }) {
     console.log(singleData);
     return (
@@ -207,7 +208,7 @@ export default function SingleMode({
                 <CardHeader className="pb-3">
                     <CardTitle className="flex items-center text-lg">
                         <Upload className="mr-2 h-4 w-4 text-orange-600" />
-                        Attachments{' '}
+                        Attachments <RequiredLabel/>
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -215,7 +216,10 @@ export default function SingleMode({
                         <div>
                             <label
                                 htmlFor="files"
-                                className="inline-block cursor-pointer rounded bg-blue-50 px-4 py-2 text-sm text-blue-700 hover:bg-blue-100"
+                                className={cn(
+                                    "inline-block cursor-pointer rounded bg-blue-50 px-4 py-2 text-sm text-blue-700 hover:bg-blue-100",
+                                    errors.files && "ring-2 ring-red-500"
+                                )}
                             >
                                 <div className="flex items-center gap-2">
                                     <Upload className="h-4 w-4" />
@@ -231,6 +235,7 @@ export default function SingleMode({
                                 className="hidden"
                             />
                             <p className="mt-1 text-xs text-slate-500">PDF, DOC, XLS, JPG, PNG (Max: 10MB per file)</p>
+                            {errors.files && <p className="mt-1 text-xs text-red-600">{errors.files}</p>}
                         </div>
 
                         {selectedFiles.length > 0 && (
