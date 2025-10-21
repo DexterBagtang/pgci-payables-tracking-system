@@ -90,14 +90,15 @@ export const usePOForm = (initialData = null, mode = 'create', onSuccess = null)
         setData(fieldName, value);
 
         // Clear error for this field when user starts typing
-        if (clientErrors[fieldName]) {
-            setClientErrors(prev => {
+        setClientErrors(prev => {
+            if (prev[fieldName]) {
                 const updated = { ...prev };
                 delete updated[fieldName];
                 return updated;
-            });
-        }
-    }, [setData, clientErrors]);
+            }
+            return prev;
+        });
+    }, [setData]);
 
     /**
      * Handle file selection and update form state
@@ -108,14 +109,15 @@ export const usePOForm = (initialData = null, mode = 'create', onSuccess = null)
         setData('files', selectedFiles);
 
         // Clear file error when files are selected
-        if (clientErrors.files) {
-            setClientErrors(prev => {
+        setClientErrors(prev => {
+            if (prev.files) {
                 const updated = { ...prev };
                 delete updated.files;
                 return updated;
-            });
-        }
-    }, [setData, clientErrors]);
+            }
+            return prev;
+        });
+    }, [setData]);
 
     /**
      * Handle draft status toggle

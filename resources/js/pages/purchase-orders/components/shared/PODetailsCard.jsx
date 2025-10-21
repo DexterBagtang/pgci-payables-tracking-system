@@ -7,11 +7,9 @@ import { Label } from '@/components/ui/label.js';
 import { Separator } from '@/components/ui/separator.js';
 import { Textarea } from '@/components/ui/textarea.js';
 import { FileText, AlertCircle } from 'lucide-react';
-import { lazy, Suspense } from 'react';
-
-const PoDateSelection = lazy(()=> import('@/pages/purchase-orders/components/create/PoDateSelection.jsx'));
-const ProjectSelection = lazy(() => import('@/pages/purchase-orders/components/create/ProjectSelection.jsx'));
-const VendorSelection = lazy(()=> import('@/pages/purchase-orders/components/create/VendorSelection.jsx'));
+import PoDateSelection from '@/pages/purchase-orders/components/create/PoDateSelection.jsx';
+import ProjectSelection from '@/pages/purchase-orders/components/create/ProjectSelection.jsx';
+import VendorSelection from '@/pages/purchase-orders/components/create/VendorSelection.jsx';
 
 /**
  * PODetailsCard Component
@@ -65,24 +63,20 @@ export default function PODetailsCard({
                 <CardContent className="space-y-6">
                     {/* Project & Vendor Selection */}
                     <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                        <Suspense fallback={<div>Loading...</div>}>
-                            <ProjectSelection 
-                                projects={projects} 
-                                data={data} 
-                                setData={setData} 
-                                errors={errors} 
-                                project_id={projectId}
-                            />
-                        </Suspense>
+                        <ProjectSelection 
+                            projects={projects} 
+                            data={data} 
+                            setData={setData} 
+                            errors={errors} 
+                            project_id={projectId}
+                        />
 
-                        <Suspense fallback={<div>Loading...</div>}>
-                            <VendorSelection 
-                                vendors={vendors} 
-                                data={data} 
-                                setData={setData} 
-                                errors={errors} 
-                            />
-                        </Suspense>
+                        <VendorSelection 
+                            vendors={vendors} 
+                            data={data} 
+                            setData={setData} 
+                            errors={errors} 
+                        />
                     </div>
 
                     {/* Top Section: PO Number, Date, Amount */}

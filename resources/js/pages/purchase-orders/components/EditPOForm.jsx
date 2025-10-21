@@ -1,4 +1,5 @@
 import { Head } from '@inertiajs/react';
+import { useCallback, useMemo } from 'react';
 import { usePOForm } from '@/pages/purchase-orders/components/shared/usePOForm.js';
 import PODetailsCard from '@/pages/purchase-orders/components/shared/PODetailsCard.jsx';
 import POAttachmentsCard from '@/pages/purchase-orders/components/shared/POAttachmentsCard.jsx';
@@ -38,7 +39,7 @@ export default function EditPOForm({
     /**
      * Download file from storage
      */
-    const downloadFile = (file) => {
+    const downloadFile = useCallback((file) => {
         const downloadUrl = `/storage/${file.file_path}`;
         const link = document.createElement('a');
         link.href = downloadUrl;
@@ -46,16 +47,20 @@ export default function EditPOForm({
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-    };
+    }, []);
 
     /**
      * Create submit handler with PO ID
      */
-    const handleSubmit = (e) => {
+    const handleSubmit = useCallback((e) => {
         handleEditSubmit(e, purchaseOrder.id);
-    };
+    }, [handleEditSubmit, purchaseOrder.id]);
 
-    const FormContent = () => (
+    // Memoize existing files to prevent re-renders
+    const existingFiles = useMemo(() => purchaseOrder.files || [], [purchaseOrder.files]);
+
+    // Render form content directly without wrapper component
+    const formContent = (
         <form className="space-y-6">
             <PODetailsCard
                 data={data}
@@ -72,7 +77,7 @@ export default function EditPOForm({
                 files={files}
                 onFileChange={handleFileChange}
                 errors={errors}
-                existingFiles={purchaseOrder.files || []}
+                existingFiles={existingFiles}
                 onDownloadFile={downloadFile}
                 mode="edit"
             />
@@ -89,7 +94,7 @@ export default function EditPOForm({
 
     // If used in dialog, only return form content
     if (isDialog) {
-        return <FormContent />;
+        return formContent;
     }
 
     // If used in full page, return with Head and wrapper
@@ -111,7 +116,7 @@ export default function EditPOForm({
                         </div>
                     </div>
 
-                    <FormContent />
+                    {formContent}
                 </div>
             </div>
         </>

@@ -2,11 +2,9 @@ import PaginationServerSide from '@/components/custom/Pagination.jsx';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select.js';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Link, router } from '@inertiajs/react';
 import { differenceInDays, formatDate as formatDateTime } from 'date-fns';
@@ -34,6 +32,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import StatusBadge, { AgingBadge, OverdueBadge } from '@/components/custom/StatusBadge.jsx';
+import InvoiceSummaryCards from './InvoiceSummaryCards.jsx';
 
 const InvoicesTable = ({ invoices, filters, filterOptions, statusCounts, currentPageTotal }) => {
     console.log(invoices);
@@ -51,42 +50,6 @@ const InvoicesTable = ({ invoices, filters, filterOptions, statusCounts, current
 
     const invoiceStatuses = ['all', 'pending', 'received', 'approved', 'rejected', 'pending_disbursement'];
 
-    // SAP-like status configuration
-    /*const getStatusConfig = (status) => {
-        const configs = {
-            pending: {
-                color: 'bg-amber-50 text-amber-700 border-amber-200',
-                icon: <Clock className="mr-1 h-3 w-3" />,
-                label: 'Pending Review',
-                sapCode: 'A',
-            },
-            received: {
-                color: 'bg-blue-50 text-blue-700 border-blue-200',
-                icon: <Receipt className="mr-1 h-3 w-3" />,
-                label: 'Received',
-                sapCode: 'B',
-            },
-            approved: {
-                color: 'bg-green-50 text-green-700 border-green-200',
-                icon: <CheckCircle2 className="mr-1 h-3 w-3" />,
-                label: 'Approved',
-                sapCode: 'C',
-            },
-            rejected: {
-                color: 'bg-red-50 text-red-700 border-red-200',
-                icon: <XCircle className="mr-1 h-3 w-3" />,
-                label: 'Rejected',
-                sapCode: 'D',
-            },
-            pending_disbursement: {
-                color: 'bg-purple-50 text-purple-700 border-purple-200',
-                icon: <DollarSign className="mr-1 h-3 w-3" />,
-                label: 'Pending Disbursement',
-                sapCode: 'E',
-            },
-        };
-        return configs[status] || configs.pending;
-    };*/
 
     const formatCurrency = (amount) => {
         return new Intl.NumberFormat('en-PH', {
@@ -220,67 +183,7 @@ const InvoicesTable = ({ invoices, filters, filterOptions, statusCounts, current
         <div className="py-6">
             <div className="mx-auto sm:px-6 lg:px-8">
                 {/* Summary Cards - SAP Dashboard Style */}
-                <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5">
-                    <Card className="border-l-4 border-l-blue-500">
-                        <CardContent className="p-4">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-xs font-medium text-gray-500">Total Invoices</p>
-                                    <p className="text-2xl font-bold">{summary.total}</p>
-                                </div>
-                                <FileText className="h-8 w-8 text-blue-500" />
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    <Card className="border-l-4 border-l-green-500">
-                        <CardContent className="p-4">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-xs font-medium text-gray-500">Total Amount</p>
-                                    <p className="text-lg font-bold">{formatCurrency(summary.totalAmount)}</p>
-                                </div>
-                                <TrendingUp className="h-8 w-8 text-green-500" />
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    <Card className="border-l-4 border-l-amber-500">
-                        <CardContent className="p-4">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-xs font-medium text-gray-500">Pending Review</p>
-                                    <p className="text-2xl font-bold">{summary.pending}</p>
-                                </div>
-                                <Clock className="h-8 w-8 text-amber-500" />
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    <Card className="border-l-4 border-l-purple-500">
-                        <CardContent className="p-4">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-xs font-medium text-gray-500">For Disbursement</p>
-                                    <p className="text-2xl font-bold">{summary.pendingDisbursement}</p>
-                                </div>
-                                <DollarSign className="h-8 w-8 text-purple-500" />
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    <Card className="border-l-4 border-l-red-500">
-                        <CardContent className="p-4">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-xs font-medium text-gray-500">Overdue</p>
-                                    <p className="text-2xl font-bold">{summary.overdue}</p>
-                                </div>
-                                <AlertCircle className="h-8 w-8 text-red-500" />
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
+                <InvoiceSummaryCards summary={summary} formatCurrency={formatCurrency} />
 
                 <Card>
                     <CardHeader className="pb-4">
@@ -309,54 +212,54 @@ const InvoicesTable = ({ invoices, filters, filterOptions, statusCounts, current
                         <div className="mb-6 space-y-3">
                             <div className="flex flex-wrap gap-2">
                                 {[
-                                    { 
-                                        value: 'all', 
-                                        label: 'All Invoices', 
+                                    {
+                                        value: 'all',
+                                        label: 'All Invoices',
                                         icon: FileText,
                                         activeClasses: 'border-blue-500 bg-blue-50 shadow-sm',
                                         iconActiveClasses: 'text-blue-600',
                                         textActiveClasses: 'text-blue-700',
                                         indicatorClasses: 'bg-blue-500'
                                     },
-                                    { 
-                                        value: 'pending', 
-                                        label: 'Pending', 
+                                    {
+                                        value: 'pending',
+                                        label: 'Pending',
                                         icon: Clock,
                                         activeClasses: 'border-amber-500 bg-amber-50 shadow-sm',
                                         iconActiveClasses: 'text-amber-600',
                                         textActiveClasses: 'text-amber-700',
                                         indicatorClasses: 'bg-amber-500'
                                     },
-                                    { 
-                                        value: 'received', 
-                                        label: 'Received', 
+                                    {
+                                        value: 'received',
+                                        label: 'Received',
                                         icon: Receipt,
                                         activeClasses: 'border-sky-500 bg-sky-50 shadow-sm',
                                         iconActiveClasses: 'text-sky-600',
                                         textActiveClasses: 'text-sky-700',
                                         indicatorClasses: 'bg-sky-500'
                                     },
-                                    { 
-                                        value: 'approved', 
-                                        label: 'Approved', 
+                                    {
+                                        value: 'approved',
+                                        label: 'Approved',
                                         icon: CheckCircle2,
                                         activeClasses: 'border-green-500 bg-green-50 shadow-sm',
                                         iconActiveClasses: 'text-green-600',
                                         textActiveClasses: 'text-green-700',
                                         indicatorClasses: 'bg-green-500'
                                     },
-                                    { 
-                                        value: 'pending_disbursement', 
-                                        label: 'For Disbursement', 
+                                    {
+                                        value: 'pending_disbursement',
+                                        label: 'For Disbursement',
                                         icon: DollarSign,
                                         activeClasses: 'border-purple-500 bg-purple-50 shadow-sm',
                                         iconActiveClasses: 'text-purple-600',
                                         textActiveClasses: 'text-purple-700',
                                         indicatorClasses: 'bg-purple-500'
                                     },
-                                    { 
-                                        value: 'rejected', 
-                                        label: 'Rejected', 
+                                    {
+                                        value: 'rejected',
+                                        label: 'Rejected',
                                         icon: XCircle,
                                         activeClasses: 'border-red-500 bg-red-50 shadow-sm',
                                         iconActiveClasses: 'text-red-600',
@@ -366,15 +269,15 @@ const InvoicesTable = ({ invoices, filters, filterOptions, statusCounts, current
                                 ].map((status) => {
                                     const Icon = status.icon;
                                     const isActive = activeTab === status.value;
-                                    
+
                                     return (
                                         <button
                                             key={status.value}
                                             onClick={() => handleTabChange(status.value)}
                                             className={`
                                                 group relative flex items-center gap-2 rounded-lg border-2 px-4 py-2.5 transition-all duration-200
-                                                ${isActive 
-                                                    ? status.activeClasses 
+                                                ${isActive
+                                                    ? status.activeClasses
                                                     : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm'
                                                 }
                                             `}

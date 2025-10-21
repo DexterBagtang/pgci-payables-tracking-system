@@ -1,4 +1,4 @@
-import React, { useEffect, useState, Suspense, lazy } from 'react';
+import React, { useEffect, useState, Suspense, lazy, useMemo } from 'react';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import {
     Table,
@@ -803,9 +803,10 @@ export default function PurchaseOrderTable({ purchaseOrders, filters, filterOpti
                     />
                 </Suspense>
 
-                {selectedPO && (
+                {isEditOpen && selectedPO && (
                     <Suspense fallback={<DialogLoadingFallback message="Loading form..." />}>
                         <EditPurchaseOrderDialog
+                            key={selectedPO.id}
                             open={isEditOpen}
                             onOpenChange={setEditOpen}
                             purchaseOrder={selectedPO}

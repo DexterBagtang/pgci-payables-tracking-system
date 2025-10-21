@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import {
     Dialog,
     DialogContent,
@@ -9,6 +9,10 @@ import {
 import EditPOForm from '@/pages/purchase-orders/components/EditPOForm.jsx';
 
 export default function EditPurchaseOrderDialog({ open, onOpenChange, purchaseOrder, vendors, projects }) {
+    const handleSuccess = useCallback(() => {
+        onOpenChange(false);
+    }, [onOpenChange]);
+
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="!max-w-5xl max-h-[90vh] flex flex-col gap-0 p-0">
@@ -54,7 +58,7 @@ export default function EditPurchaseOrderDialog({ open, onOpenChange, purchaseOr
                             purchaseOrder={purchaseOrder}
                             vendors={vendors}
                             projects={projects}
-                            onSuccess={() => onOpenChange(false)}
+                            onSuccess={handleSuccess}
                             isDialog={true}
                         />
                     </div>
