@@ -47,6 +47,7 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import BackButton from '@/components/custom/BackButton.jsx';
 
 const CheckRequisitionForm = ({ invoices, filters, filterOptions }) => {
     const [selectedInvoices, setSelectedInvoices] = useState(new Set());
@@ -74,7 +75,7 @@ const CheckRequisitionForm = ({ invoices, filters, filterOptions }) => {
     });
 
     const isInitialMount = useRef(true);
-    
+
     // FIX #1: Track previous selection to prevent infinite loop
     // This ref stores the last selection state to detect actual changes
     const prevSelectionRef = useRef(new Set());
@@ -176,7 +177,7 @@ const CheckRequisitionForm = ({ invoices, filters, filterOptions }) => {
                 handleFilterChange({ search: searchValue, page: 1 });
             }
         }, 400);
-        
+
         return () => {
             isMounted = false;
             clearTimeout(timer);
@@ -189,7 +190,7 @@ const CheckRequisitionForm = ({ invoices, filters, filterOptions }) => {
         if (selectedInvoices.size === 0) return;
 
         // Check if selection actually changed to prevent unnecessary updates
-        const selectionChanged = 
+        const selectionChanged =
             prevSelectionRef.current.size !== selectedInvoices.size ||
             ![...selectedInvoices].every(id => prevSelectionRef.current.has(id));
 
@@ -198,7 +199,7 @@ const CheckRequisitionForm = ({ invoices, filters, filterOptions }) => {
         // Update the ref with current selection
         prevSelectionRef.current = new Set(selectedInvoices);
 
-        const selectedInvs = invoices?.data?.filter((inv) => 
+        const selectedInvs = invoices?.data?.filter((inv) =>
             selectedInvoices.has(inv.id)
         ) || [];
 
@@ -237,7 +238,7 @@ const CheckRequisitionForm = ({ invoices, filters, filterOptions }) => {
         }
 
         const updatedFilters = { ...filters, ...newFilters };
-        
+
         // Remove empty or "all" filters
         Object.keys(updatedFilters).forEach((key) => {
             if (!updatedFilters[key] || updatedFilters[key] === "all") {
@@ -351,7 +352,7 @@ CER Number: ${data.cer_number}
     // Submit check requisition form after confirmation
     const confirmSubmit = useCallback(() => {
         setShowConfirmDialog(false);
-        
+
         post("/check-requisitions", {
             preserveScroll: true,
             onSuccess: () => {
@@ -386,6 +387,9 @@ CER Number: ${data.cer_number}
                         <p className="text-xs text-slate-500">
                             Select approved invoices and generate a request
                         </p>
+                    </div>
+                    <div>
+                        <BackButton />
                     </div>
                     {selectedInvoices.size > 0 && (
                         <div className="flex items-center gap-2">

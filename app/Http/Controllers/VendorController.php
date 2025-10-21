@@ -167,6 +167,7 @@ class VendorController extends Controller
 
         $financialSummary = [
             'total_po_amount' => $vendor->purchaseOrders->sum('po_amount'),
+            'total_invoice' => $invoices->count(),
             'total_invoiced' => $totalInvoiced,
             'total_paid' => $totalPaid,
             'outstanding_balance' => $outstandingBalance,

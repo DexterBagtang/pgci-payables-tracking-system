@@ -64,6 +64,7 @@ export default function ShowVendor({ vendor }) {
     const {
         total_po_amount = 0,
         total_invoiced = 0,
+        total_invoice = 0,
         total_paid = 0,
         outstanding_balance = 0,
         overdue_amount = 0,
@@ -196,7 +197,7 @@ export default function ShowVendor({ vendor }) {
                                         <div className="flex items-center justify-between text-xs">
                                             <span className="text-gray-500">{invoicedProgress}% of PO</span>
                                             <span className="text-gray-500">
-                                                {pending_invoices + paid_invoices + overdue_invoices} invoices
+                                                {total_invoice} invoices
                                             </span>
                                         </div>
                                         <Progress value={invoicedProgress} className="h-1" />
