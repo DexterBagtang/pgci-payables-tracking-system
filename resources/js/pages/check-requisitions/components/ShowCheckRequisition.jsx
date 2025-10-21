@@ -63,6 +63,7 @@ import {
 import { Input } from '@/components/ui/input';
 import BackButton from '@/components/custom/BackButton.jsx';
 import StatusBadge from '@/components/custom/StatusBadge.jsx';
+import AttachmentViewer from '@/pages/invoices/components/AttachmentViewer.jsx';
 
 export default function ShowCheckRequisition({ checkRequisition, invoices, files, purchaseOrder }) {
     const [searchInvoice, setSearchInvoice] = useState('');
@@ -597,57 +598,24 @@ return (
                                             <h3 className="text-sm font-semibold uppercase text-muted-foreground mb-3">
                                                 Generated Document
                                             </h3>
-                                            <div className="border-2 border-dashed rounded-lg p-6 text-center">
-                                                <FileText className="h-16 w-16 mx-auto text-muted-foreground mb-3" />
-                                                <p className="text-sm font-medium mb-1">{mainPdfFile.file_name}</p>
-                                                <p className="text-xs text-muted-foreground mb-4">
-                                                    PDF • {(mainPdfFile.file_size / 1024).toFixed(2)} KB
-                                                </p>
-                                                <div className="flex gap-2 justify-center">
-                                                    <Button onClick={handlePrintPdf} size="sm">
-                                                        <Eye className="mr-2 h-4 w-4" />
-                                                        View Document
-                                                    </Button>
-                                                    <Button onClick={handleDownloadPdf} variant="outline" size="sm">
-                                                        <Download className="mr-2 h-4 w-4" />
-                                                        Download
-                                                    </Button>
-                                                </div>
-                                            </div>
+                                            <AttachmentViewer files={[mainPdfFile]} />
                                         </div>
                                     )}
 
                                     {/* Supporting Documents */}
-                                    {files && files.filter(f => f.file_purpose !== 'check_requisition').length > 0 && (
+                                    {files && files.filter(f => f.file_purpose !== 'check_requisition').length > 0 ? (
                                         <div>
                                             <h3 className="text-sm font-semibold uppercase text-muted-foreground mb-3">
                                                 Supporting Documents ({files.filter(f => f.file_purpose !== 'check_requisition').length})
                                             </h3>
-                                            <div className="space-y-2">
-                                                {files.filter(f => f.file_purpose !== 'check_requisition').map((file) => (
-                                                    <div key={file.id} className="flex items-center justify-between p-3 border rounded hover:bg-muted/50 transition-colors">
-                                                        <div className="flex items-center gap-3 flex-1 min-w-0">
-                                                            <FileText className="h-5 w-5 text-muted-foreground" />
-                                                            <div className="flex-1 min-w-0">
-                                                                <p className="text-sm font-medium truncate">{file.file_name}</p>
-                                                                <p className="text-xs text-muted-foreground">
-                                                                    {(file.file_size / 1024).toFixed(2)} KB
-                                                                </p>
-                                                            </div>
-                                                        </div>
-                                                        <Button variant="ghost" size="sm">
-                                                            <Download className="h-4 w-4" />
-                                                        </Button>
-                                                    </div>
-                                                ))}
-                                            </div>
+                                            <AttachmentViewer files={files.filter(f => f.file_purpose !== 'check_requisition')} />
                                         </div>
-                                    )}
+                                    ) : null}
 
-                                    {(!files || files.length === 0) && (
+                                    {(!files || files.length === 0 || (files.length === 1 && mainPdfFile)) && (
                                         <div className="text-center py-8 text-muted-foreground">
                                             <FileText className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                                            <p>No documents attached to this check requisition</p>
+                                            <p>No supporting documents attached to this check requisition</p>
                                         </div>
                                     )}
                                 </TabsContent>

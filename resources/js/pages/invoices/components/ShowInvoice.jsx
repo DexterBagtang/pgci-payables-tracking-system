@@ -36,7 +36,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input.js';
 import ActivityTimeline from '@/components/custom/ActivityTimeline.jsx';
-import AttachmentsCard from '@/components/custom/AttachmentsCard.jsx';
+import AttachmentViewer from '@/pages/invoices/components/AttachmentViewer.jsx';
 import Remarks from '@/components/custom/Remarks.jsx';
 import remarks from '@/routes/remarks/index.js';
 import InvoiceReview from '@/pages/invoices/components/InvoiceReview.jsx';
@@ -421,7 +421,17 @@ const ShowInvoice = ({ invoice }) => {
 
                         {/* Files Tab */}
                         <TabsContent value="files">
-                            <AttachmentsCard files={attachments} />
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="flex items-center">
+                                        <FileText className="mr-2 h-5 w-5 text-blue-600" />
+                                        Attached Files ({attachments.length})
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <AttachmentViewer files={attachments} />
+                                </CardContent>
+                            </Card>
                         </TabsContent>
 
                         {/* Check Requisitions Tab */}

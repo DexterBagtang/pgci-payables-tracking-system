@@ -33,7 +33,7 @@ import React, { lazy, Suspense, useState, useMemo } from 'react';
 import BackButton from '@/components/custom/BackButton.jsx';
 import StatusBadge from '@/components/custom/StatusBadge.jsx';
 const ActivityTimeline = lazy(()=> import('@/components/custom/ActivityTimeline.jsx'));
-const AttachmentsCard = lazy(()=> import('@/components/custom/AttachmentsCard.jsx')) ;
+const AttachmentViewer = lazy(()=> import('@/pages/invoices/components/AttachmentViewer.jsx'));
 const Remarks = lazy(()=> import('@/components/custom/Remarks.jsx'));
 
 export default function ShowPO({ purchaseOrder, vendors, projects , backUrl}) {
@@ -870,9 +870,19 @@ export default function ShowPO({ purchaseOrder, vendors, projects , backUrl}) {
 
                         {/* Attachments Tab */}
                         <TabsContent value="attachments" className="space-y-6">
-                            <Suspense fallback={<Loader className="animate-spin" />}>
-                                <AttachmentsCard files={files} />
-                            </Suspense>
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="flex items-center">
+                                        <FileText className="mr-2 h-5 w-5 text-purple-600" />
+                                        Attached Files ({files?.length || 0})
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <Suspense fallback={<div className="flex items-center justify-center py-8"><Loader className="h-6 w-6 animate-spin text-blue-600" /></div>}>
+                                        <AttachmentViewer files={files || []} />
+                                    </Suspense>
+                                </CardContent>
+                            </Card>
                         </TabsContent>
 
                         <TabsContent value="remarks" className="space-y-6">

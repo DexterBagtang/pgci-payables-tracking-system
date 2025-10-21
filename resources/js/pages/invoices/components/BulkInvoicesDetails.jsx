@@ -14,16 +14,14 @@ import {
     ChevronLeft,
     ChevronRight,
     DollarSign,
-    Download,
     Eye,
     FileCheck,
     FileText,
-    FileX2,
-    ShoppingCart,
     TrendingUp,
     Package,
 } from 'lucide-react';
 import StatusBadge from '@/components/custom/StatusBadge.jsx';
+import AttachmentViewer from './AttachmentViewer.jsx';
 
 export default function BulkInvoiceDetails({
     currentInvoice,
@@ -218,45 +216,7 @@ export default function BulkInvoiceDetails({
                                             </Badge>
                                         )}
                                     </h4>
-                                    {currentInvoice.files && currentInvoice.files.length > 0 ? (
-                                        <ScrollArea className="max-h-[300px]">
-                                            <div className="space-y-2">
-                                                {currentInvoice.files.map((file) => (
-                                                    <div
-                                                        key={file.id}
-                                                        className="group flex items-center justify-between rounded-xl border-2 border-slate-200 bg-gradient-to-r from-slate-50 to-white p-3 transition-all hover:border-blue-300 hover:shadow-md"
-                                                    >
-                                                        <div className="flex items-center gap-2.5 overflow-hidden">
-                                                            <div className="rounded-lg bg-gradient-to-br from-blue-100 to-blue-200 p-2">
-                                                                <FileText className="h-4 w-4 text-blue-600" />
-                                                            </div>
-                                                            <div className="min-w-0 flex-1">
-                                                                <div className="truncate text-xs font-bold text-slate-900">{file.file_name}</div>
-                                                                <div className="flex items-center gap-2 text-[10px] text-slate-500">
-                                                                    <span className="font-medium">{(file.file_size / 1024).toFixed(2)} KB</span>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                        <Button
-                                                            size="sm"
-                                                            variant="ghost"
-                                                            className="h-8 w-8 shrink-0 p-0 opacity-0 transition-all group-hover:opacity-100 hover:bg-blue-100"
-                                                        >
-                                                            <Download className="h-4 w-4 text-blue-600" />
-                                                        </Button>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </ScrollArea>
-                                    ) : (
-                                        <div className="rounded-xl border-2 border-dashed border-slate-300 bg-slate-50/50 p-8 text-center">
-                                            <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-slate-100">
-                                                <FileX2 className="h-8 w-8 text-slate-400" />
-                                            </div>
-                                            <p className="text-xs font-semibold text-slate-600 mb-1">No files attached</p>
-                                            <p className="text-[10px] text-slate-400">Files will appear here when uploaded</p>
-                                        </div>
-                                    )}
+                                    <AttachmentViewer files={currentInvoice.files} />
                                 </div>
                             </div>
 
