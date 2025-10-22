@@ -17,7 +17,6 @@ return new class extends Migration
             $table->string('si_number')->nullable();
             $table->date('si_date')->nullable();
             $table->date('si_received_at')->nullable();
-            $table->date('received_date')->nullable();
             $table->enum('payment_type', ['cash', 'check', 'bank_transfer', 'credit_card', 'other'])->nullable();
             $table->decimal('invoice_amount', 15, 2);
             $table->decimal('tax_amount', 15, 2)->default(0);

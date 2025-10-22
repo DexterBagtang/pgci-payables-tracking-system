@@ -336,8 +336,9 @@ class InvoiceController extends Controller
             }
         }
 
-        return redirect()
-            ->route('invoices.show', $invoice)
+//        return redirect()
+//            ->route('invoices.show', $invoice)
+        return back()
             ->with('success', 'Invoice updated successfully!');
     }
 

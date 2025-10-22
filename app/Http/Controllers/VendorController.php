@@ -27,6 +27,18 @@ class VendorController extends Controller
             });
         }
 
+        // Status filter
+        if ($request->filled('status')) {
+            $statuses = explode(',', $request->get('status'));
+            $query->whereIn('is_active', $statuses);
+        }
+
+        // Category filter
+        if ($request->filled('category')) {
+            $categories = explode(',', $request->get('category'));
+            $query->whereIn('category', $categories);
+        }
+
         // Sorting functionality
         $sortField = $request->get('sort_field', 'created_at');
         $sortDirection = $request->get('sort_direction', 'desc');
@@ -48,14 +60,27 @@ class VendorController extends Controller
         // Append query parameters to pagination links
         $vendors->appends($request->query());
 
+        // Calculate stats
+        $stats = [
+            'total' => Vendor::count(),
+            'active' => Vendor::where('is_active', 1)->count(),
+            'inactive' => Vendor::where('is_active', 0)->count(),
+            'sap' => Vendor::where('category', 'SAP')->count(),
+            'manual' => Vendor::where('category', 'Manual')->count(),
+            'recent' => Vendor::where('created_at', '>=', now()->subDays(7))->count(),
+        ];
+
         return inertia('vendors/index', [
             'vendors' => $vendors,
             'filters' => [
                 'search' => $request->get('search', ''),
+                'status' => $request->get('status', ''),
+                'category' => $request->get('category', ''),
                 'sort_field' => $sortField,
                 'sort_direction' => $sortDirection,
                 'per_page' => $perPage,
             ],
+            'stats' => $stats,
         ]);
     }
 
@@ -235,5 +260,52 @@ class VendorController extends Controller
     public function destroy(string $id)
     {
         //
+    }
+
+    /**
+     * Bulk activate vendors
+     */
+    public function bulkActivate(Request $request)
+    {
+        $request->validate([
+            'vendor_ids' => 'required|array',
+            'vendor_ids.*' => 'exists:vendors,id',
+        ]);
+
+        $count = Vendor::whereIn('id', $request->vendor_ids)
+            ->update(['is_active' => 1]);
+
+        return back()->with('success', "{$count} vendor(s) activated successfully.");
+    }
+
+    /**
+     * Bulk deactivate vendors
+     */
+    public function bulkDeactivate(Request $request)
+    {
+        $request->validate([
+            'vendor_ids' => 'required|array',
+            'vendor_ids.*' => 'exists:vendors,id',
+        ]);
+
+        $count = Vendor::whereIn('id', $request->vendor_ids)
+            ->update(['is_active' => 0]);
+
+        return back()->with('success', "{$count} vendor(s) deactivated successfully.");
+    }
+
+    /**
+     * Bulk delete vendors
+     */
+    public function bulkDelete(Request $request)
+    {
+        $request->validate([
+            'vendor_ids' => 'required|array',
+            'vendor_ids.*' => 'exists:vendors,id',
+        ]);
+
+        $count = Vendor::whereIn('id', $request->vendor_ids)->delete();
+
+        return back()->with('success', "{$count} vendor(s) deleted successfully.");
     }
 }

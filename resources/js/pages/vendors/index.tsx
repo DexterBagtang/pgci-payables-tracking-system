@@ -14,9 +14,11 @@ const breadcrumbs: BreadcrumbItem[] = [
 interface VendorsProp {
     vendors: unknown[];
     filters: unknown[];
+    stats: unknown[];
+
 }
 
-export default function VendorsIndex({vendors,filters}: VendorsProp) {
+export default function VendorsIndex({vendors,filters,stats}: VendorsProp) {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Vendors" />
@@ -26,7 +28,7 @@ export default function VendorsIndex({vendors,filters}: VendorsProp) {
                 {/*</div>*/}
                 <div className="py-6">
                     <div className="mx-auto sm:px-6 lg:px-8">
-                        <VendorsTable vendors={vendors} filters={filters} />
+                        <VendorsTable vendors={vendors} filters={filters} stats={stats} />
                     </div>
                 </div>
             </div>

@@ -483,6 +483,85 @@ CER Number: ${data.cer_number}
                     </Card>
                 </div>
 
+                {/* Active Filters */}
+                {(vendorFilter !== 'all' || amountFilter !== 'all' || searchValue) && (
+                    <div className="mb-3 flex items-center gap-2 flex-wrap">
+                        <div className="flex items-center gap-1.5 text-xs text-slate-600">
+                            <Filter className="h-3.5 w-3.5" />
+                            <span className="font-medium">Active Filters:</span>
+                        </div>
+                        
+                        {vendorFilter !== 'all' && (
+                            <Badge 
+                                variant="secondary" 
+                                className="gap-1.5 pl-2 pr-1 py-1 bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100"
+                            >
+                                <FileText className="h-3 w-3" />
+                                <span className="text-xs">
+                                    {filterOptions?.vendors?.find(v => v.id.toString() === vendorFilter)?.name || 'Vendor'}
+                                </span>
+                                <button
+                                    onClick={() => handleVendorChange('all')}
+                                    className="ml-0.5 rounded-sm hover:bg-blue-200 p-0.5"
+                                >
+                                    <X className="h-3 w-3" />
+                                </button>
+                            </Badge>
+                        )}
+                        
+                        {amountFilter !== 'all' && (
+                            <Badge 
+                                variant="secondary" 
+                                className="gap-1.5 pl-2 pr-1 py-1 bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
+                            >
+                                <DollarSign className="h-3 w-3" />
+                                <span className="text-xs">
+                                    {amountFilter === 'under50k' && 'Under ₱50K'}
+                                    {amountFilter === '50k-100k' && '₱50K - ₱100K'}
+                                    {amountFilter === '100k-500k' && '₱100K - ₱500K'}
+                                    {amountFilter === 'over500k' && 'Over ₱500K'}
+                                </span>
+                                <button
+                                    onClick={() => setAmountFilter('all')}
+                                    className="ml-0.5 rounded-sm hover:bg-emerald-200 p-0.5"
+                                >
+                                    <X className="h-3 w-3" />
+                                </button>
+                            </Badge>
+                        )}
+                        
+                        {searchValue && (
+                            <Badge 
+                                variant="secondary" 
+                                className="gap-1.5 pl-2 pr-1 py-1 bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
+                            >
+                                <Search className="h-3 w-3" />
+                                <span className="text-xs max-w-[200px] truncate">
+                                    "{searchValue}"
+                                </span>
+                                <button
+                                    onClick={() => setSearchValue('')}
+                                    className="ml-0.5 rounded-sm hover:bg-slate-200 p-0.5"
+                                >
+                                    <X className="h-3 w-3" />
+                                </button>
+                            </Badge>
+                        )}
+                        
+                        <button
+                            onClick={() => {
+                                setVendorFilter('all');
+                                setAmountFilter('all');
+                                setSearchValue('');
+                                handleFilterChange({ vendor: 'all', page: 1 });
+                            }}
+                            className="text-xs text-slate-500 hover:text-slate-700 underline ml-1"
+                        >
+                            Clear all
+                        </button>
+                    </div>
+                )}
+
                 {/* Filters */}
                 <div className="mb-5 flex flex-wrap items-center gap-2">
                     <Select value={vendorFilter} onValueChange={handleVendorChange}>

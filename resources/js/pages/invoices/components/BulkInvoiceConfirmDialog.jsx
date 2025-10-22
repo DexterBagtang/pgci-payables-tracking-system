@@ -41,7 +41,7 @@ export default function BulkInvoiceConfirmDialog({ open, onOpenChange, bulkActio
                     <div className={`mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-${actionColor}-100 to-${actionColor}-200 shadow-lg`}>
                         {getActionIcon()}
                     </div>
-                    
+
                     <AlertDialogTitle className="text-center text-2xl font-bold text-slate-900">
                         {actionConfig.title}
                     </AlertDialogTitle>
@@ -68,7 +68,7 @@ export default function BulkInvoiceConfirmDialog({ open, onOpenChange, bulkActio
                                 placeholder="Enter the reason for rejecting these invoices...&#10;&#10;• Missing documentation&#10;• Incorrect amounts&#10;• Policy violations&#10;• Other issues"
                                 value={reviewNotes}
                                 onChange={(e) => setReviewNotes(e.target.value)}
-                                rows={4}
+                                rows={5}
                                 className="resize-none border-2 border-red-200 bg-white text-sm shadow-sm focus-visible:ring-red-400 placeholder:text-slate-400 font-mono"
                             />
                         </div>
@@ -93,7 +93,7 @@ export default function BulkInvoiceConfirmDialog({ open, onOpenChange, bulkActio
                                 placeholder="Add approval notes (optional)...&#10;&#10;• Verified all documentation&#10;• Amounts match PO&#10;• Ready for payment"
                                 value={reviewNotes}
                                 onChange={(e) => setReviewNotes(e.target.value)}
-                                rows={4}
+                                rows={5}
                                 className="resize-none border-2 border-emerald-200 bg-white text-sm shadow-sm focus-visible:ring-emerald-400 placeholder:text-slate-400 font-mono"
                             />
                         </div>
@@ -118,7 +118,7 @@ export default function BulkInvoiceConfirmDialog({ open, onOpenChange, bulkActio
                                 placeholder="Add receipt notes (optional)...&#10;&#10;• Files received date&#10;• Condition of documents&#10;• Special observations"
                                 value={reviewNotes}
                                 onChange={(e) => setReviewNotes(e.target.value)}
-                                rows={4}
+                                rows={5}
                                 className="resize-none border-2 border-blue-200 bg-white text-sm shadow-sm focus-visible:ring-blue-400 placeholder:text-slate-400 font-mono"
                             />
                         </div>
@@ -133,8 +133,8 @@ export default function BulkInvoiceConfirmDialog({ open, onOpenChange, bulkActio
                     <AlertDialogAction
                         onClick={onConfirm}
                         className={`font-bold shadow-md transition-all ${
-                            isReject 
-                                ? 'bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800' 
+                            isReject
+                                ? 'bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800'
                                 : isApprove
                                 ? 'bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800'
                                 : 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800'

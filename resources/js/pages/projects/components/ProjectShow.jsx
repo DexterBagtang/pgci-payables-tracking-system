@@ -287,7 +287,7 @@ export default function ProjectShow({ project }) {
                                     onClick={() => router.get(`/purchase-orders/create?project_id=${project.id}`)}
                                 >
                                     <Plus className="h-4 w-4 mr-2" />
-                                    Create PO
+                                    Add Purchase Order
                                 </Button>
                             </div>
                         </div>

@@ -405,54 +405,54 @@ export default function ShowPO({ purchaseOrder, vendors, projects , backUrl}) {
                         <div className="space-y-3">
                             <div className="flex flex-wrap gap-2">
                                 {[
-                                    { 
-                                        value: 'overview', 
-                                        label: 'Overview', 
+                                    {
+                                        value: 'overview',
+                                        label: 'Overview',
                                         icon: Info,
                                         activeClasses: 'border-blue-500 bg-blue-50 shadow-sm',
                                         iconActiveClasses: 'text-blue-600',
                                         textActiveClasses: 'text-blue-700',
                                         indicatorClasses: 'bg-blue-500'
                                     },
-                                    { 
-                                        value: 'financial', 
-                                        label: 'Financial', 
+                                    {
+                                        value: 'financial',
+                                        label: 'Financial',
                                         icon: DollarSign,
                                         activeClasses: 'border-green-500 bg-green-50 shadow-sm',
                                         iconActiveClasses: 'text-green-600',
                                         textActiveClasses: 'text-green-700',
                                         indicatorClasses: 'bg-green-500'
                                     },
-                                    { 
-                                        value: 'invoices', 
-                                        label: `Invoices (${purchaseOrder.invoices?.length || 0})`, 
+                                    {
+                                        value: 'invoices',
+                                        label: `Invoices (${purchaseOrder.invoices?.length || 0})`,
                                         icon: Receipt,
                                         activeClasses: 'border-orange-500 bg-orange-50 shadow-sm',
                                         iconActiveClasses: 'text-orange-600',
                                         textActiveClasses: 'text-orange-700',
                                         indicatorClasses: 'bg-orange-500'
                                     },
-                                    { 
-                                        value: 'attachments', 
-                                        label: `Attachments (${purchaseOrder.files?.length || 0})`, 
+                                    {
+                                        value: 'attachments',
+                                        label: `Attachments (${purchaseOrder.files?.length || 0})`,
                                         icon: FileText,
                                         activeClasses: 'border-purple-500 bg-purple-50 shadow-sm',
                                         iconActiveClasses: 'text-purple-600',
                                         textActiveClasses: 'text-purple-700',
                                         indicatorClasses: 'bg-purple-500'
                                     },
-                                    { 
-                                        value: 'remarks', 
-                                        label: `Remarks (${remarks?.length || 0})`, 
+                                    {
+                                        value: 'remarks',
+                                        label: `Remarks (${remarks?.length || 0})`,
                                         icon: FileText,
                                         activeClasses: 'border-indigo-500 bg-indigo-50 shadow-sm',
                                         iconActiveClasses: 'text-indigo-600',
                                         textActiveClasses: 'text-indigo-700',
                                         indicatorClasses: 'bg-indigo-500'
                                     },
-                                    { 
-                                        value: 'timeline', 
-                                        label: 'Activity Logs', 
+                                    {
+                                        value: 'timeline',
+                                        label: 'Activity Logs',
                                         icon: Clock,
                                         activeClasses: 'border-slate-500 bg-slate-50 shadow-sm',
                                         iconActiveClasses: 'text-slate-600',
@@ -462,15 +462,15 @@ export default function ShowPO({ purchaseOrder, vendors, projects , backUrl}) {
                                 ].map((tabConfig) => {
                                     const Icon = tabConfig.icon;
                                     const isActive = tab === tabConfig.value;
-                                    
+
                                     return (
                                         <button
                                             key={tabConfig.value}
                                             onClick={() => setTab(tabConfig.value)}
                                             className={`
                                                 group relative flex items-center gap-2 rounded-lg border-2 px-4 py-2.5 transition-all duration-200
-                                                ${isActive 
-                                                    ? tabConfig.activeClasses 
+                                                ${isActive
+                                                    ? tabConfig.activeClasses
                                                     : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm'
                                                 }
                                             `}
@@ -858,7 +858,7 @@ export default function ShowPO({ purchaseOrder, vendors, projects , backUrl}) {
                                             <Receipt className="mx-auto mb-4 h-12 w-12 text-slate-300" />
                                             <div className="text-lg font-medium mb-2">No invoices linked</div>
                                             <p className="text-sm text-slate-400 mb-4">Invoices will appear once created and associated with this PO</p>
-                                            <Button variant="outline" size="sm">
+                                            <Button variant="outline" size="sm" onClick={() => router.get('/invoices/create')}>
                                                 <Receipt className="mr-2 h-4 w-4" />
                                                 Create Invoice
                                             </Button>

@@ -12,20 +12,20 @@ export default function AddPurchaseOrderDialog({ open, onOpenChange, vendors, pr
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="!max-w-5xl max-h-[90vh] flex flex-col gap-0 p-0">
-                <DialogHeader className="shrink-0 px-6 pt-6 pb-4 border-b bg-gradient-to-r from-blue-50 to-indigo-50">
+                <DialogHeader className="shrink-0 px-6 pt-6 pb-4">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center">
-                            <svg 
-                                className="w-5 h-5 text-white" 
-                                fill="none" 
-                                stroke="currentColor" 
+                            <svg
+                                className="w-5 h-5 text-white"
+                                fill="none"
+                                stroke="currentColor"
                                 viewBox="0 0 24 24"
                             >
-                                <path 
-                                    strokeLinecap="round" 
-                                    strokeLinejoin="round" 
-                                    strokeWidth={2} 
-                                    d="M12 4v16m8-8H4" 
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M12 4v16m8-8H4"
                                 />
                             </svg>
                         </div>

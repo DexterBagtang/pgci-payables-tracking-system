@@ -30,7 +30,8 @@ import {
     Calendar,
     DollarSign,
     FileText,
-    Building
+    Building,
+    X
 } from "lucide-react";
 import PaginationServerSide from '@/components/custom/Pagination.jsx';
 import DialogLoadingFallback from '@/components/custom/DialogLoadingFallback.jsx';
@@ -145,6 +146,99 @@ export default function ProjectsTable({ projects, filters = {} }) {
                     </div>
                 </CardHeader>
                 <CardContent>
+                    {/* Active Filters */}
+                    {hasActiveFilters && (
+                        <div className="mb-3 flex items-center gap-2 flex-wrap">
+                            <div className="flex items-center gap-1.5 text-xs text-slate-600">
+                                <Search className="h-3.5 w-3.5" />
+                                <span className="font-medium">Active Filters:</span>
+                            </div>
+                            
+                            {searchTerm && (
+                                <Badge 
+                                    variant="secondary" 
+                                    className="gap-1.5 pl-2 pr-1 py-1 bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100"
+                                >
+                                    <Search className="h-3 w-3" />
+                                    <span className="text-xs max-w-[200px] truncate">
+                                        "{searchTerm}"
+                                    </span>
+                                    <button
+                                        onClick={() => setSearchTerm('')}
+                                        className="ml-0.5 rounded-sm hover:bg-blue-200 p-0.5"
+                                    >
+                                        <X className="h-3 w-3" />
+                                    </button>
+                                </Badge>
+                            )}
+                            
+                            {projectType && (
+                                <Badge 
+                                    variant="secondary" 
+                                    className="gap-1.5 pl-2 pr-1 py-1 bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100"
+                                >
+                                    <FolderOpen className="h-3 w-3" />
+                                    <span className="text-xs capitalize">
+                                        {projectType === 'sm_project' ? 'SM Project' : projectType === 'philcom_project' ? 'PhilCom Project' : projectType}
+                                    </span>
+                                    <button
+                                        onClick={() => handleTypeChange('')}
+                                        className="ml-0.5 rounded-sm hover:bg-purple-200 p-0.5"
+                                    >
+                                        <X className="h-3 w-3" />
+                                    </button>
+                                </Badge>
+                            )}
+                            
+                            {projectStatus && (
+                                <Badge 
+                                    variant="secondary" 
+                                    className="gap-1.5 pl-2 pr-1 py-1 bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
+                                >
+                                    <FileText className="h-3 w-3" />
+                                    <span className="text-xs capitalize">
+                                        {projectStatus.replace('_', ' ')}
+                                    </span>
+                                    <button
+                                        onClick={() => handleStatusChange('')}
+                                        className="ml-0.5 rounded-sm hover:bg-emerald-200 p-0.5"
+                                    >
+                                        <X className="h-3 w-3" />
+                                    </button>
+                                </Badge>
+                            )}
+                            
+                            {sortField && (
+                                <Badge 
+                                    variant="secondary" 
+                                    className="gap-1.5 pl-2 pr-1 py-1 bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100"
+                                >
+                                    {sortDirection === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
+                                    <span className="text-xs capitalize">
+                                        {sortField.replace('_', ' ')} ({sortDirection})
+                                    </span>
+                                    <button
+                                        onClick={() => {
+                                            setSortField('');
+                                            setSortDirection('asc');
+                                            handleFilterChange({ sort_field: '', sort_direction: '', page: 1 });
+                                        }}
+                                        className="ml-0.5 rounded-sm hover:bg-amber-200 p-0.5"
+                                    >
+                                        <X className="h-3 w-3" />
+                                    </button>
+                                </Badge>
+                            )}
+                            
+                            <button
+                                onClick={clearFilters}
+                                className="text-xs text-slate-500 hover:text-slate-700 underline ml-1"
+                            >
+                                Clear all
+                            </button>
+                        </div>
+                    )}
+
                     {/* Search and Filters */}
                     <div className="flex flex-col gap-4 mb-6">
                         <div className="flex flex-col sm:flex-row gap-4">

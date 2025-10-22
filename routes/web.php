@@ -20,6 +20,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', [DashboardController::class,'index'])->name('dashboard');
 
     Route::resource('vendors', VendorController::class);
+    Route::post('vendors/bulk-activate', [VendorController::class, 'bulkActivate'])->name('vendors.bulk-activate');
+    Route::post('vendors/bulk-deactivate', [VendorController::class, 'bulkDeactivate'])->name('vendors.bulk-deactivate');
+    Route::post('vendors/bulk-delete', [VendorController::class, 'bulkDelete'])->name('vendors.bulk-delete');
     Route::resource('projects', ProjectController::class);
     Route::resource('purchase-orders', PurchaseOrderController::class)->except(['update']);
     Route::post('purchase-orders/{purchase_order}', [PurchaseOrderController::class, 'update'])

@@ -210,8 +210,8 @@ export default function AttachmentViewer({ files = [] }) {
             <Dialog open={!!selectedFile} onOpenChange={closeViewer}>
                 <DialogContent className="!max-w-6xl !h-[90vh] flex flex-col p-0 gap-0">
                     {/* Header */}
-                    <DialogHeader className="shrink-0 border-b bg-gradient-to-r from-slate-50 to-slate-100 p-4 space-y-0">
-                        <div className="flex items-center justify-between">
+                    <DialogHeader className="p-2">
+                        <div className="flex items-center justify-center">
                             <div className="flex items-center gap-3 flex-1 min-w-0">
                                 <div className={`rounded-lg bg-gradient-to-br p-2 ${selectedFile ? getFileTypeColor(selectedFile.file_name) : ''}`}>
                                     {selectedFile && getFileIcon(selectedFile.file_name)}
@@ -227,7 +227,7 @@ export default function AttachmentViewer({ files = [] }) {
                             </div>
 
                             {/* Navigation and Controls */}
-                            <div className="flex items-center gap-2 shrink-0 ml-4">
+                            <div className="flex items-center gap-2 shrink-0 mx-12">
                                 {files.length > 1 && (
                                     <div className="flex items-center gap-1 border-r pr-2 mr-2">
                                         <Button

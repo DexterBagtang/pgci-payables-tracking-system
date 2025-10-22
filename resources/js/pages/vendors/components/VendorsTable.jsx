@@ -1,5 +1,5 @@
 import { useState, useEffect, lazy, Suspense } from 'react';
-import { router, usePage } from '@inertiajs/react';
+import { router } from '@inertiajs/react';
 
 import {
     Table,
@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
     Search,
     ArrowUpDown,
@@ -20,24 +21,25 @@ import {
     ArrowDown,
     Users,
     Plus,
-    MoreVertical,
-    Edit,
-    Mail,
-    MapPin,
-    Phone, Calendar
+    X
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import DialogLoadingFallback from '@/components/custom/DialogLoadingFallback.jsx';
 import PaginationServerSide from '@/components/custom/Pagination.jsx';
+import VendorStats from './VendorStats';
+import BulkActionsBar from './BulkActionsBar';
+import VendorFilters from './VendorFilters';
+import VendorRow from './VendorRow';
 
 // Lazy load dialog components
 const AddVendorDialog = lazy(() => import('@/pages/vendors/components/AddVendorDialog.jsx'));
 const EditVendorDialog = lazy(() => import('@/pages/vendors/components/EditVendorDialog.jsx'));
 
-export default function VendorsTable({ vendors, filters = {} }) {
+export default function VendorsTable({ vendors, filters = {}, stats = {} }) {
+    console.log(stats);
     const [searchTerm, setSearchTerm] = useState(filters.search || '');
     const [sortField, setSortField] = useState(filters.sort_field || '');
     const [sortDirection, setSortDirection] = useState(filters.sort_direction || 'asc');
+    const [selectedVendors, setSelectedVendors] = useState([]);
 
     // State for managing the single edit dialog
     const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -53,6 +55,11 @@ export default function VendorsTable({ vendors, filters = {} }) {
 
         return () => clearTimeout(timer);
     }, [searchTerm]);
+
+    // Clear selection when data changes
+    useEffect(() => {
+        setSelectedVendors([]);
+    }, [vendors.data]);
 
     const handleFilterChange = (newFilters) => {
         const updatedFilters = {
@@ -90,6 +97,68 @@ export default function VendorsTable({ vendors, filters = {} }) {
         return sortDirection === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />;
     };
 
+    // Selection handlers
+    const handleSelectAll = (checked) => {
+        if (checked) {
+            setSelectedVendors(vendors.data.map(v => v.id));
+        } else {
+            setSelectedVendors([]);
+        }
+    };
+
+    const handleSelectVendor = (vendorId) => {
+        setSelectedVendors(prev =>
+            prev.includes(vendorId)
+                ? prev.filter(id => id !== vendorId)
+                : [...prev, vendorId]
+        );
+    };
+
+    // Bulk actions
+    const handleBulkActivate = () => {
+        if (selectedVendors.length === 0) return;
+
+        router.post('/vendors/bulk-activate', {
+            vendor_ids: selectedVendors
+        }, {
+            preserveState: true,
+            preserveScroll: true,
+            onSuccess: () => {
+                setSelectedVendors([]);
+            }
+        });
+    };
+
+    const handleBulkDeactivate = () => {
+        if (selectedVendors.length === 0) return;
+
+        router.post('/vendors/bulk-deactivate', {
+            vendor_ids: selectedVendors
+        }, {
+            preserveState: true,
+            preserveScroll: true,
+            onSuccess: () => {
+                setSelectedVendors([]);
+            }
+        });
+    };
+
+    const handleBulkDelete = () => {
+        if (selectedVendors.length === 0) return;
+
+        if (confirm(`Are you sure you want to delete ${selectedVendors.length} vendor(s)? This action cannot be undone.`)) {
+            router.post('/vendors/bulk-delete', {
+                vendor_ids: selectedVendors
+            }, {
+                preserveState: true,
+                preserveScroll: true,
+                onSuccess: () => {
+                    setSelectedVendors([]);
+                }
+            });
+        }
+    };
+
     // Handle edit vendor click
     const handleEditVendor = (vendor) => {
         setSelectedVendor(vendor);
@@ -108,8 +177,14 @@ export default function VendorsTable({ vendors, filters = {} }) {
         handleEditDialogClose();
     };
 
+    const isAllSelected = vendors.data?.length > 0 && selectedVendors.length === vendors.data.length;
+    const isSomeSelected = selectedVendors.length > 0 && selectedVendors.length < vendors.data?.length;
+
     return (
         <>
+            {/* Stats Cards */}
+            <VendorStats stats={stats} />
+
             <Card>
                 <CardHeader>
                     <div className="flex items-center justify-between">
@@ -127,15 +202,124 @@ export default function VendorsTable({ vendors, filters = {} }) {
                                     </Button>
                                 }
                                 onSuccess={() => {
-                                    // Optional: Add any additional logic after successful vendor creation
                                     console.log('Vendor added successfully!');
                                 }}
                             />
                         </Suspense>
-
                     </div>
                 </CardHeader>
                 <CardContent>
+                    {/* Bulk Actions Bar */}
+                    <BulkActionsBar
+                        selectedCount={selectedVendors.length}
+                        onActivate={handleBulkActivate}
+                        onDeactivate={handleBulkDeactivate}
+                        onDelete={handleBulkDelete}
+                    />
+
+                    {/* Active Filters Display */}
+                    {(searchTerm || sortField || filters.status || filters.category) && (
+                        <div className="mb-3 flex items-center gap-2 flex-wrap">
+                            <div className="flex items-center gap-1.5 text-xs text-slate-600">
+                                <Search className="h-3.5 w-3.5" />
+                                <span className="font-medium">Active Filters:</span>
+                            </div>
+
+                            {searchTerm && (
+                                <Badge
+                                    variant="secondary"
+                                    className="gap-1.5 pl-2 pr-1 py-1 bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100"
+                                >
+                                    <Search className="h-3 w-3" />
+                                    <span className="text-xs max-w-[200px] truncate">
+                                        "{searchTerm}"
+                                    </span>
+                                    <button
+                                        onClick={() => setSearchTerm('')}
+                                        className="ml-0.5 rounded-sm hover:bg-blue-200 p-0.5"
+                                    >
+                                        <X className="h-3 w-3" />
+                                    </button>
+                                </Badge>
+                            )}
+
+                            {filters.status && (
+                                <Badge
+                                    variant="secondary"
+                                    className="gap-1.5 pl-2 pr-1 py-1 bg-green-50 text-green-700 border-green-200 hover:bg-green-100"
+                                >
+                                    <span className="text-xs">
+                                        Status: {filters.status.split(',').map(s => s === '1' ? 'Active' : 'Inactive').join(', ')}
+                                    </span>
+                                    <button
+                                        onClick={() => handleFilterChange({ status: '', page: 1 })}
+                                        className="ml-0.5 rounded-sm hover:bg-green-200 p-0.5"
+                                    >
+                                        <X className="h-3 w-3" />
+                                    </button>
+                                </Badge>
+                            )}
+
+                            {filters.category && (
+                                <Badge
+                                    variant="secondary"
+                                    className="gap-1.5 pl-2 pr-1 py-1 bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100"
+                                >
+                                    <span className="text-xs capitalize">
+                                        Category: {filters.category.split(',').join(', ')}
+                                    </span>
+                                    <button
+                                        onClick={() => handleFilterChange({ category: '', page: 1 })}
+                                        className="ml-0.5 rounded-sm hover:bg-purple-200 p-0.5"
+                                    >
+                                        <X className="h-3 w-3" />
+                                    </button>
+                                </Badge>
+                            )}
+
+                            {sortField && (
+                                <Badge
+                                    variant="secondary"
+                                    className="gap-1.5 pl-2 pr-1 py-1 bg-orange-50 text-orange-700 border-orange-200 hover:bg-orange-100"
+                                >
+                                    {sortDirection === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
+                                    <span className="text-xs capitalize">
+                                        {sortField.replace('_', ' ')} ({sortDirection})
+                                    </span>
+                                    <button
+                                        onClick={() => {
+                                            setSortField('');
+                                            setSortDirection('asc');
+                                            handleFilterChange({ sort_field: '', sort_direction: '', page: 1 });
+                                        }}
+                                        className="ml-0.5 rounded-sm hover:bg-orange-200 p-0.5"
+                                    >
+                                        <X className="h-3 w-3" />
+                                    </button>
+                                </Badge>
+                            )}
+
+                            <button
+                                onClick={() => {
+                                    setSearchTerm('');
+                                    setSortField('');
+                                    setSortDirection('asc');
+                                    handleFilterChange({
+                                        search: '',
+                                        sort_field: '',
+                                        sort_direction: '',
+                                        status: '',
+                                        category: '',
+                                        page: 1
+                                    });
+                                }}
+                                className="text-xs text-slate-500 hover:text-slate-700 underline ml-1"
+                            >
+                                Clear all
+                            </button>
+                        </div>
+                    )}
+
                     {/* Search and Filters */}
                     <div className="flex flex-col sm:flex-row gap-4 mb-6">
                         <div className="relative flex-1">
@@ -147,19 +331,11 @@ export default function VendorsTable({ vendors, filters = {} }) {
                                 className="pl-10"
                             />
                         </div>
-                        {(searchTerm || sortField) && (
-                            <Button
-                                variant="outline"
-                                onClick={() => {
-                                    setSearchTerm('');
-                                    setSortField('');
-                                    setSortDirection('asc');
-                                    handleFilterChange({ search: '', sort_field: '', sort_direction: '', page: 1 });
-                                }}
-                            >
-                                Clear Filters
-                            </Button>
-                        )}
+
+                        <VendorFilters
+                            filters={filters}
+                            onFilterChange={handleFilterChange}
+                        />
                     </div>
 
                     {/* Table */}
@@ -167,6 +343,14 @@ export default function VendorsTable({ vendors, filters = {} }) {
                         <Table>
                             <TableHeader>
                                 <TableRow>
+                                    <TableHead className="w-12">
+                                        <Checkbox
+                                            checked={isAllSelected}
+                                            onCheckedChange={handleSelectAll}
+                                            aria-label="Select all vendors"
+                                            className={isSomeSelected ? "data-[state=checked]:bg-blue-500" : ""}
+                                        />
+                                    </TableHead>
                                     <TableHead>
                                         <Button
                                             variant="ghost"
@@ -176,14 +360,9 @@ export default function VendorsTable({ vendors, filters = {} }) {
                                             Name {getSortIcon('name')}
                                         </Button>
                                     </TableHead>
-                                    <TableHead>
-                                        Contact Person
-                                    </TableHead>
-                                    <TableHead>
-                                        Contact
-                                    </TableHead>
+                                    <TableHead>Contact Person</TableHead>
+                                    <TableHead>Contact</TableHead>
                                     <TableHead className="w-[200px]">Address</TableHead>
-
                                     <TableHead>
                                         <Button
                                             variant="ghost"
@@ -193,9 +372,7 @@ export default function VendorsTable({ vendors, filters = {} }) {
                                             Category {getSortIcon('category')}
                                         </Button>
                                     </TableHead>
-                                    <TableHead>
-                                        Status
-                                    </TableHead>
+                                    <TableHead>Status</TableHead>
                                     <TableHead>
                                         <Button
                                             variant="ghost"
@@ -212,14 +389,16 @@ export default function VendorsTable({ vendors, filters = {} }) {
                                 {vendors.data?.length > 0 ? (
                                     vendors.data.map((vendor) => (
                                         <VendorRow
-                                            vendor={vendor}
                                             key={vendor.id}
+                                            vendor={vendor}
+                                            isSelected={selectedVendors.includes(vendor.id)}
+                                            onSelect={handleSelectVendor}
                                             onEdit={handleEditVendor}
                                         />
                                     ))
                                 ) : (
                                     <TableRow>
-                                        <TableCell colSpan={8} className="text-center py-8">
+                                        <TableCell colSpan={9} className="text-center py-8">
                                             <div className="flex flex-col items-center gap-2">
                                                 <Users className="h-8 w-8 text-muted-foreground" />
                                                 <p className="text-muted-foreground">
@@ -232,6 +411,7 @@ export default function VendorsTable({ vendors, filters = {} }) {
                             </TableBody>
                         </Table>
                     </div>
+
                     {/* Pagination */}
                     <PaginationServerSide items={vendors} onChange={handleFilterChange} />
                 </CardContent>
@@ -250,132 +430,5 @@ export default function VendorsTable({ vendors, filters = {} }) {
                 </Suspense>
             )}
         </>
-    );
-}
-
-function VendorRow({ vendor, onEdit }) {
-    const formatDate = (dateString) => {
-        return new Date(dateString).toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric'
-        });
-    };
-
-    const getCategoryColor = (category) => {
-        const colors = {
-            'sap': 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900 dark:text-blue-300 dark:border-blue-700',
-            'manual': 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900 dark:text-green-300 dark:border-green-700',
-        };
-        return colors[category?.toLowerCase()] || 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-900 dark:text-gray-300 dark:border-gray-700';
-    };
-
-    const getStatusVariant = (isActive) => {
-        return isActive ? 'default' : 'outline';
-    };
-
-    const getStatusColor = (isActive) => {
-        return isActive ? 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900 dark:text-green-300 dark:border-green-700' : 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-900 dark:text-gray-300 dark:border-gray-700';
-    };
-
-    return (
-        <TableRow className="group transition-all hover:bg-muted/30 border-b border-gray-100 dark:border-gray-800">
-            <TableCell className="py-4 pl-4 pr-3">
-                <div className="flex items-center">
-                    <div className="h-10 w-10 flex-shrink-0 rounded-full bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900 dark:to-blue-800 flex items-center justify-center mr-3">
-                        <span className="font-medium text-blue-700 dark:text-blue-300">
-                            {vendor.name.charAt(0).toUpperCase()}
-                        </span>
-                    </div>
-                    <div>
-                        <div
-                            className="font-semibold text-gray-900 dark:text-gray-100 hover:underline hover:cursor-pointer"
-                            onClick={()=>router.get(`/vendors/${vendor.id}`)}
-                        >
-                            {vendor.name}
-                        </div>
-                    </div>
-                </div>
-            </TableCell>
-            <TableCell>{vendor.contact_person}</TableCell>
-            <TableCell className="px-3 py-4 text-xs">
-                {vendor.email ? (
-                    <a
-                        href={`mailto:${vendor.email}`}
-                        className="text-blue-600 transition-colors hover:text-blue-800 hover:underline flex items-center"
-                    >
-                        <Mail className="h-3.5 w-3.5 mr-1.5" />
-                        {vendor.email}
-                    </a>
-                ) : (
-                    <span className="text-muted-foreground flex items-center">
-                        <Mail className="h-3.5 w-3.5 mr-1.5 opacity-50" />
-                        ---
-                    </span>
-                )}
-                {vendor.phone ? (
-                    <a
-                        className="text-blue-600 transition-colors hover:text-blue-800 hover:underline flex items-center"
-                    >
-                        <Phone className="h-3.5 w-3.5 mr-1.5" />
-                        {vendor.phone}
-                    </a>
-                ) : (
-                    <span className="text-muted-foreground flex items-center">
-                        <Phone className="h-3.5 w-3.5 mr-1.5 opacity-50" />
-                        ---
-                    </span>
-                )}
-            </TableCell>
-            <TableCell className="px-3 py-4 max-w-[200px]">
-                {vendor.address ? (
-                    <div className="flex items-start">
-                        <MapPin className="h-3.5 w-3.5 mr-1.5 mt-0.5 flex-shrink-0" />
-                        <span className="truncate" title={vendor.address}>
-                            {vendor.address}
-                        </span>
-                    </div>
-                ) : (
-                    <span className="text-muted-foreground">---</span>
-                )}
-            </TableCell>
-
-            <TableCell className="px-3 py-4">
-                <Badge
-                    variant="secondary"
-                    className={`rounded-md border ${getCategoryColor(vendor.category)} px-2.5 py-1 text-xs font-medium`}
-                >
-                    {vendor.category || 'Uncategorized'}
-                </Badge>
-            </TableCell>
-            <TableCell className="px-3 py-4">
-                <div className="flex items-center">
-                    <Badge
-                        variant={getStatusVariant(vendor.is_active)}
-                        className={`rounded-full border ${getStatusColor(vendor.is_active)} py-1 px-2.5 text-xs font-medium flex items-center`}
-                    >
-                        <div className={`h-2 w-2 rounded-full mr-1.5 ${vendor.is_active ? 'bg-green-500' : 'bg-gray-400'}`}></div>
-                        {vendor.is_active ? 'Active' : 'Inactive'}
-                    </Badge>
-                </div>
-            </TableCell>
-            <TableCell className="px-3 py-4 text-sm text-muted-foreground">
-                <div className="flex items-center">
-                    <Calendar className="h-3.5 w-3.5 mr-1.5 opacity-70" />
-                    {formatDate(vendor.created_at)}
-                </div>
-            </TableCell>
-            <TableCell className="px-3 py-4">
-                <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onEdit(vendor)}
-                    className="rounded-full h-8 w-8 p-0"
-                    aria-label={`Edit ${vendor.name}`}
-                >
-                    <Edit className="h-4 w-4" />
-                </Button>
-            </TableCell>
-        </TableRow>
     );
 }
