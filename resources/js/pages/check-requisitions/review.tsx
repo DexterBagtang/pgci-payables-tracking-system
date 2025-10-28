@@ -18,7 +18,6 @@ interface PageProps {
 }
 
 export default function ReviewInvoicesPage({ checkRequisition, invoices, files, activityLogs }: PageProps) {
-    console.log(checkRequisition, invoices, files, activityLogs);
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Check Requisition Details" />

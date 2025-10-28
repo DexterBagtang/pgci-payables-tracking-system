@@ -129,8 +129,6 @@ export default function VendorInvoices({ vendor }) {
             .reduce((sum, inv) => sum + (inv.net_amount || 0), 0)
     };
 
-    console.log(vendor);
-
     return (
         <div className="space-y-6">
             {/* Summary Cards */}

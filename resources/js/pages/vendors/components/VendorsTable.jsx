@@ -35,7 +35,6 @@ const AddVendorDialog = lazy(() => import('@/pages/vendors/components/AddVendorD
 const EditVendorDialog = lazy(() => import('@/pages/vendors/components/EditVendorDialog.jsx'));
 
 export default function VendorsTable({ vendors, filters = {}, stats = {} }) {
-    console.log(stats);
     const [searchTerm, setSearchTerm] = useState(filters.search || '');
     const [sortField, setSortField] = useState(filters.sort_field || '');
     const [sortDirection, setSortDirection] = useState(filters.sort_direction || 'asc');
@@ -173,7 +172,6 @@ export default function VendorsTable({ vendors, filters = {}, stats = {} }) {
 
     // Handle successful edit
     const handleEditSuccess = () => {
-        console.log('Vendor edited successfully!');
         handleEditDialogClose();
     };
 
@@ -201,9 +199,6 @@ export default function VendorsTable({ vendors, filters = {}, stats = {} }) {
                                         Add Vendor
                                     </Button>
                                 }
-                                onSuccess={() => {
-                                    console.log('Vendor added successfully!');
-                                }}
                             />
                         </Suspense>
                     </div>

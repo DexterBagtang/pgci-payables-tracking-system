@@ -19,7 +19,6 @@ interface PageProps {
 }
 
 export default function EditInvoicesPage({ checkRequisition, currentInvoices, availableInvoices, filters,filterOptions }: PageProps) {
-    console.log(checkRequisition, currentInvoices, availableInvoices, filters,filterOptions);
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Check Requisition Details" />

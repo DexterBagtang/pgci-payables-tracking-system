@@ -17,7 +17,6 @@ interface EditPageProps{
 
 
 export default function EditPoPage({invoice,purchaseOrders}: EditPageProps) {
-    console.log(purchaseOrders);
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Edit Invoice" />

@@ -1,7 +1,6 @@
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/react';
-import PurchaseOrderTable from '@/pages/purchase-orders/components/PurchaseOrderTable';
 import InvoicesTable from '@/pages/invoices/components/InvoicesTable';
 
 const breadcrumbs: BreadcrumbItem[] = [

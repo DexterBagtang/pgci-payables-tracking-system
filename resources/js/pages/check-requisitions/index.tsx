@@ -1,11 +1,6 @@
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/react';
-import InvoicesTable from '@/pages/invoices/components/InvoicesTable';
-import BulkInvoiceReview from '@/pages/invoices/components/BulkInvoiceReview';
-import CheckRequisitionForm from '@/pages/invoices/components/CheckRequisitionForm';
-import InvoiceReview from '@/pages/invoices/components/InvoiceReview';
-import InvoicePreview from '@/pages/invoices/components/InvoicePreview';
 import CheckReqTable from '@/pages/check-requisitions/components/CheckReqTable';
 
 const breadcrumbs: BreadcrumbItem[] = [

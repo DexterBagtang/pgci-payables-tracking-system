@@ -6,15 +6,12 @@ import { dashboard } from '@/routes';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
 import {
-    BookOpen,
     Building,
     Files, FileSignature,
-    Folder,
     FolderKanban,
     LayoutGrid,
     Receipt,
-    ScanSearch,
-    Warehouse
+    ScanSearch
 } from 'lucide-react';
 import AppLogo from './app-logo';
 

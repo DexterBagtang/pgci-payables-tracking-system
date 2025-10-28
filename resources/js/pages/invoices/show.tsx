@@ -1,7 +1,6 @@
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/react';
-import EditInvoice from "@/pages/invoices/components/EditInvoice";
 import ShowInvoice from "@/pages/invoices/components/ShowInvoice";
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -13,11 +12,10 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 interface ShowPageProps{
     invoice:unknown[];
-    purchaseOrders:unknown[];
 }
 
 
-export default function ShowPoPage({invoice,purchaseOrders}: ShowPageProps) {
+export default function ShowPoPage({invoice}: ShowPageProps) {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Show Invoice" />

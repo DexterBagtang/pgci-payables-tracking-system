@@ -358,8 +358,6 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
             }
         }
 
-        console.log(newErrors);
-
         setErrors(newErrors);
 
         if (Object.keys(newErrors).length === 0) {
@@ -445,7 +443,6 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
 
                 },
                 onError: (errors) => {
-                    console.log(errors);
                     setErrors(errors);
                     setProcessing(false);
                 }

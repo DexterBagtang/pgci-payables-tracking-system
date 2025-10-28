@@ -148,8 +148,7 @@ export const usePOForm = (initialData = null, mode = 'create', onSuccess = null)
                 setClientErrors({});
                 onSuccess?.();
             },
-            onError: (serverErrors) => {
-                console.error('Create errors:', serverErrors);
+            onError: () => {
                 // Server errors take precedence over client errors
                 setClientErrors({});
                 toast.error('Failed to create Purchase Order.');
@@ -179,8 +178,7 @@ export const usePOForm = (initialData = null, mode = 'create', onSuccess = null)
                 setClientErrors({});
                 onSuccess?.();
             },
-            onError: (serverErrors) => {
-                console.error('Update errors:', serverErrors);
+            onError: () => {
                 // Server errors take precedence over client errors
                 setClientErrors({});
                 toast.error('Failed to update Purchase Order.');

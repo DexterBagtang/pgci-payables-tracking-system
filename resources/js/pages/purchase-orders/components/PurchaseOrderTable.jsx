@@ -60,7 +60,6 @@ const AddPurchaseOrderDialog = lazy(() => import('@/pages/purchase-orders/compon
 const EditPurchaseOrderDialog = lazy(() => import('@/pages/purchase-orders/components/EditPurchaseOrderDialog.jsx'));
 
 export default function PurchaseOrderTable({ purchaseOrders, filters, filterOptions }) {
-    console.log(filters,filterOptions);
     const { data } = purchaseOrders;
     const [localFilters, setLocalFilters] = useState({
         search: filters.search || '',

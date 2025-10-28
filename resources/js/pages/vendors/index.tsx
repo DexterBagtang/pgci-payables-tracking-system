@@ -23,9 +23,6 @@ export default function VendorsIndex({vendors,filters,stats}: VendorsProp) {
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Vendors" />
             <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
-                {/*<div className="min-h-[100vh] flex-1 overflow-hidden rounded-xl border border-sidebar-border/70 md:min-h-min dark:border-sidebar-border">*/}
-                {/*    <VendorsTable vendors={vendors} filters={filters} />*/}
-                {/*</div>*/}
                 <div className="py-6">
                     <div className="mx-auto sm:px-6 lg:px-8">
                         <VendorsTable vendors={vendors} filters={filters} stats={stats} />

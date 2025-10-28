@@ -27,7 +27,6 @@ export default function SingleMode({
     selectedFiles,
     removeFile,
 }) {
-    console.log(singleData);
     return (
         <>
             <Card className="shadow-sm">

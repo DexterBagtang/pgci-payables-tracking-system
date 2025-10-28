@@ -35,7 +35,6 @@ import StatusBadge, { AgingBadge, OverdueBadge } from '@/components/custom/Statu
 import InvoiceSummaryCards from './InvoiceSummaryCards.jsx';
 
 const InvoicesTable = ({ invoices, filters, filterOptions, statusCounts, currentPageTotal }) => {
-    console.log(invoices);
     const [searchValue, setSearchValue] = useState('');
     const [sortField, setSortField] = useState(filters.sort_field);
     const [sortDirection, setSortDirection] = useState(filters.sort_direction);

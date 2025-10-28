@@ -50,11 +50,9 @@ const VendorProjects = lazy(() => import('@/pages/vendors/components/VendorProje
 const EditVendorDialog = lazy(() => import("@/pages/vendors/components/EditVendorDialog.jsx"));
 const VendorPO = lazy(() => import('@/pages/vendors/components/VendorPO.jsx'));
 const VendorInvoices = lazy(() => import('@/pages/vendors/components/VendorInvoices.jsx'));
-// const VendorPayments = lazy(() => import('@/pages/vendors/components/VendorPayments.jsx'));
 const Remarks = lazy(() => import("@/components/custom/Remarks.jsx"));
 
 export default function ShowVendor({ vendor }) {
-    console.log(vendor);
     const [activeTab, setActiveTab] = useState('overview');
     const [editDialogOpen, setEditDialogOpen] = useState(false);
 

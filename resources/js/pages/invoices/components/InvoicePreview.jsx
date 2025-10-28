@@ -20,7 +20,7 @@ export default function InvoicePreview() {
                 pdf.save("invoice.pdf");
             })
             .catch((err) => {
-                console.error("PDF generation failed:", err);
+                // PDF generation failed
             });
     };
 
