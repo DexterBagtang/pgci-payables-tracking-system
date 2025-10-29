@@ -1,126 +1,410 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card.js';
-import { Clock } from 'lucide-react';
+import { Badge } from '@/components/ui/badge.js';
+import {
+    Clock,
+    Plus,
+    Edit3,
+    CheckCircle2,
+    XCircle,
+    FileUp,
+    FileX,
+    MessageSquare,
+    ArrowUpCircle,
+    ArrowDownCircle,
+    Users,
+    Package,
+    FileText,
+    CreditCard,
+    Trash2,
+    RotateCcw,
+    Send,
+    Mail,
+    Eye,
+    AlertCircle,
+    Activity
+} from 'lucide-react';
 
-export default function ActivityTimeline({ activity_logs, title = "Recent Activity", entityType = "item" }) {
-    // Simplified action mapping - professional style
-    const getActionDetails = (action) => {
-        const actionMap = {
-            // Creation
-            'created': { color: 'bg-blue-500', label: 'Created' },
-            'added': { color: 'bg-blue-500', label: 'Added' },
+export default function ActivityTimeline({ activity_logs, title = "Activity History", entityType = "item" }) {
 
-            // Updates
-            'updated': { color: 'bg-orange-500', label: 'Updated' },
-            'modified': { color: 'bg-orange-500', label: 'Modified' },
-            'edited': { color: 'bg-orange-500', label: 'Edited' },
+    // Get icon and color scheme for each action type
+    const getActionStyle = (action) => {
+        const styleMap = {
+            // Creation actions - Blue
+            'created': {
+                icon: Plus,
+                color: 'text-blue-600',
+                bg: 'bg-blue-50',
+                border: 'border-blue-200',
+                badge: 'bg-blue-100 text-blue-700'
+            },
+            'added': {
+                icon: Plus,
+                color: 'text-blue-600',
+                bg: 'bg-blue-50',
+                border: 'border-blue-200',
+                badge: 'bg-blue-100 text-blue-700'
+            },
 
-            // Status changes
-            'submitted': { color: 'bg-purple-500', label: 'Submitted' },
-            'approved': { color: 'bg-green-500', label: 'Approved' },
-            'rejected': { color: 'bg-red-500', label: 'Rejected' },
-            'completed': { color: 'bg-green-600', label: 'Completed' },
-            'cancelled': { color: 'bg-red-500', label: 'Cancelled' },
+            // Update actions - Orange
+            'updated': {
+                icon: Edit3,
+                color: 'text-orange-600',
+                bg: 'bg-orange-50',
+                border: 'border-orange-200',
+                badge: 'bg-orange-100 text-orange-700'
+            },
+            'modified': {
+                icon: Edit3,
+                color: 'text-orange-600',
+                bg: 'bg-orange-50',
+                border: 'border-orange-200',
+                badge: 'bg-orange-100 text-orange-700'
+            },
+            'edited': {
+                icon: Edit3,
+                color: 'text-orange-600',
+                bg: 'bg-orange-50',
+                border: 'border-orange-200',
+                badge: 'bg-orange-100 text-orange-700'
+            },
 
-            // Communication
-            'commented': { color: 'bg-gray-500', label: 'Commented' },
-            'noted': { color: 'bg-gray-500', label: 'Added note' },
+            // Status changes - Purple
+            'status_changed': {
+                icon: Activity,
+                color: 'text-purple-600',
+                bg: 'bg-purple-50',
+                border: 'border-purple-200',
+                badge: 'bg-purple-100 text-purple-700'
+            },
 
-            // Assignment
-            'assigned': { color: 'bg-indigo-500', label: 'Assigned' },
-            'reassigned': { color: 'bg-indigo-400', label: 'Reassigned' },
+            // Approval actions - Green
+            'approved': {
+                icon: CheckCircle2,
+                color: 'text-green-600',
+                bg: 'bg-green-50',
+                border: 'border-green-200',
+                badge: 'bg-green-100 text-green-700'
+            },
+            'completed': {
+                icon: CheckCircle2,
+                color: 'text-green-600',
+                bg: 'bg-green-50',
+                border: 'border-green-200',
+                badge: 'bg-green-100 text-green-700'
+            },
+            'finalized': {
+                icon: CheckCircle2,
+                color: 'text-green-600',
+                bg: 'bg-green-50',
+                border: 'border-green-200',
+                badge: 'bg-green-100 text-green-700'
+            },
+            'approved_with_signed_document': {
+                icon: CheckCircle2,
+                color: 'text-green-600',
+                bg: 'bg-green-50',
+                border: 'border-green-200',
+                badge: 'bg-green-100 text-green-700'
+            },
 
-            // Additional professional actions
-            'reviewed': { color: 'bg-cyan-500', label: 'Reviewed' },
-            'forwarded': { color: 'bg-purple-400', label: 'Forwarded' },
-            'received': { color: 'bg-green-400', label: 'Received' },
-            'sent': { color: 'bg-purple-500', label: 'Sent' },
-            'deleted': { color: 'bg-red-400', label: 'Deleted' },
-            'restored': { color: 'bg-green-500', label: 'Restored' },
+            // Rejection actions - Red
+            'rejected': {
+                icon: XCircle,
+                color: 'text-red-600',
+                bg: 'bg-red-50',
+                border: 'border-red-200',
+                badge: 'bg-red-100 text-red-700'
+            },
+            'cancelled': {
+                icon: XCircle,
+                color: 'text-red-600',
+                bg: 'bg-red-50',
+                border: 'border-red-200',
+                badge: 'bg-red-100 text-red-700'
+            },
+            'deleted': {
+                icon: Trash2,
+                color: 'text-red-600',
+                bg: 'bg-red-50',
+                border: 'border-red-200',
+                badge: 'bg-red-100 text-red-700'
+            },
+
+            // File actions - Teal
+            'file_uploaded': {
+                icon: FileUp,
+                color: 'text-teal-600',
+                bg: 'bg-teal-50',
+                border: 'border-teal-200',
+                badge: 'bg-teal-100 text-teal-700'
+            },
+            'file_removed': {
+                icon: FileX,
+                color: 'text-red-600',
+                bg: 'bg-red-50',
+                border: 'border-red-200',
+                badge: 'bg-red-100 text-red-700'
+            },
+            'file_updated': {
+                icon: FileUp,
+                color: 'text-teal-600',
+                bg: 'bg-teal-50',
+                border: 'border-teal-200',
+                badge: 'bg-teal-100 text-teal-700'
+            },
+
+            // Comment actions - Gray
+            'commented': {
+                icon: MessageSquare,
+                color: 'text-gray-600',
+                bg: 'bg-gray-50',
+                border: 'border-gray-200',
+                badge: 'bg-gray-100 text-gray-700'
+            },
+            'noted': {
+                icon: MessageSquare,
+                color: 'text-gray-600',
+                bg: 'bg-gray-50',
+                border: 'border-gray-200',
+                badge: 'bg-gray-100 text-gray-700'
+            },
+            'comment_updated': {
+                icon: MessageSquare,
+                color: 'text-gray-600',
+                bg: 'bg-gray-50',
+                border: 'border-gray-200',
+                badge: 'bg-gray-100 text-gray-700'
+            },
+            'comment_deleted': {
+                icon: MessageSquare,
+                color: 'text-gray-500',
+                bg: 'bg-gray-50',
+                border: 'border-gray-200',
+                badge: 'bg-gray-100 text-gray-600'
+            },
+
+            // Relationship actions - Indigo
+            'purchase_order_added': {
+                icon: Package,
+                color: 'text-indigo-600',
+                bg: 'bg-indigo-50',
+                border: 'border-indigo-200',
+                badge: 'bg-indigo-100 text-indigo-700'
+            },
+            'invoice_added': {
+                icon: FileText,
+                color: 'text-indigo-600',
+                bg: 'bg-indigo-50',
+                border: 'border-indigo-200',
+                badge: 'bg-indigo-100 text-indigo-700'
+            },
+            'invoices_added': {
+                icon: FileText,
+                color: 'text-indigo-600',
+                bg: 'bg-indigo-50',
+                border: 'border-indigo-200',
+                badge: 'bg-indigo-100 text-indigo-700'
+            },
+            'check_requisition_added': {
+                icon: CreditCard,
+                color: 'text-indigo-600',
+                bg: 'bg-indigo-50',
+                border: 'border-indigo-200',
+                badge: 'bg-indigo-100 text-indigo-700'
+            },
+
+            // Review actions - Cyan
+            'reviewed': {
+                icon: Eye,
+                color: 'text-cyan-600',
+                bg: 'bg-cyan-50',
+                border: 'border-cyan-200',
+                badge: 'bg-cyan-100 text-cyan-700'
+            },
+            'received': {
+                icon: ArrowDownCircle,
+                color: 'text-cyan-600',
+                bg: 'bg-cyan-50',
+                border: 'border-cyan-200',
+                badge: 'bg-cyan-100 text-cyan-700'
+            },
+
+            // Send actions - Purple
+            'submitted': {
+                icon: Send,
+                color: 'text-purple-600',
+                bg: 'bg-purple-50',
+                border: 'border-purple-200',
+                badge: 'bg-purple-100 text-purple-700'
+            },
+            'sent': {
+                icon: Send,
+                color: 'text-purple-600',
+                bg: 'bg-purple-50',
+                border: 'border-purple-200',
+                badge: 'bg-purple-100 text-purple-700'
+            },
+            'forwarded': {
+                icon: Mail,
+                color: 'text-purple-600',
+                bg: 'bg-purple-50',
+                border: 'border-purple-200',
+                badge: 'bg-purple-100 text-purple-700'
+            },
+
+            // Bulk actions - Pink
+            'bulk_mark_received': {
+                icon: CheckCircle2,
+                color: 'text-pink-600',
+                bg: 'bg-pink-50',
+                border: 'border-pink-200',
+                badge: 'bg-pink-100 text-pink-700'
+            },
+            'bulk_approve': {
+                icon: CheckCircle2,
+                color: 'text-green-600',
+                bg: 'bg-green-50',
+                border: 'border-green-200',
+                badge: 'bg-green-100 text-green-700'
+            },
+            'bulk_reject': {
+                icon: XCircle,
+                color: 'text-red-600',
+                bg: 'bg-red-50',
+                border: 'border-red-200',
+                badge: 'bg-red-100 text-red-700'
+            },
+
+            // Other actions
+            'assigned': {
+                icon: Users,
+                color: 'text-blue-600',
+                bg: 'bg-blue-50',
+                border: 'border-blue-200',
+                badge: 'bg-blue-100 text-blue-700'
+            },
+            'closed': {
+                icon: AlertCircle,
+                color: 'text-gray-600',
+                bg: 'bg-gray-50',
+                border: 'border-gray-200',
+                badge: 'bg-gray-100 text-gray-700'
+            },
+            'restored': {
+                icon: RotateCcw,
+                color: 'text-green-600',
+                bg: 'bg-green-50',
+                border: 'border-green-200',
+                badge: 'bg-green-100 text-green-700'
+            },
         };
 
-        return actionMap[action] || {
-            color: 'bg-gray-400',
-            label: action.charAt(0).toUpperCase() + action.slice(1).replace(/_/g, ' ')
+        return styleMap[action] || {
+            icon: Activity,
+            color: 'text-gray-600',
+            bg: 'bg-gray-50',
+            border: 'border-gray-200',
+            badge: 'bg-gray-100 text-gray-700'
         };
     };
 
-    // Helper function to format user display
+    // Get readable action label
+    const getActionLabel = (action) => {
+        const labels = {
+            'created': 'Created',
+            'updated': 'Updated',
+            'status_changed': 'Status Changed',
+            'approved': 'Approved',
+            'rejected': 'Rejected',
+            'completed': 'Completed',
+            'cancelled': 'Cancelled',
+            'file_uploaded': 'File Uploaded',
+            'file_removed': 'File Removed',
+            'commented': 'Commented',
+            'purchase_order_added': 'PO Added',
+            'invoice_added': 'Invoice Added',
+            'invoices_added': 'Invoices Added',
+            'check_requisition_added': 'Added to CR',
+            'reviewed': 'Reviewed',
+            'received': 'Received',
+            'submitted': 'Submitted',
+            'bulk_approve': 'Bulk Approved',
+            'bulk_reject': 'Bulk Rejected',
+            'finalized': 'Finalized',
+        };
+
+        return labels[action] || action.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    };
+
+    // Format user name
     const formatUser = (user) => {
         if (!user) return 'System';
         if (typeof user === 'string') return user;
-        return user.name || user.username || user.email?.split('@')[0] || 'Someone';
+        return user.name || user.username || user.email?.split('@')[0] || 'Unknown';
     };
 
-    // Helper function to format actual date
-    const formatActualDate = (date) => {
-        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        const month = months[date.getMonth()];
-        const day = date.getDate();
-        const year = date.getFullYear();
-        let hours = date.getHours();
-        const minutes = date.getMinutes();
-        const ampm = hours >= 12 ? 'PM' : 'AM';
-        hours = hours % 12;
-        hours = hours ? hours : 12;
-        const minutesStr = minutes < 10 ? '0' + minutes : minutes;
-        return `${month} ${day}, ${year} ${hours}:${minutesStr} ${ampm}`;
-    };
-
-    // Helper function to format date - human diff + actual date
-    const formatDate = (dateString) => {
+    // Format relative time
+    const formatRelativeTime = (dateString) => {
         try {
             const date = new Date(dateString);
             const now = new Date();
             const diffInSeconds = Math.floor((now - date) / 1000);
+
+            if (diffInSeconds < 60) return 'just now';
+
             const diffInMinutes = Math.floor(diffInSeconds / 60);
+            if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
+
             const diffInHours = Math.floor(diffInMinutes / 60);
+            if (diffInHours < 24) return `${diffInHours}h ago`;
+
             const diffInDays = Math.floor(diffInHours / 24);
+            if (diffInDays < 7) return `${diffInDays}d ago`;
+
             const diffInWeeks = Math.floor(diffInDays / 7);
+            if (diffInWeeks < 4) return `${diffInWeeks}w ago`;
+
             const diffInMonths = Math.floor(diffInDays / 30);
+            if (diffInMonths < 12) return `${diffInMonths}mo ago`;
+
             const diffInYears = Math.floor(diffInDays / 365);
-
-            let humanDiff;
-            if (diffInSeconds < 60) {
-                humanDiff = 'just now';
-            } else if (diffInMinutes < 60) {
-                humanDiff = `${diffInMinutes} ${diffInMinutes === 1 ? 'minute' : 'minutes'} ago`;
-            } else if (diffInHours < 24) {
-                humanDiff = `${diffInHours} ${diffInHours === 1 ? 'hour' : 'hours'} ago`;
-            } else if (diffInDays < 7) {
-                humanDiff = `${diffInDays} ${diffInDays === 1 ? 'day' : 'days'} ago`;
-            } else if (diffInWeeks < 4) {
-                humanDiff = `${diffInWeeks} ${diffInWeeks === 1 ? 'week' : 'weeks'} ago`;
-            } else if (diffInMonths < 12) {
-                humanDiff = `${diffInMonths} ${diffInMonths === 1 ? 'month' : 'months'} ago`;
-            } else {
-                humanDiff = `${diffInYears} ${diffInYears === 1 ? 'year' : 'years'} ago`;
-            }
-
-            const actualDate = formatActualDate(date);
-            return { humanDiff, actualDate };
-        } catch (e) {
-            return { humanDiff: dateString, actualDate: '' };
+            return `${diffInYears}y ago`;
+        } catch {
+            return '';
         }
     };
 
-    // Get the note/comment to display
-    const getDisplayNote = (log) => {
-        return log.notes || log.comment || log.description || null;
+    // Format full date
+    const formatFullDate = (dateString) => {
+        try {
+            const date = new Date(dateString);
+            return date.toLocaleString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true
+            });
+        } catch {
+            return dateString;
+        }
     };
 
     if (!activity_logs || activity_logs.length === 0) {
         return (
-            <Card className="border-slate-200 shadow-sm">
-                <CardHeader className="pb-4">
-                    <CardTitle className="flex items-center text-slate-800 text-lg">
-                        <Clock className="mr-2 h-5 w-5 text-slate-600" />
+            <Card>
+                <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center gap-2 text-base">
+                        <Clock className="h-4 w-4" />
                         {title}
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <div className="text-center py-8 text-slate-500">
-                        <div className="text-4xl mb-3">📝</div>
-                        <p className="text-sm">No activity yet</p>
+                    <div className="text-center py-12 text-gray-500">
+                        <Activity className="h-12 w-12 mx-auto mb-3 opacity-20" />
+                        <p className="text-sm font-medium">No activity recorded</p>
+                        <p className="text-xs text-gray-400 mt-1">Actions will appear here</p>
                     </div>
                 </CardContent>
             </Card>
@@ -128,66 +412,86 @@ export default function ActivityTimeline({ activity_logs, title = "Recent Activi
     }
 
     return (
-        <Card className="border-slate-200 shadow-sm">
-            <CardHeader className="pb-4">
-                <CardTitle className="flex items-center text-slate-800 text-lg">
-                    <Clock className="mr-2 h-5 w-5 text-slate-600" />
-                    {title}
-                </CardTitle>
+        <Card>
+            <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center gap-2 text-base">
+                        <Clock className="h-4 w-4" />
+                        {title}
+                    </CardTitle>
+                    <Badge variant="secondary" className="text-xs">
+                        {activity_logs.length} {activity_logs.length === 1 ? 'entry' : 'entries'}
+                    </Badge>
+                </div>
             </CardHeader>
-            <CardContent>
-                <div className="space-y-3">
-                    {activity_logs.slice(0, 10).map((log, index) => { // Show only last 10 activities
-                        const actionDetails = getActionDetails(log.action);
-                        const userDisplay = formatUser(log.user);
-                        const { humanDiff, actualDate } = formatDate(log.created_at || log.timestamp || log.date);
-                        const note = getDisplayNote(log);
+            <CardContent className="pt-0">
+                <div className="space-y-2">
+                    {activity_logs.map((log, index) => {
+                        const style = getActionStyle(log.action);
+                        const Icon = style.icon;
+                        const actionLabel = getActionLabel(log.action);
+                        const userName = formatUser(log.user);
+                        const relativeTime = formatRelativeTime(log.created_at || log.timestamp);
+                        const fullDate = formatFullDate(log.created_at || log.timestamp);
+                        const notes = log.notes || log.comment || log.description;
 
                         return (
-                            <div key={log.id || index} className="relative flex items-start space-x-3 hover:bg-slate-50 rounded-lg p-2 -m-2 transition-colors">
-                                {/* Action indicator */}
-                                <div className={`h-3 w-3 ${actionDetails.color} rounded-full flex-shrink-0 mt-2`}>
-                                </div>
-
-                                <div className="flex-1 min-w-0">
-                                    {/* Main activity description */}
-                                    <div className="text-sm text-slate-900">
-                                        <span className="font-medium">{userDisplay}</span>
-                                        <span className="text-slate-600 mx-1">{actionDetails.label.toLowerCase()}</span>
-                                        <span className="text-slate-500">this {entityType}</span>
+                            <div
+                                key={log.id || index}
+                                className={`group relative rounded-lg border ${style.border} ${style.bg} p-3 transition-all hover:shadow-sm`}
+                            >
+                                <div className="flex items-start gap-3">
+                                    {/* Icon */}
+                                    <div className={`flex-shrink-0 ${style.color}`}>
+                                        <Icon className="h-4 w-4" />
                                     </div>
 
-                                    {/* Note if present */}
-                                    {note && (
-                                        <div className="mt-2 text-sm text-slate-600 bg-slate-50 border-l-3 border-slate-300 pl-3 py-1">
-                                            <span className="font-medium text-slate-700">Note:</span> {note}
+                                    {/* Content */}
+                                    <div className="flex-1 min-w-0 space-y-1">
+                                        {/* Header: Action + User + Time */}
+                                        <div className="flex items-center justify-between gap-2">
+                                            <div className="flex items-center gap-2 min-w-0">
+                                                <Badge className={`${style.badge} text-xs font-medium px-2 py-0 h-5`}>
+                                                    {actionLabel}
+                                                </Badge>
+                                                <span className="text-xs font-semibold text-gray-900 truncate">
+                                                    {userName}
+                                                </span>
+                                            </div>
+                                            <time
+                                                className="text-xs text-gray-500 whitespace-nowrap flex-shrink-0"
+                                                title={fullDate}
+                                            >
+                                                {relativeTime}
+                                            </time>
                                         </div>
-                                    )}
 
-                                    {/* Timestamp */}
-                                    <div className="mt-1 text-xs text-slate-500">
-                                        <span className="font-medium">{humanDiff}</span>
-                                        {actualDate && (
-                                            <>
-                                                <span className="mx-1.5 text-slate-300">•</span>
-                                                <span className="text-slate-400">{actualDate}</span>
-                                            </>
+                                        {/* Notes/Description */}
+                                        {notes && (
+                                            <p className="text-sm text-gray-700 leading-relaxed">
+                                                {notes}
+                                            </p>
                                         )}
+
+                                        {/* Full date on hover */}
+                                        <p className="text-xs text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            {fullDate}
+                                        </p>
                                     </div>
                                 </div>
                             </div>
                         );
                     })}
-
-                    {/* Show count if there are more activities */}
-                    {activity_logs.length > 10 && (
-                        <div className="text-center pt-2">
-                            <button className="text-xs text-slate-500 hover:text-slate-700">
-                                View all {activity_logs.length} activities
-                            </button>
-                        </div>
-                    )}
                 </div>
+
+                {/* View all if too many */}
+                {activity_logs.length > 20 && (
+                    <div className="mt-4 text-center">
+                        <p className="text-xs text-gray-500">
+                            Showing all {activity_logs.length} activities
+                        </p>
+                    </div>
+                )}
             </CardContent>
         </Card>
     );

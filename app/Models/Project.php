@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Models\Traits\HasRemarks;
+use App\Traits\LogsActivity;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -9,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Project extends Model
 {
-    use HasFactory;
+    use HasFactory,HasRemarks, LogsActivity;
 
     protected $fillable = [
         'project_title',
@@ -91,5 +93,58 @@ class Project extends Model
         };
     }
 
-    
+    public function activityLogs()
+    {
+        return $this->morphMany(ActivityLog::class, 'loggable');
+    }
+
+    /**
+     * Custom activity log messages
+     */
+    protected function getCreationMessage(): string
+    {
+        $projectType = $this->project_type === 'sm_project' ? 'SM Project' : 'PhilCom Project';
+        $cost = $this->formatCurrency($this->total_project_cost ?? 0);
+
+        return "New {$projectType} '{$this->project_title}' created with CER #{$this->cer_number} (Budget: {$cost})";
+    }
+
+    protected function getStatusChangeMessage(string $from, string $to): string
+    {
+        $messages = [
+            'active->on_hold' => 'Project placed on hold',
+            'on_hold->active' => 'Project reactivated',
+            'active->completed' => "Project marked as completed. Total cost: " . $this->formatCurrency($this->total_project_cost ?? 0),
+            'on_hold->completed' => "Project marked as completed. Total cost: " . $this->formatCurrency($this->total_project_cost ?? 0),
+            'active->cancelled' => 'Project cancelled',
+            'on_hold->cancelled' => 'Project cancelled',
+        ];
+
+        $key = "{$from}->{$to}";
+        return $messages[$key] ?? "Project status changed from {$from} to {$to}";
+    }
+
+    protected function getRelationshipAddedMessage(string $relationType, $relatedModel): string
+    {
+        if ($relationType === 'purchase_order') {
+            $poNumber = is_object($relatedModel) ? $relatedModel->po_number : ($relatedModel['po_number'] ?? 'Unknown');
+            $amount = is_object($relatedModel)
+                ? $this->formatCurrency($relatedModel->po_amount ?? 0)
+                : $this->formatCurrency($relatedModel['po_amount'] ?? 0);
+
+            return "Purchase Order {$poNumber} added to this project ({$amount})";
+        }
+
+        return parent::getRelationshipAddedMessage($relationType, $relatedModel);
+    }
+
+    protected function getRelationshipRemovedMessage(string $relationType, $relatedModel): string
+    {
+        if ($relationType === 'purchase_order') {
+            $poNumber = is_object($relatedModel) ? $relatedModel->po_number : ($relatedModel['po_number'] ?? 'Unknown');
+            return "Purchase Order {$poNumber} removed from this project";
+        }
+
+        return parent::getRelationshipRemovedMessage($relationType, $relatedModel);
+    }
 }

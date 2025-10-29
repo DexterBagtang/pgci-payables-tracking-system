@@ -17,6 +17,7 @@ class FileObserver
         // Get the request instance if available
         $request = app(Request::class);
 
+        // Log to AuditTrail
         AuditTrail::create([
             'table_name' => 'files',
             'record_id' => $file->id,
@@ -27,6 +28,25 @@ class FileObserver
             'ip_address' => $request?->ip(),
             'user_agent' => $request?->userAgent(),
         ]);
+
+        // Log to parent entity's activity log
+        if ($file->fileable && method_exists($file->fileable, 'activityLogs')) {
+            $fileSize = $this->formatFileSize($file->file_size);
+            $file->fileable->activityLogs()->create([
+                'action' => 'file_uploaded',
+                'user_id' => $file->uploaded_by ?? Auth::id(),
+                'ip_address' => $request?->ip(),
+                'notes' => "Uploaded {$file->file_name} ({$fileSize}, {$file->file_category})",
+                'changes' => json_encode([
+                    'file_id' => $file->id,
+                    'file_name' => $file->file_name,
+                    'file_type' => $file->file_type,
+                    'file_category' => $file->file_category,
+                    'file_purpose' => $file->file_purpose,
+                    'file_size' => $file->file_size,
+                ]),
+            ]);
+        }
     }
 
     /**
@@ -72,6 +92,7 @@ class FileObserver
     {
         $request = app(Request::class);
 
+        // Log to AuditTrail
         AuditTrail::create([
             'table_name' => 'files',
             'record_id' => $file->id,
@@ -82,5 +103,33 @@ class FileObserver
             'ip_address' => $request?->ip(),
             'user_agent' => $request?->userAgent(),
         ]);
+
+        // Log to parent entity's activity log
+        if ($file->fileable && method_exists($file->fileable, 'activityLogs')) {
+            $file->fileable->activityLogs()->create([
+                'action' => 'file_removed',
+                'user_id' => Auth::id(),
+                'ip_address' => $request?->ip(),
+                'notes' => "Removed {$file->file_name}",
+                'changes' => json_encode([
+                    'file_id' => $file->id,
+                    'file_name' => $file->file_name,
+                    'file_type' => $file->file_type,
+                ]),
+            ]);
+        }
+    }
+
+    /**
+     * Format file size for display
+     */
+    private function formatFileSize($bytes): string
+    {
+        if ($bytes >= 1048576) {
+            return number_format($bytes / 1048576, 2) . ' MB';
+        } elseif ($bytes >= 1024) {
+            return number_format($bytes / 1024, 2) . ' KB';
+        }
+        return $bytes . ' bytes';
     }
 }

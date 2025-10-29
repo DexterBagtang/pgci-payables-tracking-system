@@ -163,6 +163,22 @@ class CheckRequisitionController extends Controller
 
         Invoice::whereIn('id', $invoiceIds)->update(['invoice_status' => 'pending_disbursement']);
 
+        // Log creation with invoice count
+        $invoices = Invoice::whereIn('id', $invoiceIds)->get();
+        $invoiceNumbers = $invoices->pluck('si_number')->toArray();
+
+        $checkReq->logCreation([
+            'invoice_count' => count($invoiceIds),
+            'invoice_numbers' => $invoiceNumbers,
+        ]);
+
+        // Log to each invoice that it was added to CheckRequisition
+        foreach ($invoices as $invoice) {
+            $invoice->logRelationshipAdded('check_requisition', [
+                'requisition_number' => $checkReq->requisition_number,
+            ]);
+        }
+
         try {
             // Render blade view to HTML
             $html = view('pdf.check-requisition-v2', [

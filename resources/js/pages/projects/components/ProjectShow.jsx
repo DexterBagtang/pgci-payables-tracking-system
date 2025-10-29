@@ -57,10 +57,11 @@ import { route } from 'ziggy-js';
 import StatusBadge from '@/components/custom/StatusBadge.jsx';
 
 const Remarks = lazy(() => import("@/components/custom/Remarks.jsx"));
+const ActivityTimeline = lazy(() => import("@/components/custom/ActivityTimeline.jsx"));
 
 export default function ProjectShow({ project }) {
     const { auth } = usePage().props;
-    const { purchase_orders, remarks = [] } = project;
+    const { purchase_orders, remarks = [], activity_logs = [] } = project;
     const [activeTab, setActiveTab] = useRemember('overview','project-details-tab');
 
     // Memoized financial calculations
@@ -438,7 +439,7 @@ export default function ProjectShow({ project }) {
 
                     {/* Tabs Section */}
                     <Tabs value={activeTab} onValueChange={setActiveTab}>
-                        <TabsList className="grid w-full grid-cols-5">
+                        <TabsList className="grid w-full grid-cols-6">
                             <TabsTrigger value="overview">Overview</TabsTrigger>
                             <TabsTrigger value="purchase-orders">
                                 Purchase Orders
@@ -459,6 +460,12 @@ export default function ProjectShow({ project }) {
                                 Remarks
                                 <Badge variant="secondary" className="ml-2">
                                     {remarks.length}
+                                </Badge>
+                            </TabsTrigger>
+                            <TabsTrigger value="activity">
+                                Activity
+                                <Badge variant="secondary" className="ml-2">
+                                    {activity_logs.length}
                                 </Badge>
                             </TabsTrigger>
                         </TabsList>
@@ -1178,6 +1185,17 @@ export default function ProjectShow({ project }) {
                                     remarkableType="Project"
                                     remarkableId={project.id}
                                     remarks={remarks}
+                                />
+                            </Suspense>
+                        </TabsContent>
+
+                        {/* Activity Tab */}
+                        <TabsContent value="activity" className="mt-6">
+                            <Suspense fallback={<Loader className="animate-spin mx-auto" />}>
+                                <ActivityTimeline
+                                    activity_logs={activity_logs}
+                                    title="Project Activity History"
+                                    entityType="project"
                                 />
                             </Suspense>
                         </TabsContent>

@@ -118,6 +118,8 @@ class VendorController extends Controller
             'created_by' => auth()->id(),
         ]);
 
+        // Log creation to activity log
+        $vendor->logCreation();
 
         return back()->with('success', 'Vendor created successfully.');
     }
@@ -143,7 +145,8 @@ class VendorController extends Controller
         $vendor->load([
             'purchaseOrders.project',
             'purchaseOrders.invoices.checkRequisitions',
-            'remarks.user'
+            'remarks.user',
+            'activityLogs.user:id,name'
         ]);
 
         // Get all invoices for this vendor
@@ -238,8 +241,11 @@ class VendorController extends Controller
             'notes' => 'nullable|string|max:1000',
         ]);
 
+        // Capture old status before update
+        $oldStatus = $vendor->is_active;
+
         // Update the vendor details
-        $vendor->update([
+        $vendor->fill([
             'name' => $request->name,
             'contact_person' => $request->contact_person,
             'email' => $request->email,
@@ -250,6 +256,17 @@ class VendorController extends Controller
             'is_active' => $request->is_active,
         ]);
 
+        $vendor->save();
+
+        $changes = $vendor->getChanges();
+
+        // Check if status changed (activation/deactivation)
+        if (isset($changes['is_active'])) {
+            $vendor->logStatusChange($oldStatus ? 'active' : 'inactive', $changes['is_active'] ? 'active' : 'inactive');
+        } else if (!empty($changes)) {
+            // Log regular update
+            $vendor->logUpdate($changes);
+        }
 
         return back()->with('success', 'Vendor updated successfully.');
     }

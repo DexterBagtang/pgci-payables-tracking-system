@@ -52,12 +52,13 @@ const EditVendorDialog = lazy(() => import("@/pages/vendors/components/EditVendo
 const VendorPO = lazy(() => import('@/pages/vendors/components/VendorPO.jsx'));
 const VendorInvoices = lazy(() => import('@/pages/vendors/components/VendorInvoices.jsx'));
 const Remarks = lazy(() => import("@/components/custom/Remarks.jsx"));
+const ActivityTimeline = lazy(() => import("@/components/custom/ActivityTimeline.jsx"));
 
 export default function ShowVendor({ vendor }) {
     const [activeTab, setActiveTab] = useRemember('overview','vendor-detail-tab');
     const [editDialogOpen, setEditDialogOpen] = useState(false);
 
-    const { purchase_orders, remarks, financial_summary } = vendor;
+    const { purchase_orders, remarks, financial_summary, activity_logs = [] } = vendor;
 
     // Financial calculations from backend
     const {
@@ -312,7 +313,7 @@ export default function ShowVendor({ vendor }) {
 
                     {/* Tabs Section */}
                     <Tabs value={activeTab} onValueChange={setActiveTab}>
-                        <TabsList className="grid w-full grid-cols-6">
+                        <TabsList className="grid w-full grid-cols-7">
                             <TabsTrigger value="overview">Overview</TabsTrigger>
                             <TabsTrigger value="financials">Financials</TabsTrigger>
                             <TabsTrigger value="invoices">
@@ -326,6 +327,10 @@ export default function ShowVendor({ vendor }) {
                             <TabsTrigger value="remarks">
                                 Remarks
                                 <Badge variant="secondary" className="ml-2">{remarks.length}</Badge>
+                            </TabsTrigger>
+                            <TabsTrigger value="activity">
+                                Activity
+                                <Badge variant="secondary" className="ml-2">{activity_logs.length}</Badge>
                             </TabsTrigger>
                         </TabsList>
 
@@ -654,6 +659,17 @@ export default function ShowVendor({ vendor }) {
                                     remarkableType="Vendor"
                                     remarkableId={vendor.id}
                                     remarks={remarks}
+                                />
+                            </Suspense>
+                        </TabsContent>
+
+                        {/* Activity Tab */}
+                        <TabsContent value="activity" className="mt-6">
+                            <Suspense fallback={<Loader className="animate-spin mx-auto" />}>
+                                <ActivityTimeline
+                                    activity_logs={activity_logs}
+                                    title="Vendor Activity History"
+                                    entityType="vendor"
                                 />
                             </Suspense>
                         </TabsContent>

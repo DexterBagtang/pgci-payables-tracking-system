@@ -89,7 +89,10 @@ class ProjectController extends Controller
 
         $validated['created_by'] = auth()->id();
 
-        Project::create($validated);
+        $project = Project::create($validated);
+
+        // Log creation to activity log
+        $project->logCreation();
 
         return redirect()->route('projects.index')->with('success', 'Project created successfully.');
     }
@@ -97,7 +100,13 @@ class ProjectController extends Controller
     public function show(Project $project)
     {
         return Inertia::render('projects/show', [
-            'project' => $project->load('creator:id,name','purchaseOrders.vendor','purchaseOrders.invoices'),
+            'project' => $project->load([
+                'creator:id,name',
+                'purchaseOrders.vendor',
+                'purchaseOrders.invoices',
+                'remarks.user:id,name',
+                'activityLogs.user:id,name'
+            ]),
         ]);
     }
 
@@ -127,7 +136,22 @@ class ProjectController extends Controller
             'description' => 'nullable|string|max:1000', // Added max length for description
         ]);
 
-        $project->update($validated);
+        // Capture old status if exists
+        $oldStatus = $project->project_status;
+
+        // Update the project
+        $project->fill($validated);
+        $project->save();
+
+        $changes = $project->getChanges();
+
+        // Check if status changed
+        if (isset($changes['project_status'])) {
+            $project->logStatusChange($oldStatus, $changes['project_status']);
+        } else if (!empty($changes)) {
+            // Log regular update
+            $project->logUpdate($changes);
+        }
 
         return back()->with('success', 'Project updated successfully.');
     }

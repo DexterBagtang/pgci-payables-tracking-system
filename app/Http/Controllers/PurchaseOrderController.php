@@ -139,13 +139,26 @@ class PurchaseOrderController extends Controller
         // Create the purchase order
         $purchaseOrder = PurchaseOrder::create($validated);
 
-        $purchaseOrder->activityLogs()->create([
-            'action' => 'created',
-            'user_id' => auth()->id(),
-            'ip_address' => $request->ip(),
-            'changes' => json_encode($purchaseOrder),
-            'notes' => $validated['description'],
-        ]);
+        // Log creation using trait
+        $purchaseOrder->logCreation();
+
+        // Log to parent Project if exists
+        if ($purchaseOrder->project_id) {
+            $purchaseOrder->project->logRelationshipAdded('purchase_order', [
+                'po_number' => $purchaseOrder->po_number,
+                'po_amount' => $purchaseOrder->po_amount,
+                'vendor' => $purchaseOrder->vendor?->name,
+            ]);
+        }
+
+        // Log to Vendor if exists
+        if ($purchaseOrder->vendor_id) {
+            $purchaseOrder->vendor->logRelationshipAdded('purchase_order', [
+                'po_number' => $purchaseOrder->po_number,
+                'po_amount' => $purchaseOrder->po_amount,
+                'project' => $purchaseOrder->project?->project_title,
+            ]);
+        }
 
 
         // Handle file uploads
@@ -248,19 +261,22 @@ class PurchaseOrderController extends Controller
 
 //        $purchaseOrder->update($validated);
 //        dd($validated);
+        $oldStatus = $purchaseOrder->po_status;
         $purchaseOrder->fill($validated);
 
 //        dd($purchaseOrder);
 
         $purchaseOrder->save();
 
-        $purchaseOrder->activityLogs()->create([
-            'action' => 'updated',
-            'user_id' => auth()->id(),
-            'ip_address' => $request->ip(),
-            'changes' => json_encode($purchaseOrder->getChanges()),
-            'notes' => $validated['description'],
-        ]);
+        $changes = $purchaseOrder->getChanges();
+
+        // Check if status changed
+        if (isset($changes['po_status'])) {
+            $purchaseOrder->logStatusChange($oldStatus, $changes['po_status']);
+        } else {
+            // Log regular update
+            $purchaseOrder->logUpdate($changes);
+        }
 
         // In your update method, add file handling
         if ($request->hasFile('files')) {

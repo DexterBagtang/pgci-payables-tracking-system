@@ -206,13 +206,14 @@ class InvoiceController extends Controller
                 'created_by' => auth()->id(),
             ]);
 
-            // Log activity
-            $invoice->activityLogs()->create([
-                'action' => 'created',
-                'user_id' => auth()->id(),
-                'ip_address' => $request->ip(),
-                'changes' => json_encode($invoice->toArray()),
-                'notes' => $invoiceData['notes'] ?? null,
+            // Log activity using trait
+            $invoice->logCreation();
+
+            // Log to parent PurchaseOrder
+            $invoice->purchaseOrder->logRelationshipAdded('invoice', [
+                'si_number' => $invoice->si_number,
+                'invoice_amount' => $invoice->invoice_amount,
+                'net_amount' => $invoice->net_amount,
             ]);
 
             // Handle file uploads
@@ -309,13 +310,8 @@ class InvoiceController extends Controller
 
         $changes = $invoice->getChanges();
 
-        $invoice->activityLogs()->create([
-            'action' => 'updated',
-            'user_id' => auth()->id(),
-            'ip_address' => $request->ip(),
-            'changes' => json_encode($changes),
-            'notes' => $validated['notes'],
-        ]);
+        // Log update using trait
+        $invoice->logUpdate($changes);
 
         // Handle new file uploads only (no deletion)
         if (!empty($fileData)) {
@@ -352,19 +348,14 @@ class InvoiceController extends Controller
 
     public function review(Invoice $invoice, Request $request)
     {
+        $oldStatus = $invoice->invoice_status;
+
         $invoice->fill([
             'invoice_status' => $request->approvalStatus,
         ])->save();
 
-        $changes = $invoice->getChanges();
-
-        $invoice->activityLogs()->create([
-            'action' => $request->approvalStatus,
-            'user_id' => auth()->id(),
-            'ip_address' => $request->ip(),
-            'changes' => json_encode($changes),
-            'notes' => $request->remarks,
-        ]);
+        // Log status change using trait
+        $invoice->logStatusChange($oldStatus, $request->approvalStatus, $request->remarks);
 
         return back()->with('success', 'Invoice reviewed successfully!');
     }
