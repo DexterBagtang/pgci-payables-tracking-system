@@ -196,6 +196,7 @@ class CheckRequisitionController extends Controller
 
             // Generate PDF with Browsershot
             $browsershot = Browsershot::html($html)
+                ->noSandbox()
                 ->format('A4')
                 ->showBackground()
                 ->setOption('args', ['--no-sandbox', '--disable-setuid-sandbox'])
@@ -395,6 +396,7 @@ class CheckRequisitionController extends Controller
             }
 
             Browsershot::html($html)
+                ->noSandbox()
                 ->format('A4')
                 ->showBackground()
                 ->margins(10, 10, 10, 10)
