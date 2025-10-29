@@ -84,7 +84,7 @@
         <!-- Purpose Row -->
         <div class="field-row mb-16">
             <span class="label-text" style="width: 80px; align-self: flex-start;">Purpose</span>
-            <span class="flex-1 ml-3 px-2 value-text leading-relaxed">{{$checkReq['purpose']}}</span>
+            <span class="flex-1 ml-3 px-2 value-text leading-relaxed" style="white-space: pre-line;">{{$checkReq['purpose']}}</span>
         </div>
 
         <!-- PO/CER/SI Row with Badges -->
