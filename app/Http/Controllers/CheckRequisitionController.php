@@ -235,7 +235,8 @@ class CheckRequisitionController extends Controller
     {
         $checkRequisition = CheckRequisition::with([
             'generator:id,name',
-            'processor:id,name'
+            'processor:id,name',
+            'activityLogs.user:id,name',
         ])->findOrFail($id);
 
         // Get associated invoices through the junction table

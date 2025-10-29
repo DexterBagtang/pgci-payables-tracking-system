@@ -17,8 +17,8 @@ export default function VendorFilters({ filters, onFilterChange }) {
     ];
 
     const categoryOptions = [
-        { label: 'SAP', value: 'sap' },
-        { label: 'Manual', value: 'manual' }
+        { label: 'SAP', value: 'SAP' },
+        { label: 'Manual', value: 'Manual' }
     ];
 
     const handleStatusToggle = (value) => {
@@ -26,10 +26,10 @@ export default function VendorFilters({ filters, onFilterChange }) {
         const newStatus = currentStatus.includes(value)
             ? currentStatus.filter(s => s !== value)
             : [...currentStatus, value];
-        
-        onFilterChange({ 
+
+        onFilterChange({
             status: newStatus.length > 0 ? newStatus.join(',') : '',
-            page: 1 
+            page: 1
         });
     };
 
@@ -38,10 +38,10 @@ export default function VendorFilters({ filters, onFilterChange }) {
         const newCategory = currentCategory.includes(value)
             ? currentCategory.filter(c => c !== value)
             : [...currentCategory, value];
-        
-        onFilterChange({ 
+
+        onFilterChange({
             category: newCategory.length > 0 ? newCategory.join(',') : '',
-            page: 1 
+            page: 1
         });
     };
 
@@ -49,7 +49,7 @@ export default function VendorFilters({ filters, onFilterChange }) {
         onFilterChange({ status: '', category: '', page: 1 });
     };
 
-    const activeFiltersCount = 
+    const activeFiltersCount =
         (filters.status ? filters.status.split(',').length : 0) +
         (filters.category ? filters.category.split(',').length : 0);
 
@@ -113,9 +113,9 @@ export default function VendorFilters({ filters, onFilterChange }) {
 
             {/* Clear Filters Button */}
             {activeFiltersCount > 0 && (
-                <Button 
-                    variant="ghost" 
-                    size="sm" 
+                <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={clearFilters}
                     className="gap-2 text-muted-foreground hover:text-foreground"
                 >

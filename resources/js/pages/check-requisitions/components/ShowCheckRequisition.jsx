@@ -64,8 +64,10 @@ import { Input } from '@/components/ui/input';
 import BackButton from '@/components/custom/BackButton.jsx';
 import StatusBadge from '@/components/custom/StatusBadge.jsx';
 import AttachmentViewer from '@/pages/invoices/components/AttachmentViewer.jsx';
+import ActivityTimeline from '@/components/custom/ActivityTimeline.jsx';
 
 export default function ShowCheckRequisition({ checkRequisition, invoices, files, purchaseOrder }) {
+    console.log(checkRequisition);
     const [searchInvoice, setSearchInvoice] = useState('');
     const [invoiceFilter, setInvoiceFilter] = useState('all');
     const [showCalculator, setShowCalculator] = useState(false);
@@ -357,7 +359,7 @@ return (
                                     <TabsTrigger value="details">Details</TabsTrigger>
                                     <TabsTrigger value="invoices">Invoices ({invoices?.length || 0})</TabsTrigger>
                                     <TabsTrigger value="documents">Documents ({files?.length || 0})</TabsTrigger>
-                                    <TabsTrigger value="audit">Audit Trail</TabsTrigger>
+                                    <TabsTrigger value="audit">Activity Logs</TabsTrigger>
                                 </TabsList>
 
                                 {/* Details Tab */}
@@ -622,70 +624,7 @@ return (
 
                                 {/* Audit Trail Tab */}
                                 <TabsContent value="audit" className="space-y-6">
-                                    <div>
-                                        <h3 className="text-sm font-semibold uppercase text-muted-foreground mb-3">
-                                            Timestamps
-                                        </h3>
-                                        <div className="space-y-3 text-sm">
-                                            <div className="flex items-start gap-3 pb-3 border-b">
-                                                <Clock className="h-4 w-4 text-slate-400 mt-0.5" />
-                                                <div className="flex-1">
-                                                    <label className="text-xs text-muted-foreground">Created</label>
-                                                    <p className="text-sm mt-1">{formatDateTime(checkRequisition.created_at)}</p>
-                                                </div>
-                                            </div>
-                                            <div className="flex items-start gap-3 pb-3 border-b">
-                                                <Edit className="h-4 w-4 text-slate-400 mt-0.5" />
-                                                <div className="flex-1">
-                                                    <label className="text-xs text-muted-foreground">Last Updated</label>
-                                                    <p className="text-sm mt-1">{formatDateTime(checkRequisition.updated_at)}</p>
-                                                </div>
-                                            </div>
-                                            {checkRequisition.approved_at && (
-                                                <div className="flex items-start gap-3 pb-3 border-b">
-                                                    <CheckCircle className="h-4 w-4 text-green-500 mt-0.5" />
-                                                    <div className="flex-1">
-                                                        <label className="text-xs text-muted-foreground">Approved</label>
-                                                        <p className="text-sm mt-1">{formatDateTime(checkRequisition.approved_at)}</p>
-                                                    </div>
-                                                </div>
-                                            )}
-                                            {checkRequisition.processed_at && (
-                                                <div className="flex items-start gap-3">
-                                                    <CheckCircle className="h-4 w-4 text-blue-500 mt-0.5" />
-                                                    <div className="flex-1">
-                                                        <label className="text-xs text-muted-foreground">Processed</label>
-                                                        <p className="text-sm mt-1">{formatDateTime(checkRequisition.processed_at)}</p>
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-
-                                    {/* Processing Metrics */}
-                                    {checkRequisition.processed_at && (
-                                        <div>
-                                            <h3 className="text-sm font-semibold uppercase text-muted-foreground mb-3">
-                                                Processing Metrics
-                                            </h3>
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <div className="bg-slate-50 p-3 rounded">
-                                                    <label className="text-xs text-muted-foreground">Approval Time</label>
-                                                    <p className="text-sm font-semibold mt-1">
-                                                        {checkRequisition.approved_at ?
-                                                            `${Math.round((new Date(checkRequisition.approved_at) - new Date(checkRequisition.created_at)) / (1000 * 60 * 60 * 24))} days`
-                                                            : 'N/A'}
-                                                    </p>
-                                                </div>
-                                                <div className="bg-slate-50 p-3 rounded">
-                                                    <label className="text-xs text-muted-foreground">Processing Time</label>
-                                                    <p className="text-sm font-semibold mt-1">
-                                                        {Math.round((new Date(checkRequisition.processed_at) - new Date(checkRequisition.created_at)) / (1000 * 60 * 60 * 24))} days
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
+                                    <ActivityTimeline activity_logs={checkRequisition.activity_logs} />
                                 </TabsContent>
                             </Tabs>
                         </CardContent>

@@ -32,7 +32,7 @@ class VendorController extends Controller
             $statuses = explode(',', $request->get('status'));
             $query->whereIn('is_active', $statuses);
         }
-
+        
         // Category filter
         if ($request->filled('category')) {
             $categories = explode(',', $request->get('category'));
