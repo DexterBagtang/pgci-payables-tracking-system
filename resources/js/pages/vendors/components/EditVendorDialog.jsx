@@ -206,7 +206,7 @@ export default function EditVendorDialog({ vendor, isOpen, onOpenChange, onSucce
                                         id="phone"
                                         value={data.phone}
                                         onChange={(e) => setData('phone', e.target.value)}
-                                        placeholder="+1 (555) 123-4567"
+                                        placeholder="e.g., +63912345678"
                                         className={errors.phone ? 'border-destructive' : ''}
                                         disabled={processing}
                                     />

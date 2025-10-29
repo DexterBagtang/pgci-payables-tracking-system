@@ -54,6 +54,19 @@ class ProjectController extends Controller
         // Append query parameters to pagination links - THIS IS THE KEY FIX
         $projects->appends($request->query());
 
+        // Calculate stats
+        $stats = [
+            'total' => Project::count(),
+            'active' => Project::where('project_status', 'active')->count(),
+            'on_hold' => Project::where('project_status', 'on_hold')->count(),
+            'completed' => Project::where('project_status', 'completed')->count(),
+            'cancelled' => Project::where('project_status', 'cancelled')->count(),
+            'total_budget' => Project::sum('total_project_cost'),
+            'sm_projects' => Project::where('project_type', 'sm_project')->count(),
+            'philcom_projects' => Project::where('project_type', 'philcom_project')->count(),
+            'recent' => Project::where('created_at', '>=', now()->subDays(7))->count(),
+        ];
+
         return inertia('projects/index', [
             'projects' => $projects,
             'filters' => [
@@ -64,6 +77,7 @@ class ProjectController extends Controller
                 'sort_direction' => $sortDirection,
                 'per_page' => $perPage,
             ],
+            'stats' => $stats,
         ]);
     }
 

@@ -31,15 +31,17 @@ import {
     DollarSign,
     FileText,
     Building,
-    X
+    X,
+    Eye
 } from "lucide-react";
 import PaginationServerSide from '@/components/custom/Pagination.jsx';
 import DialogLoadingFallback from '@/components/custom/DialogLoadingFallback.jsx';
+import ProjectStats from './ProjectStats';
 
 // Lazy load dialog components
 const AddProjectDialog = lazy(() => import('@/pages/projects/components/AddProjectDialog.jsx'));
 
-export default function ProjectsTable({ projects, filters = {} }) {
+export default function ProjectsTable({ projects, filters = {}, stats = {} }) {
     const [searchTerm, setSearchTerm] = useState(filters.search || '');
     const [projectType, setProjectType] = useState(filters.project_type || '');
     const [projectStatus, setProjectStatus] = useState(filters.project_status || '');
@@ -131,6 +133,9 @@ export default function ProjectsTable({ projects, filters = {} }) {
 
     return (
         <>
+            {/* Stats Cards */}
+            <ProjectStats stats={stats} />
+
             <Card>
                 <CardHeader>
                     <div className="flex items-center justify-between">
@@ -260,6 +265,19 @@ export default function ProjectsTable({ projects, filters = {} }) {
                                     <SelectItem value="all">All Project Types</SelectItem>
                                     <SelectItem value="sm_project">SM Project</SelectItem>
                                     <SelectItem value="philcom_project">PhilCom Project</SelectItem>
+                                </SelectContent>
+                            </Select>
+
+                            <Select value={projectStatus} onValueChange={handleStatusChange}>
+                                <SelectTrigger className="w-full sm:w-[200px]">
+                                    <SelectValue placeholder="All Statuses" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Statuses</SelectItem>
+                                    <SelectItem value="active">Active</SelectItem>
+                                    <SelectItem value="on_hold">On Hold</SelectItem>
+                                    <SelectItem value="completed">Completed</SelectItem>
+                                    <SelectItem value="cancelled">Cancelled</SelectItem>
                                 </SelectContent>
                             </Select>
 
@@ -393,16 +411,31 @@ function ProjectRow({ project, onEdit }) {
     };
 
     return (
-        <TableRow className="group transition-all hover:bg-muted cursor-pointer border-b border-gray-100 dark:border-gray-800">
+        <TableRow className="group transition-all hover:bg-muted border-b border-gray-100 dark:border-gray-800">
             {/* Project Details */}
-            <TableCell className="py-4 pl-4 pr-3 max-w-[500px]" onClick={() => router.get('/projects/' + project.id)}>
+            <TableCell className="py-4 pl-4 pr-3 max-w-[500px]">
                 <div className="flex items-start">
                     <div className="h-10 w-10 flex-shrink-0 rounded-lg bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900 dark:to-blue-800 flex items-center justify-center mr-3">
                         <Building className="h-5 w-5 text-blue-700 dark:text-blue-300" />
                     </div>
                     <div className="min-w-0 flex-1">
-                        <div className="font-semibold text-gray-900 dark:text-gray-100 truncate" title={project.project_title}>
-                            {project.project_title}
+                        <div className="flex items-center gap-2">
+                            <div className="font-semibold text-gray-900 dark:text-gray-100 truncate" title={project.project_title}>
+                                {project.project_title}
+                            </div>
+                            {project.project_status && (
+                                <Badge
+                                    variant="outline"
+                                    className={`text-xs px-2 py-0 ${
+                                        project.project_status === 'active' ? 'bg-green-50 text-green-700 border-green-200' :
+                                        project.project_status === 'on_hold' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
+                                        project.project_status === 'completed' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                                        'bg-red-50 text-red-700 border-red-200'
+                                    }`}
+                                >
+                                    {project.project_status.replace('_', ' ').toUpperCase()}
+                                </Badge>
+                            )}
                         </div>
                         <div className="flex items-center text-sm text-muted-foreground mt-1">
                             <FileText className="h-3.5 w-3.5 mr-1.5" />
@@ -456,15 +489,26 @@ function ProjectRow({ project, onEdit }) {
 
             {/* Actions */}
             <TableCell className="px-3 py-4">
-                <Button
-                    onClick={() => onEdit(project)}
-                    variant="ghost"
-                    size="sm"
-                    className="rounded-full h-8 w-8 p-0"
-                    aria-label={`Edit ${project.project_title}`}
-                >
-                    <Edit className="h-4 w-4" />
-                </Button>
+                <div className="flex items-center gap-2">
+                    <Button
+                        onClick={() => router.get('/projects/' + project.id)}
+                        variant="ghost"
+                        size="sm"
+                        className="rounded-full h-8 w-8 p-0"
+                        aria-label={`View ${project.project_title}`}
+                    >
+                        <Eye className="h-4 w-4" />
+                    </Button>
+                    <Button
+                        onClick={() => onEdit(project)}
+                        variant="ghost"
+                        size="sm"
+                        className="rounded-full h-8 w-8 p-0"
+                        aria-label={`Edit ${project.project_title}`}
+                    >
+                        <Edit className="h-4 w-4" />
+                    </Button>
+                </div>
             </TableCell>
         </TableRow>
     );

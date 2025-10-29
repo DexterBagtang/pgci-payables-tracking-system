@@ -13,9 +13,10 @@ const breadcrumbs: BreadcrumbItem[] = [
 interface ProjectsPageProps {
     projects: unknown[];
     filters: unknown[];
+    stats: unknown[];
 }
 
-export default function ProjectsPage({ projects,filters }: ProjectsPageProps) {
+export default function ProjectsPage({ projects,filters,stats }: ProjectsPageProps) {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Projects" />
@@ -36,7 +37,7 @@ export default function ProjectsPage({ projects,filters }: ProjectsPageProps) {
                 {/*</div>*/}
                 <div className="py-6">
                     <div className="mx-auto sm:px-6 lg:px-8">
-                        <ProjectsTable projects={projects} filters={filters} />
+                        <ProjectsTable projects={projects} filters={filters} stats={stats} />
                     </div>
                 </div>
             </div>
