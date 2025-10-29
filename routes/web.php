@@ -12,11 +12,12 @@ use Inertia\Inertia;
 
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('/', function () {
-        return Inertia::render('dashboard');
-//        return Inertia::render('welcome');
-    })->name('home');
+//    Route::get('/', function () {
+//        return Inertia::render('dashboard');
+////        return Inertia::render('welcome');
+//    })->name('home');
 
+    Route::get('/', [DashboardController::class,'index'])->name('home');
     Route::get('/dashboard', [DashboardController::class,'index'])->name('dashboard');
 
     Route::resource('vendors', VendorController::class);

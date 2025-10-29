@@ -45,6 +45,7 @@ import {
 import { getUniqueProjectsWithFormattedDate } from "@/components/custom/helpers.jsx";
 import BackButton from '@/components/custom/BackButton.jsx';
 import StatusBadge from '@/components/custom/StatusBadge.jsx';
+import { useRemember } from '@inertiajs/react';
 
 const VendorProjects = lazy(() => import('@/pages/vendors/components/VendorProjects.jsx'));
 const EditVendorDialog = lazy(() => import("@/pages/vendors/components/EditVendorDialog.jsx"));
@@ -53,7 +54,7 @@ const VendorInvoices = lazy(() => import('@/pages/vendors/components/VendorInvoi
 const Remarks = lazy(() => import("@/components/custom/Remarks.jsx"));
 
 export default function ShowVendor({ vendor }) {
-    const [activeTab, setActiveTab] = useState('overview');
+    const [activeTab, setActiveTab] = useRemember('overview','vendor-detail-tab');
     const [editDialogOpen, setEditDialogOpen] = useState(false);
 
     const { purchase_orders, remarks, financial_summary } = vendor;
