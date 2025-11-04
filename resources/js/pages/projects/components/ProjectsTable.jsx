@@ -77,8 +77,8 @@ export default function ProjectsTable({ projects, filters = {}, stats = {} }) {
         });
 
         router.get('/projects', updatedFilters, {
-            preserveState: true,
-            preserveScroll: true,
+            // preserveState: true,
+            // preserveScroll: true,
         });
     };
 
@@ -166,10 +166,10 @@ export default function ProjectsTable({ projects, filters = {}, stats = {} }) {
                                 <Search className="h-3.5 w-3.5" />
                                 <span className="font-medium">Active Filters:</span>
                             </div>
-                            
+
                             {searchTerm && (
-                                <Badge 
-                                    variant="secondary" 
+                                <Badge
+                                    variant="secondary"
                                     className="gap-1.5 pl-2 pr-1 py-1 bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100"
                                 >
                                     <Search className="h-3 w-3" />
@@ -184,10 +184,10 @@ export default function ProjectsTable({ projects, filters = {}, stats = {} }) {
                                     </button>
                                 </Badge>
                             )}
-                            
+
                             {projectType && (
-                                <Badge 
-                                    variant="secondary" 
+                                <Badge
+                                    variant="secondary"
                                     className="gap-1.5 pl-2 pr-1 py-1 bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100"
                                 >
                                     <FolderOpen className="h-3 w-3" />
@@ -202,10 +202,10 @@ export default function ProjectsTable({ projects, filters = {}, stats = {} }) {
                                     </button>
                                 </Badge>
                             )}
-                            
+
                             {projectStatus && (
-                                <Badge 
-                                    variant="secondary" 
+                                <Badge
+                                    variant="secondary"
                                     className="gap-1.5 pl-2 pr-1 py-1 bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
                                 >
                                     <FileText className="h-3 w-3" />
@@ -220,10 +220,10 @@ export default function ProjectsTable({ projects, filters = {}, stats = {} }) {
                                     </button>
                                 </Badge>
                             )}
-                            
+
                             {sortField && (
-                                <Badge 
-                                    variant="secondary" 
+                                <Badge
+                                    variant="secondary"
                                     className="gap-1.5 pl-2 pr-1 py-1 bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100"
                                 >
                                     {sortDirection === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
@@ -242,7 +242,7 @@ export default function ProjectsTable({ projects, filters = {}, stats = {} }) {
                                     </button>
                                 </Badge>
                             )}
-                            
+
                             <button
                                 onClick={clearFilters}
                                 className="text-xs text-slate-500 hover:text-slate-700 underline ml-1"
