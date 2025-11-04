@@ -100,22 +100,30 @@ export default function ProjectsTable({ projects, filters = {}, stats = {} }) {
     };
 
     const handleTypeChange = (value) => {
-        setProjectType(value);
-        handleFilterChange({ project_type: value, page: 1 });
+        const filterValue = value === 'all' ? '' : value;
+        setProjectType(filterValue);
+        handleFilterChange({ project_type: filterValue, page: 1 });
     };
 
     const handleStatusChange = (value) => {
-        setProjectStatus(value);
-        handleFilterChange({ project_status: value, page: 1 });
+        const filterValue = value === 'all' ? '' : value;
+        setProjectStatus(filterValue);
+        handleFilterChange({ project_status: filterValue, page: 1 });
     };
 
     const clearFilters = () => {
+        // Reset all local state
         setSearchTerm('');
         setProjectType('');
         setProjectStatus('');
         setSortField('');
         setSortDirection('asc');
-        handleFilterChange({ search: '', project_type: '', project_status: '', sort_field: '', sort_direction: '', page: 1 });
+
+        // Make a single navigation request with no filters
+        router.get('/projects', {}, {
+            preserveState: true,
+            preserveScroll: true,
+        });
     };
 
     function handleEdit(project){
