@@ -417,7 +417,7 @@ export default function PurchaseOrderTable({ purchaseOrders, filters, filterOpti
                         </div>
 
                         {/* Active Filters Indicator */}
-                        {(localFilters.search || localFilters.vendor !== 'all' || localFilters.project !== 'all') && (
+                        {(localFilters.search || localFilters.vendor !== 'all' || localFilters.project !== 'all' || localFilters.status !== 'all') && (
                             <div className="mb-4 flex flex-wrap items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 p-3">
                                 <div className="flex items-center gap-2 text-sm font-medium text-blue-700">
                                     <AlertCircle className="h-4 w-4" />
@@ -459,11 +459,40 @@ export default function PurchaseOrderTable({ purchaseOrders, filters, filterOpti
                                         </button>
                                     </Badge>
                                 )}
+                                {localFilters.status !== 'all' && (
+                                    <Badge variant="secondary" className="bg-white border border-blue-200">
+                                        <AlertCircle className="mr-1 h-3 w-3" />
+                                        Status: {localFilters.status.charAt(0).toUpperCase() + localFilters.status.slice(1)}
+                                        <button
+                                            onClick={() => handleFilterChange('status', 'all')}
+                                            className="ml-1.5 rounded-full hover:bg-gray-200"
+                                        >
+                                            <XCircle className="h-3 w-3" />
+                                        </button>
+                                    </Badge>
+                                )}
                                 <button
                                     onClick={() => {
-                                        handleFilterChange('search', '');
-                                        handleFilterChange('vendor', 'all');
-                                        handleFilterChange('project', 'all');
+                                        // Reset all local state
+                                        setLocalFilters({
+                                            search: '',
+                                            status: 'all',
+                                            vendor: 'all',
+                                            project: 'all',
+                                        });
+                                        setActiveTab('all');
+                                        setVendorSearch('');
+                                        setProjectSearch('');
+
+                                        // Make a single navigation request with only sort params preserved
+                                        router.get('/purchase-orders', {
+                                            sort_field: sortField,
+                                            sort_direction: sortDirection,
+                                        }, {
+                                            preserveState: true,
+                                            replace: true,
+                                            only: ['purchaseOrders', 'filters'],
+                                        });
                                     }}
                                     className="ml-auto text-xs text-blue-600 hover:text-blue-800 font-medium underline"
                                 >

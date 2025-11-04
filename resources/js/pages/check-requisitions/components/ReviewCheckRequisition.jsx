@@ -35,6 +35,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import {
+    Collapsible,
+    CollapsibleContent,
+    CollapsibleTrigger,
+} from '@/components/ui/collapsible';
+import {
     ArrowLeft,
     FileText,
     CheckCircle,
@@ -50,16 +55,15 @@ import {
     History,
     Eye,
     Download,
+    ChevronDown,
+    ChevronUp,
+    AlertTriangle,
+    CheckCircle2,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import {
-    Tabs,
-    TabsContent,
-    TabsList,
-    TabsTrigger,
-} from '@/components/ui/tabs';
 import StatusBadge from '@/components/custom/StatusBadge.jsx';
 import BackButton from '@/components/custom/BackButton.jsx';
+import ActivityTimeline from '@/components/custom/ActivityTimeline.jsx';
 
 export default function ReviewCheckRequisition({
                                                    checkRequisition,
@@ -207,76 +211,93 @@ export default function ReviewCheckRequisition({
         return Math.abs(totalInvoice - parseFloat(checkRequisition.php_amount)) < 0.01;
     };
 
+    const [invoicesExpanded, setInvoicesExpanded] = useState(false);
+    const [detailsExpanded, setDetailsExpanded] = useState(false);
+    const [documentsExpanded, setDocumentsExpanded] = useState(false);
+    const [activityExpanded, setActivityExpanded] = useState(false);
+
     const canApprove = checkRequisition.requisition_status === 'pending_approval';
     const isApproved = checkRequisition.requisition_status === 'approved';
     const isRejected = checkRequisition.requisition_status === 'rejected';
 
+    // Validation checks
+    const allInvoicesReady = invoices?.every(inv => inv.invoice_status === 'pending_disbursement') || false;
+    const hasInvoices = invoices && invoices.length > 0;
+    const hasPurpose = checkRequisition.purpose && checkRequisition.purpose.trim().length > 0;
+    const hasRequestedBy = checkRequisition.requested_by && checkRequisition.requested_by.trim().length > 0;
+
+    const validationChecks = [
+        {
+            label: 'Amount matches invoices',
+            passed: isAmountMatching(),
+            critical: true,
+        },
+        {
+            label: 'All invoices ready for disbursement',
+            passed: allInvoicesReady,
+            critical: true,
+        },
+        {
+            label: 'Has associated invoices',
+            passed: hasInvoices,
+            critical: true,
+        },
+        {
+            label: 'Purpose documented',
+            passed: hasPurpose,
+            critical: false,
+        },
+        {
+            label: 'Requester identified',
+            passed: hasRequestedBy,
+            critical: false,
+        },
+    ];
+
+    const criticalChecksPassed = validationChecks.filter(check => check.critical).every(check => check.passed);
+    const allChecksPassed = validationChecks.every(check => check.passed);
+
     return (
-        <div className="py-6">
+        <div className="min-h-screen bg-slate-50">
             <Head title={`Review - ${checkRequisition.requisition_number}`} />
 
-            <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
-                {/* Header */}
-                <div className="flex justify-between items-center mb-6">
-                    <div className="flex items-center gap-4">
-                        <BackButton />
-                        <div>
-                            <h1 className="text-xl font-semibold text-slate-800">
-                                Review Check Requisition
-                            </h1>
-                            <p className="text-xs text-slate-500">
-                                {checkRequisition.requisition_number}
-                            </p>
+            {/* Header */}
+            <div className="bg-white border-b sticky top-0 z-10">
+                <div className="max-w-[1800px] mx-auto px-6 py-4">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                            <BackButton />
+                            <div>
+                                <div className="flex items-center gap-3">
+                                    <h1 className="text-lg font-semibold text-slate-800">
+                                        Review Check Requisition
+                                    </h1>
+                                    <StatusBadge status={checkRequisition.requisition_status} />
+                                </div>
+                                <p className="text-sm text-slate-600 mt-0.5">
+                                    {checkRequisition.requisition_number} • {checkRequisition.payee_name} • {formatCurrency(checkRequisition.php_amount)}
+                                </p>
+                            </div>
                         </div>
-                    </div>
 
-                    <div className="flex gap-2">
-                        {canApprove && (
-                            <>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => setUploadDialog(true)}
-                                    className="border-blue-300 text-blue-700 hover:bg-blue-50"
-                                >
-                                    <Upload className="mr-2 h-4 w-4" />
-                                    Upload Signed
-                                </Button>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => setRejectionDialog(true)}
-                                    className="border-red-300 text-red-700 hover:bg-red-50"
-                                >
-                                    <XCircle className="mr-2 h-4 w-4" />
-                                    Reject
-                                </Button>
-                                <Button
-                                    size="sm"
-                                    onClick={() => setApprovalDialog(true)}
-                                    className="bg-green-600 hover:bg-green-700"
-                                >
-                                    <CheckCircle className="mr-2 h-4 w-4" />
-                                    Approve
-                                </Button>
-                            </>
-                        )}
                         {mainPdfFile && (
                             <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => handleViewFile(mainPdfFile.file_path)}
+                                onClick={() => handleDownloadFile(mainPdfFile)}
                             >
-                                <Eye className="mr-2 h-4 w-4" />
-                                View PDF
+                                <Download className="mr-2 h-4 w-4" />
+                                Download PDF
                             </Button>
                         )}
                     </div>
                 </div>
+            </div>
 
-                {/* Status Alert */}
+            {/* Status Alerts */}
+            <div className="max-w-[1800px] mx-auto px-6 py-4">
                 {isApproved && (
-                    <Alert className="mb-6 border-green-200 bg-green-50">
+                    <Alert className="border-green-200 bg-green-50 mb-4">
                         <CheckCircle className="h-4 w-4 text-green-600" />
                         <AlertTitle className="text-green-800">Approved</AlertTitle>
                         <AlertDescription className="text-green-700">
@@ -286,7 +307,7 @@ export default function ReviewCheckRequisition({
                 )}
 
                 {isRejected && (
-                    <Alert className="mb-6 border-red-200 bg-red-50">
+                    <Alert className="border-red-200 bg-red-50 mb-4">
                         <XCircle className="h-4 w-4 text-red-600" />
                         <AlertTitle className="text-red-800">Rejected</AlertTitle>
                         <AlertDescription className="text-red-700">
@@ -294,377 +315,413 @@ export default function ReviewCheckRequisition({
                         </AlertDescription>
                     </Alert>
                 )}
+            </div>
 
-                {!isAmountMatching() && (
-                    <Alert variant="destructive" className="mb-6">
-                        <AlertCircle className="h-4 w-4" />
-                        <AlertDescription>
-                            Amount mismatch: Check requisition ({formatCurrency(checkRequisition.php_amount)}) vs Total invoices ({formatCurrency(calculateTotalInvoiceAmount())})
-                        </AlertDescription>
-                    </Alert>
-                )}
-
-                <Tabs defaultValue="details" className="space-y-4">
-                    <TabsList>
-                        <TabsTrigger value="details">
-                            <FileText className="mr-2 h-4 w-4" />
-                            Details
-                        </TabsTrigger>
-                        <TabsTrigger value="invoices">
-                            <FileCheck className="mr-2 h-4 w-4" />
-                            Invoices ({invoices?.length || 0})
-                        </TabsTrigger>
-                        <TabsTrigger value="documents">
-                            <Upload className="mr-2 h-4 w-4" />
-                            Documents ({files?.length || 0})
-                        </TabsTrigger>
-                        <TabsTrigger value="activity">
-                            <History className="mr-2 h-4 w-4" />
-                            Activity Logs ({activityLogs?.length || 0})
-                        </TabsTrigger>
-                    </TabsList>
-
-                    {/* Details Tab */}
-                    <TabsContent value="details" className="space-y-4">
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                            {/* Summary Cards */}
-                            <Card className="border-blue-200 bg-blue-50">
-                                <CardContent className="p-4">
-                                    <div className="flex items-center justify-between">
-                                        <div>
-                                            <p className="text-xs text-blue-600 font-medium">Status</p>
-                                            <div className="mt-2">
-                                                <StatusBadge status={checkRequisition.requisition_status} />
-                                            </div>
-                                        </div>
-                                        <Clock className="h-10 w-10 text-blue-300" />
+            {/* Split Screen Layout */}
+            <div className="max-w-[1800px] mx-auto px-6 pb-4">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    {/* Left Panel - PDF Viewer */}
+                    <div>
+                        <Card className="h-[calc(100vh-180px)] flex flex-col">
+                            <CardHeader className="py-2 px-4">
+                                <div className="flex items-center justify-between">
+                                    <CardTitle className="text-sm">Document Preview</CardTitle>
+                                    {mainPdfFile && (
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => handleViewFile(mainPdfFile.file_path)}
+                                            className="h-7 text-xs"
+                                        >
+                                            <Eye className="mr-1.5 h-3.5 w-3.5" />
+                                            Open in New Tab
+                                        </Button>
+                                    )}
+                                </div>
+                            </CardHeader>
+                            <CardContent className="flex-1 p-0 overflow-hidden">
+                                {mainPdfFile ? (
+                                    <iframe
+                                        src={`/storage/${mainPdfFile.file_path}#toolbar=0`}
+                                        className="w-full h-full border-0"
+                                        title="Check Requisition PDF"
+                                    />
+                                ) : (
+                                    <div className="flex flex-col items-center justify-center h-full text-slate-400">
+                                        <FileText className="h-12 w-12 mb-2" />
+                                        <p className="text-sm">No PDF document available</p>
                                     </div>
+                                )}
+                            </CardContent>
+                        </Card>
+                    </div>
+
+                    {/* Right Panel - Review Information */}
+                    <div className="flex flex-col h-[calc(100vh-180px)]">
+                        {/* Validation Checklist - Compact */}
+                        <Card className={!isAmountMatching() || !allInvoicesReady ? 'border-amber-200 mb-3' : 'border-slate-200 mb-3'}>
+                            <CardHeader className="py-2 px-3">
+                                <div className="flex items-center justify-between">
+                                    <CardTitle className="text-sm flex items-center gap-2">
+                                        {allChecksPassed ? (
+                                            <CheckCircle2 className="h-4 w-4 text-green-600" />
+                                        ) : criticalChecksPassed ? (
+                                            <AlertCircle className="h-4 w-4 text-amber-600" />
+                                        ) : (
+                                            <AlertTriangle className="h-4 w-4 text-red-600" />
+                                        )}
+                                        Validation
+                                    </CardTitle>
+                                    <Badge variant={allChecksPassed ? 'default' : criticalChecksPassed ? 'secondary' : 'destructive'} className="text-xs h-5">
+                                        {validationChecks.filter(c => c.passed).length}/{validationChecks.length}
+                                    </Badge>
+                                </div>
+                            </CardHeader>
+                            <CardContent className="space-y-1.5 pt-0 pb-2 px-3">
+                                {validationChecks.map((check, index) => (
+                                    <div
+                                        key={index}
+                                        className={`flex items-center justify-between p-2 rounded ${
+                                            check.passed
+                                                ? 'bg-green-50 border border-green-200'
+                                                : check.critical
+                                                    ? 'bg-red-50 border border-red-200'
+                                                    : 'bg-amber-50 border border-amber-200'
+                                        }`}
+                                    >
+                                        <div className="flex items-center gap-1.5">
+                                            {check.passed ? (
+                                                <CheckCircle className="h-3.5 w-3.5 text-green-600" />
+                                            ) : (
+                                                <XCircle className="h-3.5 w-3.5 text-red-600" />
+                                            )}
+                                            <span className={`text-xs font-medium ${
+                                                check.passed ? 'text-green-800' : 'text-red-800'
+                                            }`}>
+                                                {check.label}
+                                            </span>
+                                        </div>
+                                        {check.critical && !check.passed && (
+                                            <Badge variant="destructive" className="text-xs h-4 px-1.5">Critical</Badge>
+                                        )}
+                                    </div>
+                                ))}
+                            </CardContent>
+                        </Card>
+
+                        {/* Compact Summary */}
+                        <div className="grid grid-cols-3 gap-2 mb-3">
+                            <Card className="border-slate-200">
+                                <CardContent className="p-2">
+                                    <p className="text-xs text-slate-600 font-medium">Amount</p>
+                                    <p className="text-base font-bold text-slate-900">
+                                        {formatCurrency(checkRequisition.php_amount)}
+                                    </p>
                                 </CardContent>
                             </Card>
-
-                            <Card className="border-green-200 bg-green-50">
-                                <CardContent className="p-4">
-                                    <div className="flex items-center justify-between">
-                                        <div>
-                                            <p className="text-xs text-green-600 font-medium">Amount</p>
-                                            <p className="text-lg font-bold text-green-900 mt-1">
-                                                {formatCurrency(checkRequisition.php_amount)}
-                                            </p>
-                                        </div>
-                                        <DollarSign className="h-10 w-10 text-green-300" />
-                                    </div>
+                            <Card className="border-slate-200">
+                                <CardContent className="p-2">
+                                    <p className="text-xs text-slate-600 font-medium">Invoices</p>
+                                    <p className="text-base font-bold text-slate-900">
+                                        {invoices?.length || 0}
+                                    </p>
                                 </CardContent>
                             </Card>
-
-                            <Card className="border-purple-200 bg-purple-50">
-                                <CardContent className="p-4">
-                                    <div className="flex items-center justify-between">
-                                        <div>
-                                            <p className="text-xs text-purple-600 font-medium">Payee</p>
-                                            <p className="text-sm font-semibold text-purple-900 mt-1 truncate">
-                                                {checkRequisition.payee_name}
-                                            </p>
-                                        </div>
-                                        <User className="h-10 w-10 text-purple-300" />
-                                    </div>
+                            <Card className="border-slate-200">
+                                <CardContent className="p-2">
+                                    <p className="text-xs text-slate-600 font-medium">Date</p>
+                                    <p className="text-xs font-semibold text-slate-900">
+                                        {formatDate(checkRequisition.request_date)}
+                                    </p>
                                 </CardContent>
                             </Card>
                         </div>
 
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Requisition Information</CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-6">
-                                {/* Payment Information */}
-                                <div>
-                                    <h3 className="text-sm font-semibold uppercase text-muted-foreground mb-3">
-                                        Payment Information
-                                    </h3>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <label className="text-xs text-muted-foreground">Payee</label>
-                                            <p className="text-base font-semibold mt-1">{checkRequisition.payee_name}</p>
-                                        </div>
-                                        <div>
-                                            <label className="text-xs text-muted-foreground">Amount</label>
-                                            <p className="text-base font-semibold mt-1">{formatCurrency(checkRequisition.php_amount)}</p>
-                                        </div>
-                                        <div className="col-span-2">
-                                            <label className="text-xs text-muted-foreground">Amount in Words</label>
-                                            <p className="text-sm mt-1 italic bg-slate-50 p-2 rounded">{checkRequisition.amount_in_words}</p>
-                                        </div>
-                                        <div>
-                                            <label className="text-xs text-muted-foreground">Request Date</label>
-                                            <p className="text-sm mt-1">{formatDate(checkRequisition.request_date)}</p>
-                                        </div>
-                                    </div>
-                                </div>
+                        {/* Scrollable Details Section */}
+                        <div className="flex-1 overflow-y-auto space-y-2 pr-1"
+                             style={{ scrollbarWidth: 'thin' }}>
 
-                                <Separator />
-
-                                {/* Reference Numbers */}
-                                <div>
-                                    <h3 className="text-sm font-semibold uppercase text-muted-foreground mb-3">
-                                        Reference Documents
-                                    </h3>
-                                    <div className="grid grid-cols-3 gap-4">
-                                        <div>
-                                            <label className="text-xs text-muted-foreground">PO Number</label>
-                                            <p className="text-sm font-mono mt-1 bg-slate-50 p-2 rounded">{checkRequisition.po_number || 'N/A'}</p>
-                                        </div>
-                                        <div>
-                                            <label className="text-xs text-muted-foreground">CER Number</label>
-                                            <p className="text-sm font-mono mt-1 bg-slate-50 p-2 rounded">{checkRequisition.cer_number || 'N/A'}</p>
-                                        </div>
-                                        <div>
-                                            <label className="text-xs text-muted-foreground">SI Number</label>
-                                            <p className="text-sm font-mono mt-1 bg-slate-50 p-2 rounded">{checkRequisition.si_number || 'N/A'}</p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <Separator />
-
-                                {/* Purpose */}
-                                <div>
-                                    <h3 className="text-sm font-semibold uppercase text-muted-foreground mb-3">
-                                        Purpose
-                                    </h3>
-                                    <p className="text-sm whitespace-pre-wrap bg-slate-50 p-3 rounded">{checkRequisition.purpose}</p>
-                                </div>
-
-                                <Separator />
-
-                                {/* Signatories */}
-                                <div>
-                                    <h3 className="text-sm font-semibold uppercase text-muted-foreground mb-3">
-                                        Signatories
-                                    </h3>
-                                    <div className="grid grid-cols-3 gap-4">
-                                        <div className="bg-blue-50 p-3 rounded border border-blue-200">
-                                            <label className="text-xs text-blue-600 font-medium">Requested By</label>
-                                            <p className="text-sm font-medium mt-1">{checkRequisition.requested_by}</p>
-                                        </div>
-                                        <div className="bg-purple-50 p-3 rounded border border-purple-200">
-                                            <label className="text-xs text-purple-600 font-medium">Reviewed By</label>
-                                            <p className="text-sm font-medium mt-1">{checkRequisition.reviewed_by || 'Pending'}</p>
-                                        </div>
-                                        <div className="bg-green-50 p-3 rounded border border-green-200">
-                                            <label className="text-xs text-green-600 font-medium">Approved By</label>
-                                            <p className="text-sm font-medium mt-1">{checkRequisition.approved_by || 'Pending'}</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
-
-                    {/* Invoices Tab */}
-                    <TabsContent value="invoices">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Associated Invoices</CardTitle>
-                                <CardDescription>
-                                    {invoices?.length || 0} invoice(s) attached to this requisition
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                {invoices && invoices.length > 0 ? (
-                                    <div className="border rounded-lg overflow-hidden">
-                                        <Table>
-                                            <TableHeader>
-                                                <TableRow className="bg-muted/50">
-                                                    <TableHead>SI Number</TableHead>
-                                                    <TableHead>Date</TableHead>
-                                                    <TableHead className="text-right">Invoice Amount</TableHead>
-                                                    <TableHead className="text-right">Tax</TableHead>
-                                                    <TableHead className="text-right">Discount</TableHead>
-                                                    <TableHead className="text-right">Net Amount</TableHead>
-                                                    <TableHead>Status</TableHead>
-                                                </TableRow>
-                                            </TableHeader>
-                                            <TableBody>
-                                                {invoices.map((invoice) => (
-                                                    <TableRow key={invoice.id} className="hover:bg-slate-50">
-                                                        <TableCell className="font-mono text-sm">
-                                                            {invoice.si_number}
-                                                        </TableCell>
-                                                        <TableCell className="text-sm">
-                                                            {formatDate(invoice.si_date)}
-                                                        </TableCell>
-                                                        <TableCell className="text-sm text-right">
-                                                            {formatCurrency(invoice.invoice_amount)}
-                                                        </TableCell>
-                                                        <TableCell className="text-sm text-right text-red-600">
-                                                            {formatCurrency(invoice.tax_amount || 0)}
-                                                        </TableCell>
-                                                        <TableCell className="text-sm text-right text-green-600">
-                                                            {formatCurrency(invoice.discount_amount || 0)}
-                                                        </TableCell>
-                                                        <TableCell className="text-sm text-right font-medium">
-                                                            {formatCurrency(invoice.net_amount)}
-                                                        </TableCell>
-                                                        <TableCell>
-                                                            <StatusBadge status={invoice.invoice_status} size="sm" />
-                                                        </TableCell>
-                                                    </TableRow>
-                                                ))}
-                                                <TableRow className="bg-muted/30 font-semibold">
-                                                    <TableCell colSpan={5} className="text-right">
-                                                        Total:
-                                                    </TableCell>
-                                                    <TableCell className="text-right text-blue-600">
-                                                        {formatCurrency(calculateTotalInvoiceAmount())}
-                                                    </TableCell>
-                                                    <TableCell>
+                            {/* Invoices Summary - Collapsible */}
+                            <Collapsible open={invoicesExpanded} onOpenChange={setInvoicesExpanded}>
+                                <Card className="border-slate-200">
+                                    <CollapsibleTrigger className="w-full">
+                                        <CardHeader className="py-2 px-3">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-2">
+                                                    <FileCheck className="h-3.5 w-3.5 text-slate-600" />
+                                                    <CardTitle className="text-sm">
+                                                        Invoices ({invoices?.length || 0})
+                                                    </CardTitle>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <div className="flex items-center gap-1.5">
+                                                        <span className="text-xs text-slate-600">Total:</span>
+                                                        <span className={`text-xs font-bold ${
+                                                            isAmountMatching() ? 'text-green-600' : 'text-red-600'
+                                                        }`}>
+                                                            {formatCurrency(calculateTotalInvoiceAmount())}
+                                                        </span>
                                                         {isAmountMatching() ? (
-                                                            <Badge variant="outline" className="text-xs bg-green-50 border-green-300">
-                                                                <CheckCircle className="mr-1 h-3 w-3" />
-                                                                Matched
-                                                            </Badge>
+                                                            <CheckCircle className="h-3.5 w-3.5 text-green-600" />
                                                         ) : (
-                                                            <Badge variant="outline" className="text-xs bg-red-50 border-red-300">
-                                                                <AlertCircle className="mr-1 h-3 w-3" />
-                                                                Mismatch
-                                                            </Badge>
+                                                            <AlertTriangle className="h-3.5 w-3.5 text-red-600" />
                                                         )}
-                                                    </TableCell>
-                                                </TableRow>
-                                            </TableBody>
-                                        </Table>
-                                    </div>
-                                ) : (
-                                    <div className="text-center py-10 text-slate-500">
-                                        <FileText className="mx-auto h-12 w-12 text-slate-300 mb-3" />
-                                        <p>No invoices attached</p>
-                                    </div>
-                                )}
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
-
-                    {/* Documents Tab */}
-                    <TabsContent value="documents">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Documents</CardTitle>
-                                <CardDescription>
-                                    All files related to this check requisition
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                {files && files.length > 0 ? (
-                                    <div className="space-y-3">
-                                        {files.map((file) => (
-                                            <div
-                                                key={file.id}
-                                                className="flex items-center justify-between p-4 border rounded-lg hover:bg-slate-50 transition-colors"
-                                            >
-                                                <div className="flex items-center gap-3 flex-1 min-w-0">
-                                                    <div className="p-2 bg-blue-100 rounded">
-                                                        <FileText className="h-5 w-5 text-blue-600" />
                                                     </div>
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className="text-sm font-medium truncate">{file.file_name}</p>
-                                                        <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
-                                                            <span>{(file.file_size / 1024).toFixed(2)} KB</span>
-                                                            <span>•</span>
-                                                            <span className="capitalize">{file.file_purpose?.replace('_', ' ')}</span>
-                                                            <span>•</span>
-                                                            <span>{formatDateTime(file.created_at)}</span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div className="flex gap-2">
-                                                    <Button
-                                                        variant="outline"
-                                                        size="sm"
-                                                        onClick={() => handleViewFile(file.file_path)}
-                                                    >
-                                                        <Eye className="h-4 w-4" />
-                                                    </Button>
-                                                    <Button
-                                                        variant="outline"
-                                                        size="sm"
-                                                        onClick={() => handleDownloadFile(file)}
-                                                    >
-                                                        <Download className="h-4 w-4" />
-                                                    </Button>
+                                                    {invoicesExpanded ? (
+                                                        <ChevronUp className="h-3.5 w-3.5 text-slate-600" />
+                                                    ) : (
+                                                        <ChevronDown className="h-3.5 w-3.5 text-slate-600" />
+                                                    )}
                                                 </div>
                                             </div>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <div className="text-center py-10 text-slate-500">
-                                        <Upload className="mx-auto h-12 w-12 text-slate-300 mb-3" />
-                                        <p>No documents uploaded</p>
-                                    </div>
-                                )}
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
-
-                    {/* Activity Logs Tab */}
-                    <TabsContent value="activity">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Activity Logs</CardTitle>
-                                <CardDescription>
-                                    Complete history of actions on this requisition
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                {activityLogs && activityLogs.length > 0 ? (
-                                    <div className="space-y-4">
-                                        {activityLogs.map((log) => (
-                                            <div
-                                                key={log.id}
-                                                className="flex gap-4 p-4 border rounded-lg"
-                                            >
-                                                <div className="flex-shrink-0">
-                                                    <div className="p-2 bg-slate-100 rounded-full">
-                                                        <History className="h-4 w-4 text-slate-600" />
-                                                    </div>
+                                        </CardHeader>
+                                    </CollapsibleTrigger>
+                                    <CollapsibleContent>
+                                        <CardContent className="pt-0 px-3 pb-3">
+                                            {invoices && invoices.length > 0 ? (
+                                                <div className="border rounded overflow-hidden">
+                                                    <Table>
+                                                        <TableHeader>
+                                                            <TableRow className="bg-muted/50">
+                                                                <TableHead className="text-xs py-2">SI Number</TableHead>
+                                                                <TableHead className="text-xs py-2">Date</TableHead>
+                                                                <TableHead className="text-xs text-right py-2">Net Amount</TableHead>
+                                                                <TableHead className="text-xs py-2">Status</TableHead>
+                                                            </TableRow>
+                                                        </TableHeader>
+                                                        <TableBody>
+                                                            {invoices.map((invoice) => (
+                                                                <TableRow key={invoice.id}>
+                                                                    <TableCell className="font-mono text-xs py-1.5">
+                                                                        {invoice.si_number}
+                                                                    </TableCell>
+                                                                    <TableCell className="text-xs py-1.5">
+                                                                        {formatDate(invoice.si_date)}
+                                                                    </TableCell>
+                                                                    <TableCell className="text-xs text-right font-medium py-1.5">
+                                                                        {formatCurrency(invoice.net_amount)}
+                                                                    </TableCell>
+                                                                    <TableCell className="py-1.5">
+                                                                        <StatusBadge status={invoice.invoice_status} size="sm" />
+                                                                    </TableCell>
+                                                                </TableRow>
+                                                            ))}
+                                                        </TableBody>
+                                                    </Table>
                                                 </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="flex items-start justify-between gap-2">
-                                                        <div className="flex-1">
-                                                            <p className="text-sm font-medium text-slate-900">
-                                                                {log.action}
-                                                            </p>
-                                                            {log.notes && (
-                                                                <p className="text-sm text-slate-600 mt-1">
-                                                                    {log.notes}
-                                                                </p>
-                                                            )}
-                                                            {log.changes && (
-                                                                <div className="mt-2 p-2 bg-slate-50 rounded text-xs font-mono">
-                                                                    {log.changes}
+                                            ) : (
+                                                <div className="text-center py-6 text-slate-400">
+                                                    <FileText className="mx-auto h-8 w-8 mb-1.5" />
+                                                    <p className="text-xs">No invoices attached</p>
+                                                </div>
+                                            )}
+                                        </CardContent>
+                                    </CollapsibleContent>
+                                </Card>
+                            </Collapsible>
+
+                            {/* Details - Collapsible */}
+                            <Collapsible open={detailsExpanded} onOpenChange={setDetailsExpanded}>
+                                <Card className="border-slate-200">
+                                    <CollapsibleTrigger className="w-full">
+                                        <CardHeader className="py-2 px-3">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-2">
+                                                    <FileText className="h-3.5 w-3.5 text-slate-600" />
+                                                    <CardTitle className="text-sm">Full Details</CardTitle>
+                                                </div>
+                                                {detailsExpanded ? (
+                                                    <ChevronUp className="h-3.5 w-3.5 text-slate-600" />
+                                                ) : (
+                                                    <ChevronDown className="h-3.5 w-3.5 text-slate-600" />
+                                                )}
+                                            </div>
+                                        </CardHeader>
+                                    </CollapsibleTrigger>
+                                    <CollapsibleContent>
+                                        <CardContent className="pt-0 px-3 pb-3 space-y-2">
+                                            <div>
+                                                <label className="text-xs text-muted-foreground font-medium">Purpose</label>
+                                                <p className="text-xs mt-1 bg-slate-50 p-2 rounded whitespace-pre-wrap">
+                                                    {checkRequisition.purpose}
+                                                </p>
+                                            </div>
+                                            <Separator />
+                                            <div className="grid grid-cols-3 gap-2">
+                                                <div>
+                                                    <label className="text-xs text-muted-foreground font-medium">PO Number</label>
+                                                    <p className="text-xs font-mono mt-1">{checkRequisition.po_number || 'N/A'}</p>
+                                                </div>
+                                                <div>
+                                                    <label className="text-xs text-muted-foreground font-medium">CER Number</label>
+                                                    <p className="text-xs font-mono mt-1">{checkRequisition.cer_number || 'N/A'}</p>
+                                                </div>
+                                                <div>
+                                                    <label className="text-xs text-muted-foreground font-medium">SI Number</label>
+                                                    <p className="text-xs font-mono mt-1">{checkRequisition.si_number || 'N/A'}</p>
+                                                </div>
+                                            </div>
+                                            <Separator />
+                                            <div className="grid grid-cols-3 gap-2">
+                                                <div className="bg-blue-50 p-2 rounded border border-blue-200">
+                                                    <label className="text-xs text-blue-600 font-medium">Requested By</label>
+                                                    <p className="text-xs font-medium mt-1">{checkRequisition.requested_by}</p>
+                                                </div>
+                                                <div className="bg-purple-50 p-2 rounded border border-purple-200">
+                                                    <label className="text-xs text-purple-600 font-medium">Reviewed By</label>
+                                                    <p className="text-xs font-medium mt-1">{checkRequisition.reviewed_by || 'Pending'}</p>
+                                                </div>
+                                                <div className="bg-green-50 p-2 rounded border border-green-200">
+                                                    <label className="text-xs text-green-600 font-medium">Approved By</label>
+                                                    <p className="text-xs font-medium mt-1">{checkRequisition.approved_by || 'Pending'}</p>
+                                                </div>
+                                            </div>
+                                        </CardContent>
+                                    </CollapsibleContent>
+                                </Card>
+                            </Collapsible>
+
+                            {/* Documents - Collapsible */}
+                            <Collapsible open={documentsExpanded} onOpenChange={setDocumentsExpanded}>
+                                <Card className="border-slate-200">
+                                    <CollapsibleTrigger className="w-full">
+                                        <CardHeader className="py-2 px-3">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-2">
+                                                    <Upload className="h-3.5 w-3.5 text-slate-600" />
+                                                    <CardTitle className="text-sm">Documents ({files?.length || 0})</CardTitle>
+                                                </div>
+                                                {documentsExpanded ? (
+                                                    <ChevronUp className="h-3.5 w-3.5 text-slate-600" />
+                                                ) : (
+                                                    <ChevronDown className="h-3.5 w-3.5 text-slate-600" />
+                                                )}
+                                            </div>
+                                        </CardHeader>
+                                    </CollapsibleTrigger>
+                                    <CollapsibleContent>
+                                        <CardContent className="pt-0 px-3 pb-3">
+                                            {files && files.length > 0 ? (
+                                                <div className="space-y-1.5">
+                                                    {files.map((file) => (
+                                                        <div
+                                                            key={file.id}
+                                                            className="flex items-center justify-between p-2 border rounded hover:bg-slate-50"
+                                                        >
+                                                            <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                                                                <FileText className="h-3.5 w-3.5 text-blue-600 flex-shrink-0" />
+                                                                <div className="flex-1 min-w-0">
+                                                                    <p className="text-xs font-medium truncate">{file.file_name}</p>
+                                                                    <p className="text-xs text-muted-foreground">{(file.file_size / 1024).toFixed(2)} KB</p>
                                                                 </div>
-                                                            )}
+                                                            </div>
+                                                            <div className="flex gap-1">
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    onClick={() => handleViewFile(file.file_path)}
+                                                                    className="h-6 w-6 p-0"
+                                                                >
+                                                                    <Eye className="h-3 w-3" />
+                                                                </Button>
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    onClick={() => handleDownloadFile(file)}
+                                                                    className="h-6 w-6 p-0"
+                                                                >
+                                                                    <Download className="h-3 w-3" />
+                                                                </Button>
+                                                            </div>
                                                         </div>
-                                                        <Badge variant="outline" className="text-xs">
-                                                            {log.user?.name || 'System'}
-                                                        </Badge>
-                                                    </div>
-                                                    <p className="text-xs text-muted-foreground mt-2">
-                                                        {formatDateTime(log.created_at)}
-                                                    </p>
+                                                    ))}
                                                 </div>
+                                            ) : (
+                                                <div className="text-center py-6 text-slate-400">
+                                                    <Upload className="mx-auto h-8 w-8 mb-1.5" />
+                                                    <p className="text-xs">No additional documents</p>
+                                                </div>
+                                            )}
+                                        </CardContent>
+                                    </CollapsibleContent>
+                                </Card>
+                            </Collapsible>
+
+                            {/* Activity Logs - Collapsible */}
+                            <Collapsible open={activityExpanded} onOpenChange={setActivityExpanded}>
+                                <Card className="border-slate-200">
+                                    <CollapsibleTrigger className="w-full">
+                                        <CardHeader className="py-2 px-3">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-2">
+                                                    <History className="h-3.5 w-3.5 text-slate-600" />
+                                                    <CardTitle className="text-sm">Activity Logs ({activityLogs?.length || 0})</CardTitle>
+                                                </div>
+                                                {activityExpanded ? (
+                                                    <ChevronUp className="h-3.5 w-3.5 text-slate-600" />
+                                                ) : (
+                                                    <ChevronDown className="h-3.5 w-3.5 text-slate-600" />
+                                                )}
                                             </div>
-                                        ))}
+                                        </CardHeader>
+                                    </CollapsibleTrigger>
+                                    <CollapsibleContent>
+                                        <CardContent className="pt-0 px-3 pb-3">
+                                            <ActivityTimeline activity_logs={activityLogs} />
+                                        </CardContent>
+                                    </CollapsibleContent>
+                                </Card>
+                            </Collapsible>
+                        </div>
+
+                        {/* Fixed Action Panel */}
+                        {canApprove && (
+                            <Card className="border-slate-300 bg-white shadow-lg mt-3">
+                                <CardContent className="p-3">
+                                    <div className="flex items-center justify-between gap-3">
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-xs font-semibold text-slate-900">Ready to review?</p>
+                                            <p className="text-xs text-slate-600 truncate">
+                                                {criticalChecksPassed
+                                                    ? 'All critical validations passed'
+                                                    : 'Critical checks failed'}
+                                            </p>
+                                        </div>
+                                        <div className="flex gap-1.5 flex-shrink-0">
+                                            <Button
+                                                variant="outline"
+                                                onClick={() => setUploadDialog(true)}
+                                                size="sm"
+                                                className="border-blue-300 text-blue-700 hover:bg-blue-50 h-8 text-xs"
+                                            >
+                                                <Upload className="mr-1.5 h-3.5 w-3.5" />
+                                                Upload
+                                            </Button>
+                                            <Button
+                                                variant="outline"
+                                                onClick={() => setRejectionDialog(true)}
+                                                size="sm"
+                                                className="border-red-300 text-red-700 hover:bg-red-50 h-8 text-xs"
+                                            >
+                                                <XCircle className="mr-1.5 h-3.5 w-3.5" />
+                                                Reject
+                                            </Button>
+                                            <Button
+                                                onClick={() => setApprovalDialog(true)}
+                                                disabled={!criticalChecksPassed}
+                                                size="sm"
+                                                className="bg-green-600 hover:bg-green-700 disabled:bg-slate-300 h-8 text-xs"
+                                            >
+                                                <CheckCircle className="mr-1.5 h-3.5 w-3.5" />
+                                                Approve
+                                            </Button>
+                                        </div>
                                     </div>
-                                ) : (
-                                    <div className="text-center py-10 text-slate-500">
-                                        <MessageSquare className="mx-auto h-12 w-12 text-slate-300 mb-3" />
-                                        <p>No activity logs yet</p>
-                                    </div>
-                                )}
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
-                </Tabs>
+                                </CardContent>
+                            </Card>
+                        )}
+                    </div>
+                </div>
             </div>
 
             {/* Approval Dialog */}

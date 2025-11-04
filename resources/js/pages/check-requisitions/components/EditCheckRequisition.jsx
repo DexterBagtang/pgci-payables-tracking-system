@@ -135,31 +135,31 @@ const EditCheckRequisition = ({ checkRequisition, currentInvoices, availableInvo
     }, [filteredInvoices]);
 
     // populate form when selecting invoices
-    useEffect(() => {
-        if (selectedInvoices.size > 0) {
-            const selectedInvs = allInvoices.filter((inv) => selectedInvoices.has(inv.id));
-            const firstInvoice = selectedInvs[0];
-
-            const uniqueVendors = new Set(selectedInvs.map((inv) => inv.purchase_order?.vendor?.name || inv.vendor?.name).filter(Boolean));
-
-            const payeeName =
-                uniqueVendors.size === 1 ? firstInvoice?.purchase_order?.vendor?.name || firstInvoice?.vendor?.name || '' : 'Multiple Vendors';
-
-            const siNumbersFormatted = formatSINumbers(selectedInvs);
-
-            setData({
-                ...data,
-                php_amount: selectedTotal,
-                amount_in_words: numberToWords(selectedTotal),
-                payee_name: payeeName,
-                po_number: firstInvoice?.purchase_order?.po_number || '',
-                cer_number: firstInvoice?.purchase_order?.project?.cer_number || '',
-                si_number: siNumbersFormatted,
-                purpose: `Payment for Invoice(s) ${siNumbersFormatted}`,
-                invoice_ids: Array.from(selectedInvoices),
-            });
-        }
-    }, [selectedInvoices, selectedTotal]);
+    // useEffect(() => {
+    //     if (selectedInvoices.size > 0) {
+    //         const selectedInvs = allInvoices.filter((inv) => selectedInvoices.has(inv.id));
+    //         const firstInvoice = selectedInvs[0];
+    //
+    //         const uniqueVendors = new Set(selectedInvs.map((inv) => inv.purchase_order?.vendor?.name || inv.vendor?.name).filter(Boolean));
+    //
+    //         const payeeName =
+    //             uniqueVendors.size === 1 ? firstInvoice?.purchase_order?.vendor?.name || firstInvoice?.vendor?.name || '' : 'Multiple Vendors';
+    //
+    //         const siNumbersFormatted = formatSINumbers(selectedInvs);
+    //
+    //         setData({
+    //             ...data,
+    //             php_amount: selectedTotal,
+    //             amount_in_words: numberToWords(selectedTotal),
+    //             payee_name: payeeName,
+    //             po_number: firstInvoice?.purchase_order?.po_number || '',
+    //             cer_number: firstInvoice?.purchase_order?.project?.cer_number || '',
+    //             si_number: siNumbersFormatted,
+    //             purpose: `Payment for Invoice(s) ${siNumbersFormatted}`,
+    //             invoice_ids: Array.from(selectedInvoices),
+    //         });
+    //     }
+    // }, [selectedInvoices, selectedTotal]);
 
     const handleInvoiceToggle = (invoiceId) => {
         setSelectedInvoices((prev) => {
@@ -448,7 +448,7 @@ const EditCheckRequisition = ({ checkRequisition, currentInvoices, availableInvo
                                 <div>
                                     <Label className="text-xs">Purpose</Label>
                                     <Textarea
-                                        rows={2}
+                                        rows={8}
                                         value={data.purpose}
                                         onChange={(e) => setData('purpose', e.target.value)}
                                         className="text-sm"

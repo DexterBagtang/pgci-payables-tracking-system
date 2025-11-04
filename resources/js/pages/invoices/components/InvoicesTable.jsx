@@ -299,7 +299,7 @@ const InvoicesTable = ({ invoices, filters, filterOptions, statusCounts, current
                         </div>
 
                         {/* Active Filters Indicator */}
-                        {(searchValue || vendor !== 'all' || project !== 'all' || purchaseOrder !== 'all') && (
+                        {(searchValue || vendor !== 'all' || project !== 'all' || purchaseOrder !== 'all' || statusFilter !== 'all') && (
                             <div className="mb-4 flex flex-wrap items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 p-3">
                                 <div className="flex items-center gap-2 text-sm font-medium text-blue-700">
                                     <Filter className="h-4 w-4" />
@@ -353,12 +353,39 @@ const InvoicesTable = ({ invoices, filters, filterOptions, statusCounts, current
                                         </button>
                                     </Badge>
                                 )}
+                                {statusFilter !== 'all' && (
+                                    <Badge variant="secondary" className="bg-white border border-blue-200">
+                                        <Filter className="mr-1 h-3 w-3" />
+                                        Status: {statusFilter.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                                        <button
+                                            onClick={() => handleStatusChange('all')}
+                                            className="ml-1.5 rounded-full hover:bg-gray-200"
+                                        >
+                                            <XCircle className="h-3 w-3" />
+                                        </button>
+                                    </Badge>
+                                )}
                                 <button
                                     onClick={() => {
+                                        // Reset all local state
                                         setSearchValue('');
-                                        handleVendorChange('all');
-                                        handleProjectChange('all');
-                                        handlePurchaseOrderChange('all');
+                                        setVendor('all');
+                                        setProject('all');
+                                        setPurchaseOrder('all');
+                                        setStatusFilter('all');
+                                        setActiveTab('all');
+                                        setVendorSearch('');
+                                        setProjectSearch('');
+                                        setPurchaseOrderSearch('');
+
+                                        // Make a single navigation request with only sort params preserved
+                                        router.get('/invoices', {
+                                            sort_field: sortField,
+                                            sort_direction: sortDirection,
+                                        }, {
+                                            preserveState: true,
+                                            preserveScroll: true,
+                                        });
                                     }}
                                     className="ml-auto text-xs text-blue-600 hover:text-blue-800 font-medium underline"
                                 >
