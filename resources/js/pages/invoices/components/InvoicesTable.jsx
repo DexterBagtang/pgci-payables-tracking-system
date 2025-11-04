@@ -367,23 +367,12 @@ const InvoicesTable = ({ invoices, filters, filterOptions, statusCounts, current
                                 )}
                                 <button
                                     onClick={() => {
-                                        // Reset all local state
-                                        setSearchValue('');
-                                        setVendor('all');
-                                        setProject('all');
-                                        setPurchaseOrder('all');
-                                        setStatusFilter('all');
-                                        setActiveTab('all');
-                                        setVendorSearch('');
-                                        setProjectSearch('');
-                                        setPurchaseOrderSearch('');
-
                                         // Make a single navigation request with only sort params preserved
+                                        // Don't use preserveState so component fully resets
                                         router.get('/invoices', {
                                             sort_field: sortField,
                                             sort_direction: sortDirection,
                                         }, {
-                                            preserveState: true,
                                             preserveScroll: true,
                                         });
                                     }}

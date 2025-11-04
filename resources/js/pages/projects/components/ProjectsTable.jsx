@@ -112,16 +112,9 @@ export default function ProjectsTable({ projects, filters = {}, stats = {} }) {
     };
 
     const clearFilters = () => {
-        // Reset all local state
-        setSearchTerm('');
-        setProjectType('');
-        setProjectStatus('');
-        setSortField('');
-        setSortDirection('asc');
-
         // Make a single navigation request with no filters
+        // Don't use preserveState so component fully resets from props
         router.get('/projects', {}, {
-            preserveState: true,
             preserveScroll: true,
         });
     };
@@ -288,12 +281,6 @@ export default function ProjectsTable({ projects, filters = {}, stats = {} }) {
                                     <SelectItem value="cancelled">Cancelled</SelectItem>
                                 </SelectContent>
                             </Select>
-
-                            {hasActiveFilters && (
-                                <Button variant="outline" onClick={clearFilters}>
-                                    Clear Filters
-                                </Button>
-                            )}
                         </div>
                     </div>
 

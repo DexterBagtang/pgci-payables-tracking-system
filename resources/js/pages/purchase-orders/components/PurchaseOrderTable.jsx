@@ -473,25 +473,13 @@ export default function PurchaseOrderTable({ purchaseOrders, filters, filterOpti
                                 )}
                                 <button
                                     onClick={() => {
-                                        // Reset all local state
-                                        setLocalFilters({
-                                            search: '',
-                                            status: 'all',
-                                            vendor: 'all',
-                                            project: 'all',
-                                        });
-                                        setActiveTab('all');
-                                        setVendorSearch('');
-                                        setProjectSearch('');
-
                                         // Make a single navigation request with only sort params preserved
+                                        // Don't use preserveState so component fully resets
                                         router.get('/purchase-orders', {
                                             sort_field: sortField,
                                             sort_direction: sortDirection,
                                         }, {
-                                            preserveState: true,
-                                            replace: true,
-                                            only: ['purchaseOrders', 'filters'],
+                                            preserveScroll: true,
                                         });
                                     }}
                                     className="ml-auto text-xs text-blue-600 hover:text-blue-800 font-medium underline"
