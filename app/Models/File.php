@@ -28,6 +28,7 @@ class File extends Model
         'description',
         'is_active',
         'uploaded_by',
+        'version',
     ];
 
     /**
@@ -40,6 +41,7 @@ class File extends Model
         return [
             'file_size' => 'integer',
             'is_active' => 'boolean',
+            'version' => 'integer',
         ];
     }
 
@@ -82,6 +84,43 @@ class File extends Model
     public function scopeDocuments($query)
     {
         return $query->where('file_category', 'document');
+    }
+
+    /**
+     * Get the latest version for a specific fileable and purpose
+     */
+    public function scopeLatestVersion($query, $fileableType, $fileableId, $purpose)
+    {
+        return $query->where('fileable_type', $fileableType)
+                     ->where('fileable_id', $fileableId)
+                     ->where('file_purpose', $purpose)
+                     ->orderBy('version', 'desc')
+                     ->first();
+    }
+
+    /**
+     * Get all versions for a specific fileable and purpose
+     */
+    public function scopeAllVersions($query, $fileableType, $fileableId, $purpose)
+    {
+        return $query->where('fileable_type', $fileableType)
+                     ->where('fileable_id', $fileableId)
+                     ->where('file_purpose', $purpose)
+                     ->orderBy('version', 'desc');
+    }
+
+    /**
+     * Get the next version number for a specific fileable and purpose
+     */
+    public static function getNextVersion($fileableType, $fileableId, $purpose)
+    {
+        $latestFile = static::where('fileable_type', $fileableType)
+                           ->where('fileable_id', $fileableId)
+                           ->where('file_purpose', $purpose)
+                           ->orderBy('version', 'desc')
+                           ->first();
+
+        return $latestFile ? $latestFile->version + 1 : 1;
     }
 
     /**

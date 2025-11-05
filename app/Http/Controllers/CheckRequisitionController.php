@@ -185,8 +185,8 @@ class CheckRequisitionController extends Controller
                 'checkReq' => $checkReq
             ])->render();
 
-            // Generate filename and path
-            $filename = 'check_requisition_' . $checkReq->requisition_number . '.pdf';
+            // Generate filename and path (with version for consistency)
+            $filename = 'check_requisition_' . $checkReq->requisition_number . '_v1.pdf';
             $path = 'check_requisitions/' . $filename;
 
             // Ensure directory exists
@@ -222,7 +222,8 @@ class CheckRequisitionController extends Controller
                 'file_size' => Storage::disk('public')->size($path),
                 'disk' => 'public',
                 'is_active' => true,
-                'uploaded_by' => auth()->id()
+                'uploaded_by' => auth()->id(),
+                'version' => 1
             ]);
 
         } catch (\Exception $e) {
@@ -367,28 +368,21 @@ class CheckRequisitionController extends Controller
         }
 
         try {
-            // Delete old PDF if exists
-            $oldPdf = $checkRequisition->files()
-                ->where('file_purpose', 'check_requisition')
-                ->first();
-
-            if ($oldPdf) {
-                // Delete physical file
-//                if (Storage::disk('public')->exists($oldPdf->file_path)) {
-//                    Storage::disk('public')->delete($oldPdf->file_path);
-//                }
-                // Delete database record
-//                $oldPdf->delete();
-                // Instead of deleting, mark as inactive
-                $oldPdf->update(['is_active' => false]);
-            }
+            // Get next version number for versioning
+            $nextVersion = File::getNextVersion(
+                CheckRequisition::class,
+                $checkRequisition->id,
+                'check_requisition'
+            );
 
             // Regenerate PDF with updated data
             $html = view('pdf.check-requisition-v2', [
                 'checkReq' => $checkRequisition->fresh(['invoices'])
             ])->render();
 
-            $filename = 'check_requisition_' . $checkRequisition->requisition_number . '.pdf';
+            // Generate versioned filename
+            $baseFilename = 'check_requisition_' . $checkRequisition->requisition_number;
+            $filename = $baseFilename . '_v' . $nextVersion . '.pdf';
             $path = 'check_requisitions/' . $filename;
 
             if (!Storage::disk('public')->exists('check_requisitions')) {
@@ -402,7 +396,7 @@ class CheckRequisitionController extends Controller
                 ->margins(10, 10, 10, 10)
                 ->save(storage_path('app/public/' . $path));
 
-            // Create new file record
+            // Create new versioned file record (all versions remain active)
             File::create([
                 'fileable_type' => CheckRequisition::class,
                 'fileable_id' => $checkRequisition->id,
@@ -414,7 +408,8 @@ class CheckRequisitionController extends Controller
                 'file_size' => Storage::disk('public')->size($path),
                 'disk' => 'public',
                 'is_active' => true,
-                'uploaded_by' => auth()->id()
+                'uploaded_by' => auth()->id(),
+                'version' => $nextVersion
             ]);
 
         } catch (\Exception $e) {

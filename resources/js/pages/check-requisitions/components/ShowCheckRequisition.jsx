@@ -67,13 +67,18 @@ import AttachmentViewer from '@/pages/invoices/components/AttachmentViewer.jsx';
 import ActivityTimeline from '@/components/custom/ActivityTimeline.jsx';
 
 export default function ShowCheckRequisition({ checkRequisition, invoices, files, purchaseOrder }) {
-    console.log(checkRequisition);
+    console.log(files);
     const [searchInvoice, setSearchInvoice] = useState('');
     const [invoiceFilter, setInvoiceFilter] = useState('all');
     const [showCalculator, setShowCalculator] = useState(false);
     const [tab, setTab] = useRemember('details','check-details-tab')
 
-    const mainPdfFile = files?.find(f => f.file_purpose === 'check_requisition');
+    // Get all check requisition versions sorted by version (latest first)
+    const checkReqVersions = files?.filter(f => f.file_purpose === 'check_requisition')
+        .sort((a, b) => (b.version || 0) - (a.version || 0)) || [];
+
+    // Latest version is the first one
+    const mainPdfFile = checkReqVersions[0];
 
     const formatCurrency = (amount) => {
         return new Intl.NumberFormat('en-PH', {
@@ -358,7 +363,7 @@ return (
                                 <TabsList className="grid w-full grid-cols-4 mb-6">
                                     <TabsTrigger value="details">Details</TabsTrigger>
                                     <TabsTrigger value="invoices">Invoices ({invoices?.length || 0})</TabsTrigger>
-                                    <TabsTrigger value="documents">Documents ({files?.length || 0})</TabsTrigger>
+                                    <TabsTrigger value="documents">Document </TabsTrigger>
                                     <TabsTrigger value="audit">Activity Logs</TabsTrigger>
                                 </TabsList>
 
@@ -594,13 +599,76 @@ return (
 
                                 {/* Documents Tab */}
                                 <TabsContent value="documents" className="space-y-6">
-                                    {/* Generated Document */}
+                                    {/* Generated Document - Latest Version */}
                                     {mainPdfFile && (
                                         <div>
-                                            <h3 className="text-sm font-semibold uppercase text-muted-foreground mb-3">
-                                                Generated Document
-                                            </h3>
+                                            <div className="flex items-center justify-between mb-3">
+                                                <h3 className="text-sm font-semibold uppercase text-muted-foreground">
+                                                    Generated Document {checkReqVersions.length > 1 && `(Latest - v${mainPdfFile.version})`}
+                                                </h3>
+                                                {checkReqVersions.length > 1 && (
+                                                    <Badge variant="secondary" className="text-xs">
+                                                        {checkReqVersions.length} version{checkReqVersions.length > 1 ? 's' : ''} available
+                                                    </Badge>
+                                                )}
+                                            </div>
                                             <AttachmentViewer files={[mainPdfFile]} />
+                                        </div>
+                                    )}
+
+                                    {/* Previous Versions */}
+                                    {checkReqVersions.length > 1 && (
+                                        <div>
+                                            <h3 className="text-sm font-semibold uppercase text-muted-foreground mb-3">
+                                                Previous Versions ({checkReqVersions.length - 1})
+                                            </h3>
+                                            <div className="space-y-4">
+                                                {checkReqVersions.slice(1).map((file, index) => (
+                                                    <div key={file.id} className="border rounded-lg p-4">
+                                                        <div className="flex items-start justify-between mb-2">
+                                                            <div className="flex items-center gap-2">
+                                                                <FileText className="h-5 w-5 text-muted-foreground" />
+                                                                <div>
+                                                                    <p className="text-sm font-medium">
+                                                                        Version {file.version}
+                                                                    </p>
+                                                                    <p className="text-xs text-muted-foreground">
+                                                                        {file.file_name} • {(file.file_size / 1024).toFixed(2)} KB
+                                                                    </p>
+                                                                    <p className="text-xs text-muted-foreground">
+                                                                        Created: {formatDateTime(file.created_at)}
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                            <div className="flex gap-2">
+                                                                <Button
+                                                                    variant="outline"
+                                                                    size="sm"
+                                                                    onClick={() => window.open(`/storage/${file.file_path}`, '_blank')}
+                                                                >
+                                                                    <Eye className="h-4 w-4 mr-1" />
+                                                                    View
+                                                                </Button>
+                                                                <Button
+                                                                    variant="outline"
+                                                                    size="sm"
+                                                                    onClick={() => {
+                                                                        const link = document.createElement('a');
+                                                                        link.href = `/storage/${file.file_path}`;
+                                                                        link.download = file.file_name;
+                                                                        document.body.appendChild(link);
+                                                                        link.click();
+                                                                        document.body.removeChild(link);
+                                                                    }}
+                                                                >
+                                                                    <Download className="h-4 w-4 mr-1" />
+                                                                    Download
+                                                                </Button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
                                         </div>
                                     )}
 
