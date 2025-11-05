@@ -221,7 +221,12 @@ export default function ReviewCheckRequisition({
     const isRejected = checkRequisition.requisition_status === 'rejected';
 
     // Validation checks
-    const allInvoicesReady = invoices?.every(inv => inv.invoice_status === 'pending_disbursement') || false;
+    // const allInvoicesReady = invoices?.every(inv => inv.invoice_status === 'pending_disbursement') || false;
+    const allInvoicesReady =
+        invoices?.every(inv =>
+            ['pending_disbursement', 'approved'].includes(inv.invoice_status)
+        ) || false;
+
     const hasInvoices = invoices && invoices.length > 0;
     const hasPurpose = checkRequisition.purpose && checkRequisition.purpose.trim().length > 0;
     const hasRequestedBy = checkRequisition.requested_by && checkRequisition.requested_by.trim().length > 0;
