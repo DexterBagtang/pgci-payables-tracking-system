@@ -447,7 +447,7 @@ export default function CheckReqTable({ checkRequisitions, filters, filterOption
                                             <TableRow
                                                 key={requisition.id}
                                                 onClick={() => router.get(`/check-requisitions/${requisition.id}`)}
-                                                className="cursor-pointer hover:bg-slate-50"
+                                                className="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50"
                                             >
                                                 {/* Requisition Number */}
                                                 <TableCell className="font-medium">

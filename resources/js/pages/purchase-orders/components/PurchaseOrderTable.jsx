@@ -625,7 +625,7 @@ export default function PurchaseOrderTable({ purchaseOrders, filters, filterOpti
                                                 <TableRow
                                                     key={po.id}
                                                     onClick={() => router.get(`/purchase-orders/${po.id}`)}
-                                                    className="cursor-pointer hover:bg-slate-50"
+                                                    className="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50"
                                                 >
                                                     {/* PO Number */}
                                                     <TableCell className="font-medium">
@@ -740,7 +740,10 @@ export default function PurchaseOrderTable({ purchaseOrders, filters, filterOpti
                                                                             variant="ghost"
                                                                             size="icon"
                                                                             className="h-8 w-8"
-                                                                            onClick={() => router.get(`/purchase-orders/${po.id}`)}
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                router.get(`/purchase-orders/${po.id}`);
+                                                                            }}
                                                                         >
                                                                             <Eye className="h-4 w-4" />
                                                                         </Button>

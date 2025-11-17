@@ -7,7 +7,8 @@ import {
     MapPin,
     Phone,
     Calendar,
-    Edit
+    Edit,
+    Eye
 } from 'lucide-react';
 
 export default function VendorRow({ vendor, isSelected, onSelect, onEdit }) {
@@ -34,12 +35,16 @@ export default function VendorRow({ vendor, isSelected, onSelect, onEdit }) {
     };
 
     return (
-        <tr className={`group transition-all hover:bg-muted/30 border-b border-gray-100 dark:border-gray-800 ${isSelected ? 'bg-blue-50' : ''}`}>
+        <tr
+            className={`group transition-all cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 border-b border-gray-100 dark:border-gray-800 ${isSelected ? 'bg-blue-50' : ''}`}
+            onClick={() => router.get(`/vendors/${vendor.id}`)}
+        >
             {/* Checkbox Column */}
             <td className="px-3 py-4">
                 <Checkbox
                     checked={isSelected}
                     onCheckedChange={() => onSelect(vendor.id)}
+                    onClick={(e) => e.stopPropagation()}
                     aria-label={`Select ${vendor.name}`}
                 />
             </td>
@@ -53,10 +58,7 @@ export default function VendorRow({ vendor, isSelected, onSelect, onEdit }) {
                         </span>
                     </div>
                     <div>
-                        <div
-                            className="font-semibold text-gray-900 dark:text-gray-100 hover:underline hover:cursor-pointer"
-                            onClick={() => router.get(`/vendors/${vendor.id}`)}
-                        >
+                        <div className="font-semibold text-gray-900 dark:text-gray-100">
                             {vendor.name}
                         </div>
                     </div>
@@ -71,6 +73,7 @@ export default function VendorRow({ vendor, isSelected, onSelect, onEdit }) {
                 {vendor.email ? (
                     <a
                         href={`mailto:${vendor.email}`}
+                        onClick={(e) => e.stopPropagation()}
                         className="text-blue-600 transition-colors hover:text-blue-800 hover:underline flex items-center"
                     >
                         <Mail className="h-3.5 w-3.5 mr-1.5" />
@@ -83,7 +86,10 @@ export default function VendorRow({ vendor, isSelected, onSelect, onEdit }) {
                     </span>
                 )}
                 {vendor.phone ? (
-                    <a className="text-blue-600 transition-colors hover:text-blue-800 hover:underline flex items-center">
+                    <a
+                        onClick={(e) => e.stopPropagation()}
+                        className="text-blue-600 transition-colors hover:text-blue-800 hover:underline flex items-center"
+                    >
                         <Phone className="h-3.5 w-3.5 mr-1.5" />
                         {vendor.phone}
                     </a>
@@ -142,15 +148,32 @@ export default function VendorRow({ vendor, isSelected, onSelect, onEdit }) {
 
             {/* Actions */}
             <td className="px-3 py-4">
-                <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onEdit(vendor)}
-                    className="rounded-full h-8 w-8 p-0"
-                    aria-label={`Edit ${vendor.name}`}
-                >
-                    <Edit className="h-4 w-4" />
-                </Button>
+                <div className="flex items-center gap-1">
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            router.get(`/vendors/${vendor.id}`);
+                        }}
+                        className="rounded-full h-8 w-8 p-0"
+                        aria-label={`View ${vendor.name}`}
+                    >
+                        <Eye className="h-4 w-4" />
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onEdit(vendor);
+                        }}
+                        className="rounded-full h-8 w-8 p-0"
+                        aria-label={`Edit ${vendor.name}`}
+                    >
+                        <Edit className="h-4 w-4" />
+                    </Button>
+                </div>
             </td>
         </tr>
     );

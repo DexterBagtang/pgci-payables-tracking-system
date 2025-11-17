@@ -406,7 +406,10 @@ function ProjectRow({ project, onEdit }) {
     };
 
     return (
-        <TableRow className="group transition-all hover:bg-muted border-b border-gray-100 dark:border-gray-800">
+        <TableRow
+            className="group transition-all cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 border-b border-gray-100 dark:border-gray-800"
+            onClick={() => router.get('/projects/' + project.id)}
+        >
             {/* Project Details */}
             <TableCell className="py-4 pl-4 pr-3 max-w-[500px]">
                 <div className="flex items-start">
@@ -486,7 +489,10 @@ function ProjectRow({ project, onEdit }) {
             <TableCell className="px-3 py-4">
                 <div className="flex items-center gap-2">
                     <Button
-                        onClick={() => router.get('/projects/' + project.id)}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            router.get('/projects/' + project.id);
+                        }}
                         variant="ghost"
                         size="sm"
                         className="rounded-full h-8 w-8 p-0"
@@ -495,7 +501,10 @@ function ProjectRow({ project, onEdit }) {
                         <Eye className="h-4 w-4" />
                     </Button>
                     <Button
-                        onClick={() => onEdit(project)}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onEdit(project);
+                        }}
                         variant="ghost"
                         size="sm"
                         className="rounded-full h-8 w-8 p-0"

@@ -530,7 +530,11 @@ const InvoicesTable = ({ invoices, filters, filterOptions, statusCounts, current
                                             const overdueFlag = isOverdue(invoice.due_date, invoice.invoice_status);
 
                                             return (
-                                                <TableRow key={invoice.id} className="hover:bg-slate-50">
+                                                <TableRow
+                                                    key={invoice.id}
+                                                    className="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                                                    onClick={() => router.get(`invoices/${invoice.id}`)}
+                                                >
                                                     {/* Document Numbers */}
                                                     <TableCell className="font-medium">
                                                         <div className="flex flex-col space-y-1">
@@ -684,7 +688,10 @@ const InvoicesTable = ({ invoices, filters, filterOptions, statusCounts, current
                                                                             variant="ghost"
                                                                             size="icon"
                                                                             className="h-8 w-8"
-                                                                            onClick={() => router.get(`invoices/${invoice.id}`)}
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                router.get(`invoices/${invoice.id}`);
+                                                                            }}
                                                                         >
                                                                             <Eye className="h-4 w-4" />
                                                                         </Button>
@@ -702,7 +709,10 @@ const InvoicesTable = ({ invoices, filters, filterOptions, statusCounts, current
                                                                             variant="ghost"
                                                                             size="icon"
                                                                             className="h-8 w-8"
-                                                                            onClick={() => router.get(`/invoices/${invoice.id}/edit`)}
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                router.get(`/invoices/${invoice.id}/edit`);
+                                                                            }}
                                                                         >
                                                                             <Edit className="h-4 w-4" />
                                                                         </Button>
@@ -716,7 +726,12 @@ const InvoicesTable = ({ invoices, filters, filterOptions, statusCounts, current
                                                             <TooltipProvider>
                                                                 <Tooltip>
                                                                     <TooltipTrigger asChild>
-                                                                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                                                                        <Button
+                                                                            variant="ghost"
+                                                                            size="icon"
+                                                                            className="h-8 w-8"
+                                                                            onClick={(e) => e.stopPropagation()}
+                                                                        >
                                                                             <FileCheck className="h-4 w-4" />
                                                                         </Button>
                                                                     </TooltipTrigger>
