@@ -284,7 +284,7 @@ return (
             )}
 
             {/* Financial Summary Cards */}
-            <div className="grid grid-cols-4 gap-4 mb-6 print:hidden">
+            <div className="grid grid-cols-2 gap-4 mb-6 print:hidden">
                 <Card className="border-blue-200 bg-blue-50">
                     <CardContent className="p-4">
                         <div className="flex items-center justify-between">
@@ -304,28 +304,6 @@ return (
                                 <p className="text-lg font-bold text-green-900">{formatCurrency(invoiceStats.totalAmount)}</p>
                             </div>
                             <FileText className="h-8 w-8 text-green-300" />
-                        </div>
-                    </CardContent>
-                </Card>
-                <Card className="border-purple-200 bg-purple-50">
-                    <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-xs text-purple-600 font-medium">Tax Amount</p>
-                                <p className="text-lg font-bold text-purple-900">{formatCurrency(invoiceStats.totalTax)}</p>
-                            </div>
-                            <Calculator className="h-8 w-8 text-purple-300" />
-                        </div>
-                    </CardContent>
-                </Card>
-                <Card className="border-orange-200 bg-orange-50">
-                    <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-xs text-orange-600 font-medium">Discount</p>
-                                <p className="text-lg font-bold text-orange-900">{formatCurrency(invoiceStats.totalDiscount)}</p>
-                            </div>
-                            <TrendingUp className="h-8 w-8 text-orange-300" />
                         </div>
                     </CardContent>
                 </Card>
@@ -509,21 +487,6 @@ return (
                                                 </div>
                                             </div>
 
-                                            {/* Invoice Summary Stats */}
-                                            <div className="grid grid-cols-3 gap-2 mb-3 print:hidden">
-                                                <div className="bg-slate-50 p-2 rounded text-center">
-                                                    <p className="text-xs text-slate-600">Avg Amount</p>
-                                                    <p className="text-sm font-semibold">{formatCurrency(invoiceStats.avgAmount)}</p>
-                                                </div>
-                                                <div className="bg-slate-50 p-2 rounded text-center">
-                                                    <p className="text-xs text-slate-600">Total Tax</p>
-                                                    <p className="text-sm font-semibold">{formatCurrency(invoiceStats.totalTax)}</p>
-                                                </div>
-                                                <div className="bg-slate-50 p-2 rounded text-center">
-                                                    <p className="text-xs text-slate-600">Total Discount</p>
-                                                    <p className="text-sm font-semibold">{formatCurrency(invoiceStats.totalDiscount)}</p>
-                                                </div>
-                                            </div>
 
                                             <div className="border rounded-lg overflow-hidden">
                                                 <Table>
@@ -532,8 +495,6 @@ return (
                                                             <TableHead className="h-9">SI Number</TableHead>
                                                             <TableHead className="h-9">Date</TableHead>
                                                             <TableHead className="h-9 text-right">Invoice Amt</TableHead>
-                                                            <TableHead className="h-9 text-right">Tax</TableHead>
-                                                            <TableHead className="h-9 text-right">Discount</TableHead>
                                                             <TableHead className="h-9 text-right">Net Amount</TableHead>
                                                             <TableHead className="h-9">Status</TableHead>
                                                         </TableRow>
@@ -550,12 +511,6 @@ return (
                                                                 <TableCell className="text-sm text-right py-2">
                                                                     {formatCurrency(invoice.invoice_amount)}
                                                                 </TableCell>
-                                                                <TableCell className="text-sm text-right py-2 text-red-600">
-                                                                    {formatCurrency(invoice.tax_amount || 0)}
-                                                                </TableCell>
-                                                                <TableCell className="text-sm text-right py-2 text-green-600">
-                                                                    {formatCurrency(invoice.discount_amount || 0)}
-                                                                </TableCell>
                                                                 <TableCell className="text-sm text-right font-medium py-2">
                                                                     {formatCurrency(invoice.net_amount)}
                                                                 </TableCell>
@@ -565,7 +520,7 @@ return (
                                                             </TableRow>
                                                         ))}
                                                         <TableRow className="bg-muted/30 font-semibold">
-                                                            <TableCell colSpan={5} className="text-right py-2">
+                                                            <TableCell colSpan={3} className="text-right py-2">
                                                                 Total:
                                                             </TableCell>
                                                             <TableCell className="text-right py-2 text-blue-600">
@@ -762,44 +717,6 @@ return (
                         )}
                     </div>
 
-                    {/* Amount Breakdown */}
-                    <Card>
-                        <CardHeader className="pb-3">
-                            <CardTitle className="text-sm font-semibold uppercase text-muted-foreground">
-                                Amount Breakdown
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-3">
-                            <div className="flex justify-between items-center pb-2 border-b">
-                                <span className="text-xs text-muted-foreground">Gross Amount</span>
-                                <span className="text-sm font-semibold">{formatCurrency(invoiceStats.totalAmount + invoiceStats.totalDiscount)}</span>
-                            </div>
-                            <div className="flex justify-between items-center pb-2 border-b">
-                                <span className="text-xs text-muted-foreground">Discount</span>
-                                <span className="text-sm font-semibold text-green-600">- {formatCurrency(invoiceStats.totalDiscount)}</span>
-                            </div>
-                            <div className="flex justify-between items-center pb-2 border-b">
-                                <span className="text-xs text-muted-foreground">Subtotal</span>
-                                <span className="text-sm font-semibold">{formatCurrency(invoiceStats.totalAmount)}</span>
-                            </div>
-                            <div className="flex justify-between items-center pb-2 border-b">
-                                <span className="text-xs text-muted-foreground">Tax (Included)</span>
-                                <span className="text-sm font-semibold text-red-600">{formatCurrency(invoiceStats.totalTax)}</span>
-                            </div>
-                            <div className="flex justify-between items-center pt-2 bg-blue-50 p-3 rounded -mx-2">
-                                <span className="text-sm font-semibold text-blue-900">Net Payable</span>
-                                <span className="text-lg font-bold text-blue-900">{formatCurrency(checkRequisition.php_amount)}</span>
-                            </div>
-                            {!isAmountMatching() && (
-                                <div className="flex justify-between items-center pt-2 bg-red-50 p-3 rounded -mx-2">
-                                    <span className="text-xs font-semibold text-red-900">Variance</span>
-                                    <span className="text-sm font-bold text-red-900">
-                                            {formatCurrency(Math.abs(amountVariance))}
-                                        </span>
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
                 </div>
             </div>
         </div>

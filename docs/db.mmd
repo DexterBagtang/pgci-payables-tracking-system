@@ -199,6 +199,7 @@ erDiagram
         varchar disk "local, s3, etc."
         text description
         boolean is_active
+        int version "NEW: File version number for tracking revisions"
         int uploaded_by FK
         datetime created_at
         datetime updated_at
