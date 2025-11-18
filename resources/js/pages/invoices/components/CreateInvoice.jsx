@@ -41,13 +41,20 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
     const [bulkFiles, setBulkFiles] = useState([]);
     const [fileMatching, setFileMatching] = useState([]);
 
+    // Single file sharing verification
+    const [showSingleFileDialog, setShowSingleFileDialog] = useState(false);
+    const [pendingSingleFile, setPendingSingleFile] = useState(null);
+
     // Bulk configuration
     const [bulkConfig, setBulkConfig] = useState({
         count: 2,
         siPrefix: '',
+        autoIncrementEnabled: false,
+        startingNumber: 1,
         sharedFields: {
             purchase_order_id: true,
             currency: true,
+            invoice_amount: false,
             si_date: false,
             si_received_at: false,
             terms_of_payment: false,
@@ -60,6 +67,7 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
         sharedValues: {
             purchase_order_id: '',
             currency: 'PHP',
+            invoice_amount: '',
             si_date: '',
             si_received_at: '',
             terms_of_payment: '',
@@ -89,11 +97,25 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
     });
 
     function createEmptyInvoice(index = 0) {
+        // Generate SI number with auto-increment if enabled
+        let siNumber = '';
+        if (bulkConfig.siPrefix) {
+            if (bulkConfig.autoIncrementEnabled) {
+                const currentNumber = bulkConfig.startingNumber + index;
+                // Count digits in prefix to determine padding
+                const prefixMatch = bulkConfig.siPrefix.match(/0+$/);
+                const paddingLength = prefixMatch ? prefixMatch[0].length : 3; // Default to 3 if no zeros
+                siNumber = `${bulkConfig.siPrefix.replace(/0+$/, '')}${String(currentNumber).padStart(paddingLength, '0')}`;
+            } else {
+                siNumber = bulkConfig.siPrefix;
+            }
+        }
+
         const invoice = {
-            si_number: bulkConfig.siPrefix ? `${bulkConfig.siPrefix}` : '',
+            si_number: siNumber,
             si_date: bulkConfig.sharedFields.si_date ? bulkConfig.sharedValues.si_date : '',
             si_received_at: bulkConfig.sharedFields.si_received_at ? bulkConfig.sharedValues.si_received_at : '',
-            invoice_amount: '',
+            invoice_amount: bulkConfig.sharedFields.invoice_amount ? bulkConfig.sharedValues.invoice_amount : '',
             currency: bulkConfig.sharedValues.currency || 'PHP',
             terms_of_payment: bulkConfig.sharedFields.terms_of_payment ? bulkConfig.sharedValues.terms_of_payment : '',
             other_payment_terms: bulkConfig.sharedFields.other_payment_terms ? bulkConfig.sharedValues.other_payment_terms : '',
@@ -164,6 +186,14 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
             toast.error('Some files were too large (max 10MB per file) and were not selected.');
         }
 
+        // Check if single file uploaded with multiple invoices
+        if (validFiles.length === 1 && bulkInvoices.length > 1) {
+            setPendingSingleFile(validFiles[0]);
+            setShowSingleFileDialog(true);
+            e.target.value = '';
+            return;
+        }
+
         // Match files to invoices
         const matches = validFiles.map((file) => {
             const match = matchFileToInvoice(file.name, bulkInvoices);
@@ -225,6 +255,45 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
                 : m
         ));
     }, [fileMatching, bulkInvoices]);
+
+    // Handle single file sharing confirmation
+    const handleShareSingleFile = useCallback(() => {
+        if (!pendingSingleFile) return;
+
+        // Assign the same file to all invoices
+        bulkInvoices.forEach((invoice, index) => {
+            const existingFiles = invoice.files || [];
+            updateBulkInvoice(index, 'files', [...existingFiles, pendingSingleFile]);
+        });
+
+        toast.success(`File "${pendingSingleFile.name}" has been assigned to all ${bulkInvoices.length} invoices.`);
+        setShowSingleFileDialog(false);
+        setPendingSingleFile(null);
+    }, [pendingSingleFile, bulkInvoices]);
+
+    // Handle single file assignment to one invoice
+    const handleAssignSingleFileToOne = useCallback(() => {
+        if (!pendingSingleFile) return;
+
+        // Add the file as a match for manual assignment
+        const match = matchFileToInvoice(pendingSingleFile.name, bulkInvoices);
+        const newMatch = {
+            file: pendingSingleFile,
+            ...match,
+        };
+
+        setFileMatching(prev => [...prev, newMatch]);
+
+        // If matched, auto-assign it
+        if (match.matched && match.invoiceIndex !== null) {
+            const invoice = bulkInvoices[match.invoiceIndex];
+            const existingFiles = invoice.files || [];
+            updateBulkInvoice(match.invoiceIndex, 'files', [...existingFiles, pendingSingleFile]);
+        }
+
+        setShowSingleFileDialog(false);
+        setPendingSingleFile(null);
+    }, [pendingSingleFile, bulkInvoices, matchFileToInvoice]);
 
     // Generate bulk invoices based on configuration
     const generateBulkInvoices = useCallback(() => {
@@ -293,6 +362,7 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
     const sharedFieldOptions = [
         { key: 'purchase_order_id', label: 'Purchase Order', required: true },
         { key: 'currency', label: 'Currency', required: true },
+        { key: 'invoice_amount', label: 'Invoice Amount' },
         { key: 'si_date', label: 'SI Date' },
         { key: 'si_received_at', label: 'SI Received Date' },
         { key: 'terms_of_payment', label: 'Payment Terms' },
@@ -433,12 +503,18 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
                 newErrors.submitted_at = 'Submission date is required';
             }
 
+            // Validate shared invoice amount
+            if (bulkConfig.sharedFields.invoice_amount && !bulkConfig.sharedValues.invoice_amount) {
+                newErrors.invoice_amount = 'Shared invoice amount is required';
+            }
+
             // Validate each bulk invoice
             bulkInvoices.forEach((invoice, index) => {
                 if (!invoice.si_number) newErrors[`bulk_${index}_si_number`] = `Invoice ${index + 1}: SI Number is required`;
                 if (!bulkConfig.sharedFields.si_date && !invoice.si_date)
                     newErrors[`bulk_${index}_si_date`] = `Invoice ${index + 1}: SI Date is required`;
-                if (!invoice.invoice_amount) newErrors[`bulk_${index}_invoice_amount`] = `Invoice ${index + 1}: Amount is required`;
+                if (!bulkConfig.sharedFields.invoice_amount && !invoice.invoice_amount)
+                    newErrors[`bulk_${index}_invoice_amount`] = `Invoice ${index + 1}: Amount is required`;
                 if (!bulkConfig.sharedFields.terms_of_payment && !invoice.terms_of_payment)
                     newErrors[`bulk_${index}_terms_of_payment`] = `Invoice ${index + 1}: Payment terms are required`;
                 if (invoice.terms_of_payment === 'others' && !bulkConfig.sharedFields.terms_of_payment && !invoice.other_payment_terms) {
@@ -516,9 +592,12 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
                     setBulkConfig({
                         count: 2,
                         siPrefix: '',
+                        autoIncrementEnabled: false,
+                        startingNumber: 1,
                         sharedFields: {
                             purchase_order_id: true,
                             currency: true,
+                            invoice_amount: false,
                             si_date: false,
                             si_received_at: false,
                             terms_of_payment: true,
@@ -531,6 +610,7 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
                         sharedValues: {
                             purchase_order_id: '',
                             currency: 'PHP',
+                            invoice_amount: '',
                             si_date: '',
                             si_received_at: '',
                             terms_of_payment: '',
@@ -962,6 +1042,99 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
                                 className="bg-blue-600 text-white hover:bg-blue-700"
                             >
                                 {processing ? 'Processing...' : `Confirm & Submit ${isBulkMode ? `(${bulkInvoices.length})` : ''}`}
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+
+                {/* Single File Sharing Verification Dialog */}
+                <Dialog open={showSingleFileDialog} onOpenChange={setShowSingleFileDialog}>
+                    <DialogContent className="max-w-2xl">
+                        <DialogHeader>
+                            <DialogTitle className="flex items-center">
+                                <FileStack className="mr-2 h-5 w-5 text-blue-600" />
+                                Single File Detected
+                            </DialogTitle>
+                            <DialogDescription className="text-sm">
+                                You've uploaded a single file with {bulkInvoices.length} invoices. How would you like to handle this file?
+                            </DialogDescription>
+                        </DialogHeader>
+
+                        <div className="space-y-4">
+                            {/* File Info */}
+                            <div className="rounded border bg-slate-50 p-4">
+                                <div className="flex items-center gap-3">
+                                    <FileText className="h-8 w-8 text-blue-600" />
+                                    <div className="flex-1">
+                                        <p className="font-medium text-slate-900">{pendingSingleFile?.name}</p>
+                                        <p className="text-sm text-slate-500">
+                                            {pendingSingleFile && (pendingSingleFile.size / 1024 / 1024).toFixed(2)} MB
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Options */}
+                            <div className="space-y-3">
+                                <div className="rounded border-2 border-blue-200 bg-blue-50/50 p-4">
+                                    <div className="mb-2 flex items-start gap-2">
+                                        <AlertCircle className="mt-0.5 h-5 w-5 text-blue-600" />
+                                        <div className="flex-1">
+                                            <h4 className="font-semibold text-blue-900">Share with all invoices</h4>
+                                            <p className="text-sm text-blue-700">
+                                                This file contains multiple pages with all {bulkInvoices.length} invoices.
+                                                The same file will be attached to all invoices.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <Button
+                                        type="button"
+                                        onClick={handleShareSingleFile}
+                                        className="mt-3 w-full bg-blue-600 text-white hover:bg-blue-700"
+                                    >
+                                        <Check className="mr-2 h-4 w-4" />
+                                        Yes, Share with All {bulkInvoices.length} Invoices
+                                    </Button>
+                                </div>
+
+                                <div className="rounded border bg-slate-50 p-4">
+                                    <div className="mb-2">
+                                        <h4 className="font-semibold text-slate-900">Assign to one invoice only</h4>
+                                        <p className="text-sm text-slate-600">
+                                            This file belongs to a single invoice. I'll assign it manually.
+                                        </p>
+                                    </div>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={handleAssignSingleFileToOne}
+                                        className="mt-3 w-full"
+                                    >
+                                        <Receipt className="mr-2 h-4 w-4" />
+                                        No, Assign to One Invoice
+                                    </Button>
+                                </div>
+                            </div>
+
+                            {/* Info Box */}
+                            <div className="rounded border border-slate-200 bg-slate-50 p-3">
+                                <p className="text-xs text-slate-600">
+                                    <strong>Tip:</strong> If your PDF contains all invoices in one file (e.g., 10 invoices in a single PDF),
+                                    choose "Share with all invoices". If it's a single invoice file, choose "Assign to one invoice".
+                                </p>
+                            </div>
+                        </div>
+
+                        <DialogFooter>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => {
+                                    setShowSingleFileDialog(false);
+                                    setPendingSingleFile(null);
+                                }}
+                            >
+                                Cancel
                             </Button>
                         </DialogFooter>
                     </DialogContent>

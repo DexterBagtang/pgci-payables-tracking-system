@@ -68,8 +68,8 @@ export default function BulkMode({
                                     <TableHead className="w-[50px] text-xs font-medium">#</TableHead>
                                     <TableHead className="w-[180px] text-xs font-medium">SI Number *</TableHead>
                                     {!bulkConfig.sharedFields.si_date && <TableHead className="text-xs font-medium">SI Date *</TableHead>}
-                                    <TableHead className="text-xs font-medium">Amount *</TableHead>
-                                    <TableHead className="text-center text-xs font-medium">VAT</TableHead>
+                                    {!bulkConfig.sharedFields.invoice_amount && <TableHead className="text-xs font-medium">Amount *</TableHead>}
+                                    {!bulkConfig.sharedFields.invoice_amount && <TableHead className="text-center text-xs font-medium">VAT</TableHead>}
                                     {!bulkConfig.sharedFields.terms_of_payment && (
                                         <TableHead className="text-xs font-medium">Terms *</TableHead>
                                     )}
@@ -112,44 +112,48 @@ export default function BulkMode({
                                         )}
 
                                         {/* Invoice Amount */}
-                                        <TableCell>
-                                            <div className="space-y-1">
-                                                <div className="relative">
-                                                    <Input
-                                                        type="number"
-                                                        step="0.01"
-                                                        value={invoice.invoice_amount}
-                                                        onChange={(e) => updateBulkInvoice(index, 'invoice_amount', e.target.value)}
-                                                        placeholder="0.00"
-                                                        className="h-8 pr-9 text-xs" // add padding-right so text doesn't overlap
-                                                    />
-                                                    <span className="absolute inset-y-0 right-2 flex items-center text-xs text-slate-500">
-                                                        {selectedPO && (
-                                                            <span className="font-semibold text-blue-700">
-                                                                {calculatePOPercentage(invoice.invoice_amount, selectedPO.po_amount).toFixed(0)}%
+                                        {!bulkConfig.sharedFields.invoice_amount && (
+                                            <>
+                                                <TableCell>
+                                                    <div className="space-y-1">
+                                                        <div className="relative">
+                                                            <Input
+                                                                type="number"
+                                                                step="0.01"
+                                                                value={invoice.invoice_amount}
+                                                                onChange={(e) => updateBulkInvoice(index, 'invoice_amount', e.target.value)}
+                                                                placeholder="0.00"
+                                                                className="h-8 pr-9 text-xs" // add padding-right so text doesn't overlap
+                                                            />
+                                                            <span className="absolute inset-y-0 right-2 flex items-center text-xs text-slate-500">
+                                                                {selectedPO && (
+                                                                    <span className="font-semibold text-blue-700">
+                                                                        {calculatePOPercentage(invoice.invoice_amount, selectedPO.po_amount).toFixed(0)}%
+                                                                    </span>
+                                                                )}
                                                             </span>
-                                                        )}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                            {errors[`bulk_${index}_invoice_amount`] && (
-                                                <p className="mt-1 text-xs text-red-600">{errors[`bulk_${index}_invoice_amount`]}</p>
-                                            )}
-                                        </TableCell>
-                                        <TableCell className="align-top">
-                                            <div className="space-y-0.5 rounded-md border bg-slate-50 p-1 text-[11px] leading-tight text-slate-700">
-                                                <div className="flex justify-between">
-                                                    <span className="text-slate-500">Ex:</span>
-                                                    <span className="font-medium">
-                                                        {invoice.currency === 'USD' ? '$' : '₱'}{calculateVAT(invoice.invoice_amount).vatableAmount.toFixed(2)}
-                                                    </span>
-                                                </div>
-                                                <div className="flex justify-between">
-                                                    <span className="text-slate-500">VAT:</span>
-                                                    <span className="font-medium">{invoice.currency === 'USD' ? '$' : '₱'}{calculateVAT(invoice.invoice_amount).vatAmount.toFixed(2)}</span>
-                                                </div>
-                                            </div>
-                                        </TableCell>
+                                                        </div>
+                                                    </div>
+                                                    {errors[`bulk_${index}_invoice_amount`] && (
+                                                        <p className="mt-1 text-xs text-red-600">{errors[`bulk_${index}_invoice_amount`]}</p>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell className="align-top">
+                                                    <div className="space-y-0.5 rounded-md border bg-slate-50 p-1 text-[11px] leading-tight text-slate-700">
+                                                        <div className="flex justify-between">
+                                                            <span className="text-slate-500">Ex:</span>
+                                                            <span className="font-medium">
+                                                                {invoice.currency === 'USD' ? '$' : '₱'}{calculateVAT(invoice.invoice_amount).vatableAmount.toFixed(2)}
+                                                            </span>
+                                                        </div>
+                                                        <div className="flex justify-between">
+                                                            <span className="text-slate-500">VAT:</span>
+                                                            <span className="font-medium">{invoice.currency === 'USD' ? '$' : '₱'}{calculateVAT(invoice.invoice_amount).vatAmount.toFixed(2)}</span>
+                                                        </div>
+                                                    </div>
+                                                </TableCell>
+                                            </>
+                                        )}
 
                                         {/* Payment Terms */}
                                         {!bulkConfig.sharedFields.terms_of_payment && (

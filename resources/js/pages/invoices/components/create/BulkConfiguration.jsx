@@ -56,9 +56,9 @@ export default function BulkConfiguration({
                                     className="mt-0.5 h-7 text-xs"
                                 />
                             </div>
-                            <div>
+                            <div className="space-y-1.5">
                                 <Label htmlFor="prefix" className="text-xs text-slate-600">
-                                    Invoice number Prefix
+                                    Invoice Number Prefix
                                 </Label>
                                 <Input
                                     id="prefix"
@@ -69,9 +69,74 @@ export default function BulkConfiguration({
                                             siPrefix: e.target.value,
                                         }))
                                     }
-                                    placeholder="e.g. SI-2024-"
-                                    className="mt-0.5 h-7 font-mono text-xs"
+                                    placeholder="e.g. INV2025-000"
+                                    className="h-7 font-mono text-xs"
                                 />
+                                {bulkConfig.siPrefix && (
+                                    <div className="flex items-center gap-3 rounded-md border border-slate-200 bg-slate-50 px-2 py-1.5">
+                                        <div className="flex items-center gap-1.5">
+                                            <Checkbox
+                                                id="autoIncrement"
+                                                checked={bulkConfig.autoIncrementEnabled}
+                                                onCheckedChange={(checked) =>
+                                                    setBulkConfig((prev) => ({
+                                                        ...prev,
+                                                        autoIncrementEnabled: checked,
+                                                    }))
+                                                }
+                                                className="h-3.5 w-3.5"
+                                            />
+                                            <Label htmlFor="autoIncrement" className="cursor-pointer text-xs font-medium text-slate-700">
+                                                Auto-increment
+                                            </Label>
+                                        </div>
+                                        {bulkConfig.autoIncrementEnabled && (
+                                            <>
+                                                <div className="flex items-center gap-1.5">
+                                                    <Label htmlFor="startNumber" className="text-xs text-slate-600">
+                                                        from
+                                                    </Label>
+                                                    <Input
+                                                        id="startNumber"
+                                                        type="number"
+                                                        min="1"
+                                                        value={bulkConfig.startingNumber}
+                                                        onChange={(e) =>
+                                                            setBulkConfig((prev) => ({
+                                                                ...prev,
+                                                                startingNumber: parseInt(e.target.value) || 1,
+                                                            }))
+                                                        }
+                                                        placeholder="1"
+                                                        className="h-6 w-14 px-2 text-xs"
+                                                    />
+                                                </div>
+                                                <div className="ml-auto flex items-center gap-1 text-xs font-mono">
+                                                    <span className="text-slate-500">e.g.</span>
+                                                    {(() => {
+                                                        const prefixMatch = bulkConfig.siPrefix.match(/0+$/);
+                                                        const paddingLength = prefixMatch ? prefixMatch[0].length : 3;
+                                                        const basePrefix = bulkConfig.siPrefix.replace(/0+$/, '');
+                                                        const previewCount = Math.min(bulkConfig.count, 3);
+
+                                                        return Array.from({ length: previewCount }, (_, i) => {
+                                                            const num = bulkConfig.startingNumber + i;
+                                                            return (
+                                                                <span key={i} className="text-blue-700 font-semibold">
+                                                                    {basePrefix}{String(num).padStart(paddingLength, '0')}
+                                                                    {i < previewCount - 1 && <span className="text-slate-400">,</span>}
+                                                                </span>
+                                                            );
+                                                        });
+                                                    })()}
+                                                    {bulkConfig.count > 3 && (
+                                                        <span className="text-slate-500">...+{bulkConfig.count - 3}</span>
+                                                    )}
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -174,6 +239,32 @@ export default function BulkConfiguration({
                                                         <SelectItem value="USD">USD ($)</SelectItem>
                                                     </SelectContent>
                                                 </Select>
+                                                {errors[fieldKey] && <p className="mt-1 text-xs text-red-600">{errors[fieldKey]}</p>}
+                                            </div>
+                                        );
+                                    }
+
+                                    // Invoice Amount Field
+                                    if (fieldKey === 'invoice_amount') {
+                                        return (
+                                            <div key={fieldKey} className="">
+                                                <Label className="text-xs">Shared Amount</Label>
+                                                <Input
+                                                    type="number"
+                                                    step="0.01"
+                                                    value={bulkConfig.sharedValues[fieldKey] || ''}
+                                                    onChange={(e) =>
+                                                        setBulkConfig((prev) => ({
+                                                            ...prev,
+                                                            sharedValues: {
+                                                                ...prev.sharedValues,
+                                                                [fieldKey]: e.target.value,
+                                                            },
+                                                        }))
+                                                    }
+                                                    placeholder="0.00"
+                                                    className="h-8 mt-1 text-xs"
+                                                />
                                                 {errors[fieldKey] && <p className="mt-1 text-xs text-red-600">{errors[fieldKey]}</p>}
                                             </div>
                                         );
