@@ -768,12 +768,13 @@ export default function PurchaseOrderTable({ purchaseOrders, filters, filterOpti
                                         data.map((po) => {
                                             const statusConfig = getStatusConfig(po.po_status);
                                             const daysUntilDelivery = calculateDaysUntilDelivery(po.expected_delivery_date);
+                                            const isClosed = po.po_status === 'closed';
 
                                             return (
                                                 <TableRow
                                                     key={po.id}
                                                     onClick={() => router.get(`/purchase-orders/${po.id}`)}
-                                                    className="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                                                    className={`cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 ${isClosed ? 'opacity-60 bg-gray-50/50' : ''}`}
                                                 >
                                                     {/* PO Number */}
                                                     <TableCell className="font-medium">

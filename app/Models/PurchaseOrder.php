@@ -16,6 +16,10 @@ class PurchaseOrder extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    public function closedBy(){
+        return $this->belongsTo(User::class, 'closed_by');
+    }
+
     public function project(){
         return $this->belongsTo(Project::class);
     }
@@ -39,6 +43,20 @@ class PurchaseOrder extends Model
 
     public function activityLogs(){
         return $this->morphMany(ActivityLog::class , 'loggable');
+    }
+
+    /**
+     * Check if all associated invoices are paid
+     */
+    public function allInvoicesPaid(): bool
+    {
+        // If no invoices exist, cannot close PO
+        if ($this->invoices()->count() === 0) {
+            return false;
+        }
+
+        // All invoices must have 'paid' status
+        return $this->invoices()->where('status', '!=', 'paid')->count() === 0;
     }
 
     /**

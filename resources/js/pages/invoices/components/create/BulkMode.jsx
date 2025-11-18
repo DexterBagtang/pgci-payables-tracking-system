@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table.js';
 import { cn } from '@/lib/utils.js';
 import { format } from 'date-fns';
-import { CalendarIcon, Check, Copy, Plus, Receipt, Settings, Trash2, Upload, X } from 'lucide-react';
+import { CalendarIcon, Check, Copy, Plus, Receipt, Settings, Trash2, Upload, X, FileStack, AlertCircle } from 'lucide-react';
 import { DatePicker } from '@/components/custom/DatePicker.jsx';
 import { PaymentTermsSelect } from '@/components/custom/PaymentTermsSelect.jsx';
 
@@ -30,6 +30,12 @@ export default function BulkMode({
     selectedPO,
     calculatePOPercentage,
     calculateVAT,
+    bulkFiles,
+    setBulkFiles,
+    fileMatching,
+    handleBulkFilesUpload,
+    handleRemoveMatchedFile,
+    handleReassignFile,
 }) {
     return (
         <>
@@ -278,9 +284,9 @@ export default function BulkMode({
                 <CardHeader className="pb-3">
                     <CardTitle className="flex items-center text-lg">
                         <Upload className="mr-2 h-4 w-4 text-orange-600" />
-                        Individual Invoice Attachments <span className="ml-1 text-xs text-red-600">*</span>
+                        Individual Invoice Attachments <span className="ml-1 text-xs text-gray-500">(Optional)</span>
                     </CardTitle>
-                    <CardDescription className="text-sm">Each invoice must have at least one attachment</CardDescription>
+                    <CardDescription className="text-sm">Upload files individually, or use bulk upload below</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div className="max-h-96 overflow-y-auto">
@@ -417,6 +423,143 @@ export default function BulkMode({
                             <div className="text-xs text-slate-500">
                                 Accepted: PDF, DOC, Images
                             </div>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+
+            {/* Bulk File Upload Section */}
+            <Card className="shadow-sm border-2 border-blue-200">
+                <CardHeader className="pb-3 bg-gradient-to-r from-blue-50 to-indigo-50">
+                    <CardTitle className="flex items-center text-lg">
+                        <FileStack className="mr-2 h-5 w-5 text-blue-600" />
+                        Bulk File Upload
+                    </CardTitle>
+                    <CardDescription className="text-sm">
+                        Upload all invoice files at once. Files will be automatically matched to invoices based on filename.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    {/* Upload Area */}
+                    <div className="border-2 border-dashed border-blue-300 rounded-lg p-8 text-center bg-blue-50/30 hover:bg-blue-50/50 transition-colors">
+                        <input
+                            id="bulk-files-upload"
+                            type="file"
+                            multiple
+                            onChange={handleBulkFilesUpload}
+                            accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
+                            className="hidden"
+                        />
+                        <label htmlFor="bulk-files-upload" className="cursor-pointer">
+                            <Upload className="mx-auto h-12 w-12 text-blue-500 mb-3" />
+                            <p className="text-base font-medium text-gray-700 mb-1">
+                                Click to upload invoice files
+                            </p>
+                            <p className="text-sm text-gray-500">
+                                PDF, DOC, Images • Max 10MB per file • Multiple files supported
+                            </p>
+                            <p className="text-xs text-blue-600 mt-2">
+                                Tip: Name files with SI numbers for automatic matching (e.g., "INV-001.pdf", "2025-001.pdf")
+                            </p>
+                        </label>
+                    </div>
+
+                    {/* File Matching Preview */}
+                    {fileMatching && fileMatching.length > 0 && (
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                                <h4 className="text-sm font-semibold text-gray-700">
+                                    File Matching ({fileMatching.length} files)
+                                </h4>
+                                <div className="flex gap-2 text-xs">
+                                    <span className="px-2 py-1 bg-green-100 text-green-700 rounded">
+                                        {fileMatching.filter(m => m.matched).length} Matched
+                                    </span>
+                                    <span className="px-2 py-1 bg-yellow-100 text-yellow-700 rounded">
+                                        {fileMatching.filter(m => !m.matched).length} Unmatched
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div className="space-y-2 max-h-96 overflow-y-auto">
+                                {fileMatching.map((match, index) => (
+                                    <div
+                                        key={index}
+                                        className={cn(
+                                            "flex items-center justify-between p-3 rounded-lg border-2",
+                                            match.matched
+                                                ? "bg-green-50/50 border-green-200"
+                                                : "bg-yellow-50/50 border-yellow-200"
+                                        )}
+                                    >
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-2">
+                                                {match.matched ? (
+                                                    <Check className="h-4 w-4 text-green-600 flex-shrink-0" />
+                                                ) : (
+                                                    <AlertCircle className="h-4 w-4 text-yellow-600 flex-shrink-0" />
+                                                )}
+                                                <div className="min-w-0 flex-1">
+                                                    <p className="text-sm font-medium text-gray-900 truncate" title={match.file.name}>
+                                                        {match.file.name}
+                                                    </p>
+                                                    <p className="text-xs text-gray-500">
+                                                        {(match.file.size / 1024 / 1024).toFixed(2)} MB
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center gap-2">
+                                            {match.matched ? (
+                                                <div className="flex items-center gap-2">
+                                                    <Receipt className="h-3 w-3 text-green-600" />
+                                                    <span className="text-xs font-medium text-green-700">
+                                                        → {match.invoiceNumber}
+                                                    </span>
+                                                </div>
+                                            ) : (
+                                                <Select
+                                                    value={match.invoiceIndex?.toString() || ""}
+                                                    onValueChange={(value) => handleReassignFile(index, parseInt(value))}
+                                                >
+                                                    <SelectTrigger className="h-8 w-40 text-xs">
+                                                        <SelectValue placeholder="Assign to invoice..." />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {bulkInvoices.map((inv, invIndex) => (
+                                                            <SelectItem key={invIndex} value={invIndex.toString()}>
+                                                                {inv.si_number || `Invoice ${invIndex + 1}`}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            )}
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => handleRemoveMatchedFile(index)}
+                                                className="h-7 w-7 p-0"
+                                            >
+                                                <X className="h-4 w-4 text-red-500" />
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {fileMatching.filter(m => !m.matched).length > 0 && (
+                                <div className="rounded border border-yellow-200 bg-yellow-50 p-3">
+                                    <div className="flex items-start gap-2">
+                                        <AlertCircle className="h-4 w-4 text-yellow-600 mt-0.5 flex-shrink-0" />
+                                        <div className="text-xs text-yellow-800">
+                                            <p className="font-medium mb-1">Some files couldn't be auto-matched</p>
+                                            <p>Please manually assign them to invoices using the dropdown above.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )}
                 </CardContent>

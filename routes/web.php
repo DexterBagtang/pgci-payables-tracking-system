@@ -28,6 +28,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('purchase-orders', PurchaseOrderController::class)->except(['update']);
     Route::post('purchase-orders/{purchase_order}', [PurchaseOrderController::class, 'update'])
         ->name('purchase-orders.update');
+    Route::post('purchase-orders/{purchase_order}/close', [PurchaseOrderController::class, 'close'])
+        ->name('purchase-orders.close');
 
     Route::resource('invoices', InvoiceController::class)->except(['update']);
     Route::post('invoices/{invoice}', [InvoiceController::class, 'update'])->name('invoices.update');
@@ -47,8 +49,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('check-requisitions.approve');
     Route::post('/check-requisitions/{checkRequisition}/reject', [CheckRequisitionController::class, 'reject'])
         ->name('check-requisitions.reject');
-    Route::post('/check-requisitions/{checkRequisition}/upload-signed', [CheckRequisitionController::class, 'uploadSigned'])
-        ->name('check-requisitions.upload-signed');
 
     Route::resource('remarks',RemarksController::class);
 

@@ -73,26 +73,21 @@ export default function ReviewCheckRequisition({
                                                }) {
     const [approvalDialog, setApprovalDialog] = useState(false);
     const [rejectionDialog, setRejectionDialog] = useState(false);
-    const [uploadDialog, setUploadDialog] = useState(false);
-    const [selectedFile, setSelectedFile] = useState(null);
+    const [approvalFile, setApprovalFile] = useState(null);
+    const [rejectionFile, setRejectionFile] = useState(null);
 
     const approvalForm = useForm({
         notes: '',
-        approval_type: 'digital', // 'digital' or 'physical'
+        approval_document: null,
     });
 
     const rejectionForm = useForm({
         rejection_reason: '',
         notes: '',
-    });
-
-    const uploadForm = useForm({
-        signed_document: null,
-        notes: '',
+        rejection_document: null,
     });
 
     const mainPdfFile = files?.find(f => f.file_purpose === 'check_requisition');
-    const signedDocs = files?.filter(f => f.file_purpose === 'signed_check_requisition') || [];
 
     const formatCurrency = (amount) => {
         return new Intl.NumberFormat('en-PH', {
@@ -125,10 +120,12 @@ export default function ReviewCheckRequisition({
     const handleApprove = () => {
         approvalForm.post(`/check-requisitions/${checkRequisition.id}/approve`, {
             preserveScroll: true,
+            forceFormData: true,
             onSuccess: () => {
                 toast.success('Check requisition approved successfully!');
                 setApprovalDialog(false);
                 approvalForm.reset();
+                setApprovalFile(null);
             },
             onError: (errors) => {
                 toast.error(Object.values(errors)[0] || 'Approval failed');
@@ -144,10 +141,12 @@ export default function ReviewCheckRequisition({
 
         rejectionForm.post(`/check-requisitions/${checkRequisition.id}/reject`, {
             preserveScroll: true,
+            forceFormData: true,
             onSuccess: () => {
                 toast.success('Check requisition rejected');
                 setRejectionDialog(false);
                 rejectionForm.reset();
+                setRejectionFile(null);
             },
             onError: (errors) => {
                 toast.error(Object.values(errors)[0] || 'Rejection failed');
@@ -155,37 +154,28 @@ export default function ReviewCheckRequisition({
         });
     };
 
-    const handleFileChange = (e) => {
+    const handleApprovalFileChange = (e) => {
         const file = e.target.files[0];
         if (file) {
             if (file.size > 10 * 1024 * 1024) { // 10MB limit
                 toast.error('File size must be less than 10MB');
                 return;
             }
-            setSelectedFile(file);
-            uploadForm.setData('signed_document', file);
+            setApprovalFile(file);
+            approvalForm.setData('approval_document', file);
         }
     };
 
-    const handleUploadSignedDoc = () => {
-        if (!selectedFile) {
-            toast.error('Please select a file to upload');
-            return;
+    const handleRejectionFileChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            if (file.size > 10 * 1024 * 1024) { // 10MB limit
+                toast.error('File size must be less than 10MB');
+                return;
+            }
+            setRejectionFile(file);
+            rejectionForm.setData('rejection_document', file);
         }
-
-        uploadForm.post(`/check-requisitions/${checkRequisition.id}/upload-signed`, {
-            preserveScroll: true,
-            forceFormData: true,
-            onSuccess: () => {
-                toast.success('Signed document uploaded successfully!');
-                setUploadDialog(false);
-                uploadForm.reset();
-                setSelectedFile(null);
-            },
-            onError: (errors) => {
-                toast.error(Object.values(errors)[0] || 'Upload failed');
-            },
-        });
     };
 
     const handleViewFile = (filePath) => {
@@ -695,15 +685,6 @@ export default function ReviewCheckRequisition({
                                         <div className="flex gap-1.5 flex-shrink-0">
                                             <Button
                                                 variant="outline"
-                                                onClick={() => setUploadDialog(true)}
-                                                size="sm"
-                                                className="border-blue-300 text-blue-700 hover:bg-blue-50 h-8 text-xs"
-                                            >
-                                                <Upload className="mr-1.5 h-3.5 w-3.5" />
-                                                Upload
-                                            </Button>
-                                            <Button
-                                                variant="outline"
                                                 onClick={() => setRejectionDialog(true)}
                                                 size="sm"
                                                 className="border-red-300 text-red-700 hover:bg-red-50 h-8 text-xs"
@@ -743,19 +724,45 @@ export default function ReviewCheckRequisition({
                     </DialogHeader>
                     <div className="space-y-4 py-4">
                         <div>
+                            <Label>Signed Approval Document (Optional)</Label>
+                            <Input
+                                type="file"
+                                accept=".pdf,.jpg,.jpeg,.png"
+                                onChange={handleApprovalFileChange}
+                                className="mt-1"
+                            />
+                            {approvalFile && (
+                                <div className="mt-2 p-2 bg-green-50 rounded text-sm flex items-center gap-2">
+                                    <FileText className="h-4 w-4 text-green-600" />
+                                    <span className="flex-1 truncate">{approvalFile.name}</span>
+                                    <span className="text-xs text-green-600">
+                                        {(approvalFile.size / 1024).toFixed(2)} KB
+                                    </span>
+                                </div>
+                            )}
+                            <p className="text-xs text-muted-foreground mt-1">
+                                Accepted formats: PDF, JPG, PNG (Max 10MB)
+                            </p>
+                        </div>
+                        <div>
                             <Label>Approval Notes (Optional)</Label>
                             <Textarea
                                 value={approvalForm.data.notes}
                                 onChange={(e) => approvalForm.setData('notes', e.target.value)}
                                 placeholder="Add any approval notes or comments..."
                                 rows={3}
+                                className="mt-1"
                             />
                         </div>
                     </div>
                     <DialogFooter>
                         <Button
                             variant="outline"
-                            onClick={() => setApprovalDialog(false)}
+                            onClick={() => {
+                                setApprovalDialog(false);
+                                setApprovalFile(null);
+                                approvalForm.reset();
+                            }}
                             disabled={approvalForm.processing}
                         >
                             Cancel
@@ -804,11 +811,36 @@ export default function ReviewCheckRequisition({
                                 className="mt-1"
                             />
                         </div>
+                        <div>
+                            <Label>Signed Rejection Document (Optional)</Label>
+                            <Input
+                                type="file"
+                                accept=".pdf,.jpg,.jpeg,.png"
+                                onChange={handleRejectionFileChange}
+                                className="mt-1"
+                            />
+                            {rejectionFile && (
+                                <div className="mt-2 p-2 bg-red-50 rounded text-sm flex items-center gap-2">
+                                    <FileText className="h-4 w-4 text-red-600" />
+                                    <span className="flex-1 truncate">{rejectionFile.name}</span>
+                                    <span className="text-xs text-red-600">
+                                        {(rejectionFile.size / 1024).toFixed(2)} KB
+                                    </span>
+                                </div>
+                            )}
+                            <p className="text-xs text-muted-foreground mt-1">
+                                Accepted formats: PDF, JPG, PNG (Max 10MB)
+                            </p>
+                        </div>
                     </div>
                     <DialogFooter>
                         <Button
                             variant="outline"
-                            onClick={() => setRejectionDialog(false)}
+                            onClick={() => {
+                                setRejectionDialog(false);
+                                setRejectionFile(null);
+                                rejectionForm.reset();
+                            }}
                             disabled={rejectionForm.processing}
                         >
                             Cancel
@@ -819,74 +851,6 @@ export default function ReviewCheckRequisition({
                             variant="destructive"
                         >
                             {rejectionForm.processing ? 'Rejecting...' : 'Confirm Rejection'}
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-
-            {/* Upload Signed Document Dialog */}
-            <Dialog open={uploadDialog} onOpenChange={setUploadDialog}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2 text-blue-700">
-                            <Upload className="h-5 w-5" />
-                            Upload Signed Document
-                        </DialogTitle>
-                        <DialogDescription>
-                            Upload the physically signed check requisition document. This will approve the requisition.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4 py-4">
-                        <div>
-                            <Label>Signed Document <span className="text-red-500">*</span></Label>
-                            <Input
-                                type="file"
-                                accept=".pdf,.jpg,.jpeg,.png"
-                                onChange={handleFileChange}
-                                className="mt-1"
-                            />
-                            {selectedFile && (
-                                <div className="mt-2 p-2 bg-blue-50 rounded text-sm flex items-center gap-2">
-                                    <FileText className="h-4 w-4 text-blue-600" />
-                                    <span className="flex-1 truncate">{selectedFile.name}</span>
-                                    <span className="text-xs text-blue-600">
-                                        {(selectedFile.size / 1024).toFixed(2)} KB
-                                    </span>
-                                </div>
-                            )}
-                            <p className="text-xs text-muted-foreground mt-1">
-                                Accepted formats: PDF, JPG, PNG (Max 10MB)
-                            </p>
-                        </div>
-                        <div>
-                            <Label>Notes</Label>
-                            <Textarea
-                                value={uploadForm.data.notes}
-                                onChange={(e) => uploadForm.setData('notes', e.target.value)}
-                                placeholder="Add notes about the signed document (e.g., who signed, date signed, etc.)..."
-                                rows={3}
-                                className="mt-1"
-                            />
-                        </div>
-                    </div>
-                    <DialogFooter>
-                        <Button
-                            variant="outline"
-                            onClick={() => {
-                                setUploadDialog(false);
-                                setSelectedFile(null);
-                                uploadForm.reset();
-                            }}
-                            disabled={uploadForm.processing}
-                        >
-                            Cancel
-                        </Button>
-                        <Button
-                            onClick={handleUploadSignedDoc}
-                            disabled={uploadForm.processing || !selectedFile}
-                            className="bg-blue-600 hover:bg-blue-700"
-                        >
-                            {uploadForm.processing ? 'Uploading...' : 'Upload & Approve'}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

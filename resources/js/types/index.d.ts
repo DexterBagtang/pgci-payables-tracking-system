@@ -30,10 +30,17 @@ export interface SharedData {
     [key: string]: unknown;
 }
 
+export type UserRole = 'admin' | 'purchasing' | 'payables' | 'disbursement';
+
+export type PurchaseOrderStatus = 'draft' | 'open' | 'closed' | 'cancelled';
+
+export type InvoiceStatus = 'pending' | 'approved' | 'rejected' | 'paid' | 'pending_disbursement';
+
 export interface User {
     id: number;
     name: string;
     email: string;
+    role: UserRole;
     avatar?: string;
     email_verified_at: string | null;
     created_at: string;

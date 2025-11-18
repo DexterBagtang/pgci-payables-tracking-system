@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Enums\UserRole;
 use App\Models\Project;
 use App\Models\User;
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
@@ -21,7 +22,7 @@ class DatabaseSeeder extends Seeder
             'name' => 'Dexter Admin',
             'username' => 'admin',
             'email' => 'dexterbagtang@philcom.com',
-            'role' => 'admin',
+            'role' => UserRole::ADMIN,
             'password' => Hash::make('asdfasdf'),
         ]);
 
@@ -29,8 +30,33 @@ class DatabaseSeeder extends Seeder
             'name' => 'Payables Admin',
             'username' => 'payables.admin',
             'email' => 'payables.admin@philcom.com',
-            'role' => 'admin',
+            'role' => UserRole::ADMIN,
             'password' => Hash::make('payablesadmin2025'),
+        ]);
+
+        // Sample users for each role
+        User::factory()->create([
+            'name' => 'John Purchasing',
+            'username' => 'purchasing',
+            'email' => 'purchasing@philcom.com',
+            'role' => UserRole::PURCHASING,
+            'password' => Hash::make('password'),
+        ]);
+
+        User::factory()->create([
+            'name' => 'Jane Payables',
+            'username' => 'payables',
+            'email' => 'payables@philcom.com',
+            'role' => UserRole::PAYABLES,
+            'password' => Hash::make('password'),
+        ]);
+
+        User::factory()->create([
+            'name' => 'Mike Disbursement',
+            'username' => 'disbursement',
+            'email' => 'disbursement@philcom.com',
+            'role' => UserRole::DISBURSEMENT,
+            'password' => Hash::make('password'),
         ]);
 
         $this->call([

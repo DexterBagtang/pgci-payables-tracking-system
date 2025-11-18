@@ -453,10 +453,48 @@ class CheckRequisitionController extends Controller
 
         $validated = $request->validate([
             'notes' => 'nullable|string',
+            'approval_document' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240', // 10MB
         ]);
 
         DB::beginTransaction();
         try {
+            $filename = null;
+
+            // Handle file upload if provided
+            if ($request->hasFile('approval_document')) {
+                $file = $request->file('approval_document');
+                $filename = 'approval_' . $checkRequisition->requisition_number . '_' . time() . '.' . $file->getClientOriginalExtension();
+                $path = 'check_requisitions/approvals/' . $filename;
+
+                // Ensure directory exists
+                if (!Storage::disk('public')->exists('check_requisitions/approvals')) {
+                    Storage::disk('public')->makeDirectory('check_requisitions/approvals');
+                }
+
+                // Store file
+                Storage::disk('public')->putFileAs(
+                    'check_requisitions/approvals',
+                    $file,
+                    $filename
+                );
+
+                // Create file record
+                File::create([
+                    'fileable_type' => CheckRequisition::class,
+                    'fileable_id' => $checkRequisition->id,
+                    'file_name' => $filename,
+                    'file_path' => $path,
+                    'file_type' => $file->getClientOriginalExtension(),
+                    'file_category' => 'document',
+                    'file_purpose' => 'approval_document',
+                    'file_size' => $file->getSize(),
+                    'disk' => 'public',
+                    'description' => 'Signed approval document',
+                    'is_active' => true,
+                    'uploaded_by' => auth()->id(),
+                ]);
+            }
+
             // Update check requisition status
             $checkRequisition->update([
                 'requisition_status' => 'approved',
@@ -470,11 +508,16 @@ class CheckRequisitionController extends Controller
 //            ]);
 
             // Create activity log
+            $logNotes = $validated['notes'] ?? 'Check requisition approved';
+            if ($filename) {
+                $logNotes .= "\nApproval document uploaded: {$filename}";
+            }
+
             ActivityLog::create([
                 'loggable_type' => CheckRequisition::class,
                 'loggable_id' => $checkRequisition->id,
                 'action' => 'approved',
-                'notes' => $validated['notes'] ?? 'Check requisition approved digitally',
+                'notes' => $logNotes,
                 'user_id' => auth()->id(),
                 'ip_address' => $request->ip(),
                 'changes' => json_encode([
@@ -484,6 +527,7 @@ class CheckRequisitionController extends Controller
                     ],
                     'approved_at' => now()->toDateTimeString(),
                     'approved_by' => auth()->user()->name,
+                    'file_uploaded' => $filename,
                 ]),
             ]);
 
@@ -514,10 +558,48 @@ class CheckRequisitionController extends Controller
         $validated = $request->validate([
             'rejection_reason' => 'required|string',
             'notes' => 'nullable|string',
+            'rejection_document' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240', // 10MB
         ]);
 
         DB::beginTransaction();
         try {
+            $filename = null;
+
+            // Handle file upload if provided
+            if ($request->hasFile('rejection_document')) {
+                $file = $request->file('rejection_document');
+                $filename = 'rejection_' . $checkRequisition->requisition_number . '_' . time() . '.' . $file->getClientOriginalExtension();
+                $path = 'check_requisitions/rejections/' . $filename;
+
+                // Ensure directory exists
+                if (!Storage::disk('public')->exists('check_requisitions/rejections')) {
+                    Storage::disk('public')->makeDirectory('check_requisitions/rejections');
+                }
+
+                // Store file
+                Storage::disk('public')->putFileAs(
+                    'check_requisitions/rejections',
+                    $file,
+                    $filename
+                );
+
+                // Create file record
+                File::create([
+                    'fileable_type' => CheckRequisition::class,
+                    'fileable_id' => $checkRequisition->id,
+                    'file_name' => $filename,
+                    'file_path' => $path,
+                    'file_type' => $file->getClientOriginalExtension(),
+                    'file_category' => 'document',
+                    'file_purpose' => 'rejection_document',
+                    'file_size' => $file->getSize(),
+                    'disk' => 'public',
+                    'description' => 'Signed rejection document',
+                    'is_active' => true,
+                    'uploaded_by' => auth()->id(),
+                ]);
+            }
+
             // Update check requisition status
             $checkRequisition->update([
                 'requisition_status' => 'rejected',
@@ -530,12 +612,18 @@ class CheckRequisitionController extends Controller
             ]);
 
             // Create activity log
+            $logNotes = "Rejection Reason: {$validated['rejection_reason']}" .
+                ($validated['notes'] ? "\nAdditional Notes: {$validated['notes']}" : '');
+
+            if ($filename) {
+                $logNotes .= "\nRejection document uploaded: {$filename}";
+            }
+
             ActivityLog::create([
                 'loggable_type' => CheckRequisition::class,
                 'loggable_id' => $checkRequisition->id,
                 'action' => 'rejected',
-                'notes' => "Rejection Reason: {$validated['rejection_reason']}" .
-                    ($validated['notes'] ? "\nAdditional Notes: {$validated['notes']}" : ''),
+                'notes' => $logNotes,
                 'user_id' => auth()->id(),
                 'ip_address' => $request->ip(),
                 'changes' => json_encode([
@@ -546,6 +634,7 @@ class CheckRequisitionController extends Controller
                     'rejected_at' => now()->toDateTimeString(),
                     'rejected_by' => auth()->user()->name,
                     'rejection_reason' => $validated['rejection_reason'],
+                    'file_uploaded' => $filename,
                 ]),
             ]);
 
@@ -559,101 +648,6 @@ class CheckRequisitionController extends Controller
             DB::rollBack();
             \Log::error('Check requisition rejection error: ' . $e->getMessage());
             return back()->with('error', 'Failed to reject check requisition');
-        }
-    }
-
-    /**
-     * Upload signed document and approve
-     */
-    public function uploadSigned(Request $request, CheckRequisition $checkRequisition)
-    {
-        // Validate that it's in the correct status
-        if ($checkRequisition->requisition_status !== 'pending_approval') {
-            return back()->with('error', 'Check requisition cannot be processed in current status');
-        }
-
-        $validated = $request->validate([
-            'signed_document' => 'required|file|mimes:pdf,jpg,jpeg,png|max:10240', // 10MB
-            'notes' => 'nullable|string',
-        ]);
-
-        DB::beginTransaction();
-        try {
-            // Store the uploaded file
-            $file = $request->file('signed_document');
-            $filename = 'signed_cr_' . $checkRequisition->requisition_number . '_' . time() . '.' . $file->getClientOriginalExtension();
-            $path = 'check_requisitions/signed/' . $filename;
-
-            // Ensure directory exists
-            if (!Storage::disk('public')->exists('check_requisitions/signed')) {
-                Storage::disk('public')->makeDirectory('check_requisitions/signed');
-            }
-
-            // Store file
-            Storage::disk('public')->putFileAs(
-                'check_requisitions/signed',
-                $file,
-                $filename
-            );
-
-            // Create file record
-            File::create([
-                'fileable_type' => CheckRequisition::class,
-                'fileable_id' => $checkRequisition->id,
-                'file_name' => $filename,
-                'file_path' => $path,
-                'file_type' => $file->getClientOriginalExtension(),
-                'file_category' => 'document',
-                'file_purpose' => 'signed_check_requisition',
-                'file_size' => $file->getSize(),
-                'disk' => 'public',
-                'description' => 'Physically signed check requisition',
-                'is_active' => true,
-                'uploaded_by' => auth()->id(),
-            ]);
-
-            // Update check requisition status
-            $checkRequisition->update([
-                'requisition_status' => 'approved',
-                'approved_at' => now(),
-                'processed_by' => auth()->id(),
-            ]);
-
-//            // Update related invoices status
-//            $checkRequisition->invoices()->update([
-//                'invoice_status' => 'approved_for_payment'
-//            ]);
-
-            // Create activity log
-            ActivityLog::create([
-                'loggable_type' => CheckRequisition::class,
-                'loggable_id' => $checkRequisition->id,
-                'action' => 'approved_with_signed_document',
-                'notes' => ($validated['notes'] ?? 'Signed document uploaded') . "\nFile: {$filename}",
-                'user_id' => auth()->id(),
-                'ip_address' => $request->ip(),
-                'changes' => json_encode([
-                    'status' => [
-                        'from' => 'pending_approval',
-                        'to' => 'approved'
-                    ],
-                    'approved_at' => now()->toDateTimeString(),
-                    'approved_by' => auth()->user()->name,
-                    'approval_method' => 'physical_document',
-                    'file_uploaded' => $filename,
-                ]),
-            ]);
-
-            DB::commit();
-
-            return redirect()
-                ->route('check-requisitions.show', $checkRequisition)
-                ->with('success', 'Signed document uploaded and check requisition approved');
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            \Log::error('Signed document upload error: ' . $e->getMessage());
-            throw new \Exception($e->getMessage());
         }
     }
 

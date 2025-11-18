@@ -327,6 +327,68 @@ class PurchaseOrderController extends Controller
     }
 
     /**
+     * Close/override a purchase order manually
+     */
+    public function close(Request $request, PurchaseOrder $purchaseOrder)
+    {
+        // Validate request
+        $validated = $request->validate([
+            'closure_remarks' => 'required|string|max:1000',
+            'files' => 'nullable|array',
+            'files.*' => 'file|max:10240', // 10MB max per file
+        ]);
+
+        // Check if user has purchasing role
+        if (auth()->user()->role !== 'purchasing' && auth()->user()->role !== 'admin') {
+            return back()->withErrors(['error' => 'Only users with Purchasing role can close purchase orders.']);
+        }
+
+        // Check if PO is already closed
+        if ($purchaseOrder->po_status === 'closed') {
+            return back()->withErrors(['error' => 'This purchase order is already closed.']);
+        }
+
+        // Check if all invoices are paid
+        if (!$purchaseOrder->allInvoicesPaid()) {
+            return back()->withErrors(['error' => 'Cannot close purchase order. All associated invoices must be in "paid" status before closing.']);
+        }
+
+        // Update PO status and closure details
+        $oldStatus = $purchaseOrder->po_status;
+        $purchaseOrder->update([
+            'po_status' => 'closed',
+            'closed_by' => auth()->id(),
+            'closed_at' => now(),
+            'closure_remarks' => $validated['closure_remarks'],
+        ]);
+
+        // Log status change
+        $purchaseOrder->logStatusChange($oldStatus, 'closed');
+
+        // Handle file uploads
+        if ($request->hasFile('files')) {
+            foreach ($request->file('files') as $file) {
+                $originalName = $file->getClientOriginalName();
+                $filePath = $file->store('purchase-orders/closure-files', 'public');
+
+                $purchaseOrder->files()->create([
+                    'file_name' => $originalName,
+                    'file_path' => $filePath,
+                    'file_type' => $file->getClientMimeType(),
+                    'file_category' => 'purchase_order',
+                    'file_purpose' => 'closure_documentation',
+                    'file_size' => $file->getSize(),
+                    'disk' => 'public',
+                    'uploaded_by' => auth()->id(),
+                    'is_active' => true,
+                ]);
+            }
+        }
+
+        return back()->with('message', 'Purchase Order closed successfully.');
+    }
+
+    /**
      * Remove the specified resource from storage.
      */
     public function destroy(string $id)

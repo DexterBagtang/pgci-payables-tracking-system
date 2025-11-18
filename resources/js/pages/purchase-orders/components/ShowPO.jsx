@@ -26,7 +26,8 @@ import {
     Calendar,
     PieChart,
     Target,
-    Wallet
+    Wallet,
+    Lock
 
 } from 'lucide-react';
 import React, { lazy, Suspense, useState, useMemo } from 'react';
@@ -35,12 +36,14 @@ import StatusBadge from '@/components/custom/StatusBadge.jsx';
 const ActivityTimeline = lazy(()=> import('@/components/custom/ActivityTimeline.jsx'));
 const AttachmentViewer = lazy(()=> import('@/pages/invoices/components/AttachmentViewer.jsx'));
 const Remarks = lazy(()=> import('@/components/custom/Remarks.jsx'));
+const ClosePurchaseOrderDialog = lazy(()=> import('@/pages/purchase-orders/components/ClosePurchaseOrderDialog.jsx'));
 
 export default function ShowPO({ purchaseOrder, vendors, projects , backUrl}) {
     const [isEditing, setIsEditing] = useState(false);
     // const [tab, setTab] = useState('overview');
     const [tab, setTab] = useRemember('overview','po-detail-tab');
     const [showCreateReqDialog, setShowCreateReqDialog] = useState(false);
+    const [showCloseDialog, setShowCloseDialog] = useState(false);
     const { user } = usePage().props.auth;
 
     const {files,activity_logs,invoices,remarks} = purchaseOrder;
@@ -180,7 +183,16 @@ export default function ShowPO({ purchaseOrder, vendors, projects , backUrl}) {
                                         Edit
                                     </Button>
                                 </Link>
-
+                                {(user.role === 'purchasing' || user.role === 'admin') && purchaseOrder.po_status !== 'closed' && purchaseOrder.po_status !== 'cancelled' && (
+                                    <Button
+                                        variant="destructive"
+                                        size="sm"
+                                        onClick={() => setShowCloseDialog(true)}
+                                    >
+                                        <Lock className="mr-2 h-4 w-4" />
+                                        Close PO
+                                    </Button>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -907,6 +919,15 @@ export default function ShowPO({ purchaseOrder, vendors, projects , backUrl}) {
                     </Tabs>
                 </div>
             </div>
+
+            {/* Close PO Dialog */}
+            <Suspense fallback={null}>
+                <ClosePurchaseOrderDialog
+                    open={showCloseDialog}
+                    onOpenChange={setShowCloseDialog}
+                    purchaseOrder={purchaseOrder}
+                />
+            </Suspense>
         </>
     );
 }
