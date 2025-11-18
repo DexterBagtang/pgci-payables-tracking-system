@@ -140,7 +140,13 @@ trait LogsActivity
      */
     protected function formatCurrency($amount): string
     {
-        return '₱' . number_format($amount, 2);
+        $symbol = '₱'; // Default to PHP
+
+        if (isset($this->currency)) {
+            $symbol = $this->currency === 'USD' ? '$' : '₱';
+        }
+
+        return $symbol . number_format($amount, 2);
     }
 
     /**

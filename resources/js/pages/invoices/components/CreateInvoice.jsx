@@ -43,6 +43,7 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
         siPrefix: '',
         sharedFields: {
             purchase_order_id: true,
+            currency: true,
             si_date: false,
             si_received_at: false,
             terms_of_payment: false,
@@ -54,6 +55,7 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
         },
         sharedValues: {
             purchase_order_id: '',
+            currency: 'PHP',
             si_date: '',
             si_received_at: '',
             terms_of_payment: '',
@@ -72,6 +74,7 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
         si_date: '',
         si_received_at: '',
         invoice_amount: '',
+        currency: 'PHP',
         due_date: '',
         notes: '',
         submitted_at: '',
@@ -87,6 +90,7 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
             si_date: bulkConfig.sharedFields.si_date ? bulkConfig.sharedValues.si_date : '',
             si_received_at: bulkConfig.sharedFields.si_received_at ? bulkConfig.sharedValues.si_received_at : '',
             invoice_amount: '',
+            currency: bulkConfig.sharedValues.currency || 'PHP',
             terms_of_payment: bulkConfig.sharedFields.terms_of_payment ? bulkConfig.sharedValues.terms_of_payment : '',
             other_payment_terms: bulkConfig.sharedFields.other_payment_terms ? bulkConfig.sharedValues.other_payment_terms : '',
             due_date: bulkConfig.sharedFields.due_date ? bulkConfig.sharedValues.due_date : '',
@@ -143,6 +147,7 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
                 po_amount: po.po_amount,
                 po_status: po.po_status,
                 cer_number: po.project?.cer_number,
+                currency: po.currency || 'PHP',
             })),
         [purchaseOrders],
     );
@@ -186,6 +191,7 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
     // Shared field options for bulk mode
     const sharedFieldOptions = [
         { key: 'purchase_order_id', label: 'Purchase Order', required: true },
+        { key: 'currency', label: 'Currency', required: true },
         { key: 'si_date', label: 'SI Date' },
         { key: 'si_received_at', label: 'SI Received Date' },
         { key: 'terms_of_payment', label: 'Payment Terms' },
@@ -304,6 +310,9 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
             if (bulkConfig.sharedFields.purchase_order_id && !bulkConfig.sharedValues.purchase_order_id) {
                 newErrors.purchase_order_id = 'Purchase order is required';
             }
+            if (bulkConfig.sharedFields.currency && !bulkConfig.sharedValues.currency) {
+                newErrors.currency = 'Currency is required';
+            }
             if (bulkConfig.sharedFields.si_date && !bulkConfig.sharedValues.si_date) {
                 newErrors.si_date = 'SI Date is required';
             }
@@ -414,6 +423,7 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
                         siPrefix: '',
                         sharedFields: {
                             purchase_order_id: true,
+                            currency: true,
                             si_date: false,
                             si_received_at: false,
                             terms_of_payment: true,
@@ -425,6 +435,7 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
                         },
                         sharedValues: {
                             purchase_order_id: '',
+                            currency: 'PHP',
                             si_date: '',
                             si_received_at: '',
                             terms_of_payment: '',
@@ -573,7 +584,7 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
                                             <div className="rounded border bg-slate-50 p-3 text-center">
                                                 <div className="mb-1 text-sm text-slate-600">Invoice Amount</div>
                                                 <div className="text-2xl font-bold text-slate-900">
-                                                    ₱{Number(singleData.invoice_amount || 0).toLocaleString()}
+                                                    {singleData.currency === 'USD' ? '$' : '₱'}{Number(singleData.invoice_amount || 0).toLocaleString()}
                                                 </div>
                                             </div>
 
@@ -582,13 +593,13 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
                                                     <div className="flex justify-between rounded bg-slate-50 p-2">
                                                         <span>VATable Amount:</span>
                                                         <span className="font-medium">
-                                                            ₱{calculateVAT(singleData.invoice_amount).vatableAmount.toFixed(2)}
+                                                            {singleData.currency === 'USD' ? '$' : '₱'}{calculateVAT(singleData.invoice_amount).vatableAmount.toFixed(2)}
                                                         </span>
                                                     </div>
                                                     <div className="flex justify-between rounded bg-slate-50 p-2">
                                                         <span>VAT (12%):</span>
                                                         <span className="font-medium">
-                                                            ₱{calculateVAT(singleData.invoice_amount).vatAmount.toFixed(2)}
+                                                            {singleData.currency === 'USD' ? '$' : '₱'}{calculateVAT(singleData.invoice_amount).vatAmount.toFixed(2)}
                                                         </span>
                                                     </div>
                                                 </div>
@@ -609,7 +620,7 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
                                                     </div>
                                                     <div className="flex justify-between">
                                                         <span>Amount:</span>
-                                                        <span className="font-medium">₱{Number(selectedPO.po_amount).toLocaleString()}</span>
+                                                        <span className="font-medium">{selectedPO.currency === 'USD' ? '$' : '₱'}{Number(selectedPO.po_amount).toLocaleString()}</span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -675,14 +686,14 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
                                         <div className="text-center">
                                             <div className="mb-1 text-sm text-slate-600">Total Amount</div>
                                             <div className="text-2xl font-bold text-green-900">
-                                                ₱{bulkInvoices.reduce((sum, inv) => sum + (parseFloat(inv.invoice_amount) || 0), 0).toLocaleString()}
+                                                {bulkInvoices[0]?.currency === 'USD' ? '$' : '₱'}{bulkInvoices.reduce((sum, inv) => sum + (parseFloat(inv.invoice_amount) || 0), 0).toLocaleString()}
                                             </div>
                                             <div className="mt-1 text-xs text-slate-500">
-                                                EX: ₱
+                                                EX: {bulkInvoices[0]?.currency === 'USD' ? '$' : '₱'}
                                                 {bulkInvoices.reduce((sum, inv) => sum + calculateVAT(inv.invoice_amount).vatableAmount, 0).toFixed(2)}
                                             </div>
                                             <div className="mt-1 text-xs text-slate-500">
-                                                VAT: ₱
+                                                VAT: {bulkInvoices[0]?.currency === 'USD' ? '$' : '₱'}
                                                 {bulkInvoices.reduce((sum, inv) => sum + calculateVAT(inv.invoice_amount).vatAmount, 0).toFixed(2)}
                                             </div>
                                         </div>
@@ -751,7 +762,7 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
                                             <div>
                                                 <span className="text-blue-700">Total Amount:</span>
                                                 <span className="ml-2 font-medium">
-                                                    ₱
+                                                    {bulkInvoices[0]?.currency === 'USD' ? '$' : '₱'}
                                                     {bulkInvoices
                                                         .reduce((sum, inv) => sum + (parseFloat(inv.invoice_amount) || 0), 0)
                                                         .toLocaleString()}
@@ -760,7 +771,7 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
                                             <div>
                                                 <span className="text-blue-700">Total VAT:</span>
                                                 <span className="ml-2 font-medium">
-                                                    ₱
+                                                    {bulkInvoices[0]?.currency === 'USD' ? '$' : '₱'}
                                                     {bulkInvoices
                                                         .reduce((sum, inv) => sum + calculateVAT(inv.invoice_amount).vatAmount, 0)
                                                         .toFixed(2)}
@@ -780,9 +791,9 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
                                                         </span>
                                                     </div>
                                                     <div className="text-right">
-                                                        <div className="font-medium">₱{Number(invoice.invoice_amount || 0).toLocaleString()}</div>
+                                                        <div className="font-medium">{invoice.currency === 'USD' ? '$' : '₱'}{Number(invoice.invoice_amount || 0).toLocaleString()}</div>
                                                         <div className="text-xs text-slate-500">
-                                                            VAT: ₱{calculateVAT(invoice.invoice_amount).vatAmount.toFixed(2)}
+                                                            VAT: {invoice.currency === 'USD' ? '$' : '₱'}{calculateVAT(invoice.invoice_amount).vatAmount.toFixed(2)}
                                                         </div>
                                                     </div>
                                                 </div>
@@ -799,7 +810,7 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
                                         </div>
                                         <div>
                                             <span className="text-slate-600">Amount:</span>
-                                            <span className="ml-2 font-medium">₱{Number(singleData.invoice_amount || 0).toLocaleString()}</span>
+                                            <span className="ml-2 font-medium">{singleData.currency === 'USD' ? '$' : '₱'}{Number(singleData.invoice_amount || 0).toLocaleString()}</span>
                                         </div>
                                         <div>
                                             <span className="text-slate-600">SI Date:</span>
@@ -809,12 +820,12 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
                                         </div>
                                         <div>
                                             <span className="text-slate-600">VAT Amount:</span>
-                                            <span className="ml-2 font-medium">₱{calculateVAT(singleData.invoice_amount).vatAmount.toFixed(2)}</span>
+                                            <span className="ml-2 font-medium">{singleData.currency === 'USD' ? '$' : '₱'}{calculateVAT(singleData.invoice_amount).vatAmount.toFixed(2)}</span>
                                         </div>
                                         <div>
                                             <span className="text-slate-600">VAT Exclusive:</span>
                                             <span className="ml-2 font-medium">
-                                                ₱{calculateVAT(singleData.invoice_amount).vatableAmount.toFixed(2)}
+                                                {singleData.currency === 'USD' ? '$' : '₱'}{calculateVAT(singleData.invoice_amount).vatableAmount.toFixed(2)}
                                             </span>
                                         </div>
                                         {selectedPO && singleData.invoice_amount && (

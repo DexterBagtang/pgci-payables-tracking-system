@@ -53,10 +53,11 @@ const BulkInvoiceReview = ({ invoices, filters, filterOptions }) => {
     const [poSearch, setPoSearch] = useState('');
     const [reviewNotes, setReviewNotes] = useState('');
 
-    const formatCurrency = (amount) => {
-        return new Intl.NumberFormat('en-PH', {
+    const formatCurrency = (amount, currency = 'PHP') => {
+        const currencyCode = currency === 'USD' ? 'USD' : 'PHP';
+        return new Intl.NumberFormat('en-US', {
             style: 'currency',
-            currency: 'PHP',
+            currency: currencyCode,
             minimumFractionDigits: 2,
         }).format(amount);
     };
@@ -110,6 +111,14 @@ const BulkInvoiceReview = ({ invoices, filters, filterOptions }) => {
             return sum + parseFloat(amount || 0);
         }, 0);
     }, [selectedAmounts]);
+
+    // Get currency from first selected invoice
+    const selectedCurrency = useMemo(() => {
+        if (selectedInvoices.size === 0) return 'PHP';
+        const firstSelectedId = Array.from(selectedInvoices)[0];
+        const invoice = invoices.data.find(inv => inv.id === firstSelectedId);
+        return invoice?.currency || 'PHP';
+    }, [selectedInvoices, invoices.data]);
 
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -233,12 +242,12 @@ const BulkInvoiceReview = ({ invoices, filters, filterOptions }) => {
             case 'mark-received':
                 return {
                     title: 'Mark Files as Received',
-                    description: `Mark files as received for ${selectedInvoices.size} invoice(s)? Total: ${formatCurrency(selectedTotal)}`,
+                    description: `Mark files as received for ${selectedInvoices.size} invoice(s)? Total: ${formatCurrency(selectedTotal, selectedCurrency)}`,
                 };
             case 'approve':
                 return {
                     title: 'Approve Invoices',
-                    description: `Approve ${selectedInvoices.size} invoice(s) for payment? Total: ${formatCurrency(selectedTotal)}`,
+                    description: `Approve ${selectedInvoices.size} invoice(s) for payment? Total: ${formatCurrency(selectedTotal, selectedCurrency)}`,
                 };
             case 'reject':
                 return {
@@ -271,7 +280,7 @@ const BulkInvoiceReview = ({ invoices, filters, filterOptions }) => {
                                         <span className="text-2xl font-bold text-blue-600">{selectedInvoices.size}</span>
                                         <span className="text-xs text-slate-600">selected</span>
                                         <span className="text-slate-300 mx-1">|</span>
-                                        <span className="text-lg font-bold text-blue-600">{formatCurrency(selectedTotal)}</span>
+                                        <span className="text-lg font-bold text-blue-600">{formatCurrency(selectedTotal, selectedCurrency)}</span>
                                     </div>
                                 </div>
                                 

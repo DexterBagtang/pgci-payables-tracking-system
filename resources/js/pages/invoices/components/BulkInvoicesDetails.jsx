@@ -119,7 +119,7 @@ export default function BulkInvoiceDetails({
                                 <DollarSign className="h-4 w-4 text-emerald-600" />
                                 <span className="text-xs font-semibold text-emerald-700 uppercase">Invoice Amount</span>
                             </div>
-                            <p className="text-2xl font-bold text-emerald-700">{formatCurrency(currentInvoice.invoice_amount)}</p>
+                            <p className="text-2xl font-bold text-emerald-700">{formatCurrency(currentInvoice.invoice_amount, currentInvoice.currency)}</p>
                         </div>
 
                         {/* Due Date */}
@@ -169,7 +169,7 @@ export default function BulkInvoiceDetails({
                                 <div>
                                     <label className="text-xs font-semibold text-slate-500 uppercase block mb-1">PO Amount</label>
                                     <p className="text-sm font-bold text-emerald-700">
-                                        {formatCurrency(currentInvoice.purchase_order?.po_amount || 0)}
+                                        {formatCurrency(currentInvoice.purchase_order?.po_amount || 0, currentInvoice.currency)}
                                     </p>
                                 </div>
                                 <Separator />
@@ -177,8 +177,9 @@ export default function BulkInvoiceDetails({
                                     <label className="text-xs font-semibold text-slate-500 uppercase block mb-1">Balance</label>
                                     <p className="text-sm font-bold text-slate-700">
                                         {formatCurrency(
-                                            (currentInvoice.purchase_order?.po_amount || 0) - 
-                                            (currentInvoice.invoice_amount || 0)
+                                            (currentInvoice.purchase_order?.po_amount || 0) -
+                                            (currentInvoice.invoice_amount || 0),
+                                            currentInvoice.currency
                                         )}
                                     </p>
                                 </div>

@@ -29,6 +29,9 @@ import { Input } from "@/components/ui/input.js";
 import { Button } from "@/components/ui/button.js";
 import { Badge } from "@/components/ui/badge.js";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card.js";
+import { Label } from '@/components/ui/label';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import {
     MoreHorizontal,
     Search,
@@ -47,13 +50,14 @@ import {
     Download,
     Eye,
     Edit,
-    Calendar,
+    CalendarIcon,
     Briefcase
 } from 'lucide-react';
 import PaginationServerSide from '@/components/custom/Pagination.jsx';
-import { differenceInDays } from 'date-fns';
+import { differenceInDays, format } from 'date-fns';
 import StatusBadge from '@/components/custom/StatusBadge.jsx';
 import DialogLoadingFallback from '@/components/custom/DialogLoadingFallback.jsx';
+import { cn } from '@/lib/utils';
 
 // Lazy load dialog components
 const AddPurchaseOrderDialog = lazy(() => import('@/pages/purchase-orders/components/AddPurchaseOrderDialog.jsx'));
@@ -67,6 +71,13 @@ export default function PurchaseOrderTable({ purchaseOrders, filters, filterOpti
         vendor: filters.vendor || 'all',
         project: filters.project || 'all',
     });
+
+    const [dateField, setDateField] = useState(filters.date_field || 'po_date');
+    const [dateRange, setDateRange] = useState({
+        from: filters.date_from ? new Date(filters.date_from) : null,
+        to: filters.date_to ? new Date(filters.date_to) : null,
+    });
+    const [showDateFilter, setShowDateFilter] = useState(false);
 
     const [projectSearch, setProjectSearch] = useState('');
     const [vendorSearch, setVendorSearch] = useState('');
@@ -142,12 +153,67 @@ export default function PurchaseOrderTable({ purchaseOrders, filters, filterOpti
         const updatedFilters = {
             ...filters,
             ...newFilters,
+            date_field: dateField,
+            date_from: dateRange.from ? dateRange.from.toISOString().split('T')[0] : null,
+            date_to: dateRange.to ? dateRange.to.toISOString().split('T')[0] : null,
             sort_field: sortField,
             sort_direction: sortDirection,
             page: 1
         };
 
         // Remove empty filters
+        Object.keys(updatedFilters).forEach(key => {
+            if (!updatedFilters[key] || updatedFilters[key] === 'all') {
+                delete updatedFilters[key];
+            }
+        });
+
+        router.get('/purchase-orders', updatedFilters, {
+            preserveState: true,
+            replace: true,
+            only: ['purchaseOrders', 'filters'],
+        });
+    };
+
+    const handleDateFieldChange = (value) => {
+        setDateField(value);
+        const updatedFilters = {
+            ...filters,
+            ...localFilters,
+            date_field: value,
+            date_from: dateRange.from ? dateRange.from.toISOString().split('T')[0] : null,
+            date_to: dateRange.to ? dateRange.to.toISOString().split('T')[0] : null,
+            sort_field: sortField,
+            sort_direction: sortDirection,
+            page: 1
+        };
+
+        Object.keys(updatedFilters).forEach(key => {
+            if (!updatedFilters[key] || updatedFilters[key] === 'all') {
+                delete updatedFilters[key];
+            }
+        });
+
+        router.get('/purchase-orders', updatedFilters, {
+            preserveState: true,
+            replace: true,
+            only: ['purchaseOrders', 'filters'],
+        });
+    };
+
+    const handleDateRangeFilter = (range) => {
+        setDateRange(range);
+        const updatedFilters = {
+            ...filters,
+            ...localFilters,
+            date_field: dateField,
+            date_from: range?.from ? range.from.toISOString().split('T')[0] : null,
+            date_to: range?.to ? range.to.toISOString().split('T')[0] : null,
+            sort_field: sortField,
+            sort_direction: sortDirection,
+            page: 1
+        };
+
         Object.keys(updatedFilters).forEach(key => {
             if (!updatedFilters[key] || updatedFilters[key] === 'all') {
                 delete updatedFilters[key];
@@ -209,10 +275,11 @@ export default function PurchaseOrderTable({ purchaseOrders, filters, filterOpti
         handleFilterChange('status', tab);
     };
 
-    const formatCurrency = (amount) => {
-        return new Intl.NumberFormat('en-PH', {
+    const formatCurrency = (amount, currency = 'PHP') => {
+        const locale = currency === 'USD' ? 'en-US' : 'en-PH';
+        return new Intl.NumberFormat(locale, {
             style: 'currency',
-            currency: 'PHP',
+            currency: currency,
             minimumFractionDigits: 2,
         }).format(amount);
     };
@@ -417,7 +484,7 @@ export default function PurchaseOrderTable({ purchaseOrders, filters, filterOpti
                         </div>
 
                         {/* Active Filters Indicator */}
-                        {(localFilters.search || localFilters.vendor !== 'all' || localFilters.project !== 'all' || localFilters.status !== 'all') && (
+                        {(localFilters.search || localFilters.vendor !== 'all' || localFilters.project !== 'all' || localFilters.status !== 'all' || dateRange.from || dateRange.to) && (
                             <div className="mb-4 flex flex-wrap items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 p-3">
                                 <div className="flex items-center gap-2 text-sm font-medium text-blue-700">
                                     <AlertCircle className="h-4 w-4" />
@@ -471,6 +538,18 @@ export default function PurchaseOrderTable({ purchaseOrders, filters, filterOpti
                                         </button>
                                     </Badge>
                                 )}
+                                {(dateRange.from || dateRange.to) && (
+                                    <Badge variant="secondary" className="bg-white border border-blue-200">
+                                        <CalendarIcon className="mr-1 h-3 w-3" />
+                                        Date Range: {dateRange.from ? format(dateRange.from, 'MMM dd') : '...'} - {dateRange.to ? format(dateRange.to, 'MMM dd') : '...'}
+                                        <button
+                                            onClick={() => handleDateRangeFilter({ from: null, to: null })}
+                                            className="ml-1.5 rounded-full hover:bg-gray-200"
+                                        >
+                                            <XCircle className="h-3 w-3" />
+                                        </button>
+                                    </Badge>
+                                )}
                                 <button
                                     onClick={() => {
                                         // Make a single navigation request with only sort params preserved
@@ -490,7 +569,7 @@ export default function PurchaseOrderTable({ purchaseOrders, filters, filterOpti
                         )}
 
                         {/* Filters */}
-                        <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-4">
+                        <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-5">
                             {/* Search Input */}
                             <div className="relative md:col-span-2">
                                 <Search className="absolute top-2.5 left-2.5 h-4 w-4 text-muted-foreground" />
@@ -568,6 +647,75 @@ export default function PurchaseOrderTable({ purchaseOrders, filters, filterOpti
                                         ))}
                                 </SelectContent>
                             </Select>
+
+                            {/* Date Filter Popover */}
+                            <Popover open={showDateFilter} onOpenChange={setShowDateFilter}>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        variant="outline"
+                                        className={cn(
+                                            'w-full justify-start text-left font-normal',
+                                            (dateRange.from || dateRange.to) && 'border-blue-500 bg-blue-50 text-blue-700'
+                                        )}
+                                    >
+                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                        {dateRange.from || dateRange.to ? (
+                                            <>
+                                                {dateRange.from ? format(dateRange.from, 'MMM dd') : '...'} - {dateRange.to ? format(dateRange.to, 'MMM dd') : '...'}
+                                            </>
+                                        ) : (
+                                            'Date Filter'
+                                        )}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto" align="start">
+                                    <div className="space-y-4">
+                                        <div>
+                                            <Label className="text-sm font-medium mb-2 block">Date Field</Label>
+                                            <Select value={dateField} onValueChange={handleDateFieldChange}>
+                                                <SelectTrigger className="w-full">
+                                                    <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="po_date">PO Date</SelectItem>
+                                                    <SelectItem value="created_at">Created Date</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        <div>
+                                            <Label className="text-sm font-medium mb-2 block">Select Date Range</Label>
+                                            <CalendarComponent
+                                                mode="range"
+                                                selected={dateRange}
+                                                onSelect={(range) => setDateRange(range || { from: null, to: null })}
+                                                numberOfMonths={2}
+                                                className="rounded-md border w-96"
+                                            />
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                onClick={() => {
+                                                    handleDateRangeFilter({ from: null, to: null });
+                                                    setShowDateFilter(false);
+                                                }}
+                                            >
+                                                Clear
+                                            </Button>
+                                            <Button
+                                                size="sm"
+                                                onClick={() => {
+                                                    handleDateRangeFilter(dateRange);
+                                                    setShowDateFilter(false);
+                                                }}
+                                            >
+                                                Apply
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </PopoverContent>
+                            </Popover>
                         </div>
 
                         {/* Table */}
@@ -682,7 +830,7 @@ export default function PurchaseOrderTable({ purchaseOrders, filters, filterOpti
                                                     <TableCell>
                                                         <div className="flex flex-col">
                                                             <span className="text-lg font-bold text-green-700">
-                                                                {formatCurrency(po.po_amount)}
+                                                                {formatCurrency(po.po_amount, po.currency)}
                                                             </span>
                                                             <span className="text-xs text-gray-500">PO Value</span>
                                                         </div>

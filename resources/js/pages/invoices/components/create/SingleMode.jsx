@@ -64,9 +64,34 @@ export default function SingleMode({
                         />
 
                         <div>
+                            <Label className="text-sm font-medium">Currency</Label>
+                            <Select
+                                value={singleData.currency || 'PHP'}
+                                onValueChange={(value) =>
+                                    setSingleData((prev) => ({
+                                        ...prev,
+                                        currency: value,
+                                    }))
+                                }
+                            >
+                                <SelectTrigger className="mt-1">
+                                    <SelectValue placeholder="Select currency" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="PHP">PHP (₱)</SelectItem>
+                                    <SelectItem value="USD">USD ($)</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            {errors.currency && <p className="mt-1 text-xs text-red-600">{errors.currency}</p>}
+                        </div>
+
+                        <div>
                             <Label className="text-sm font-medium">Invoice Amount<RequiredLabel/></Label>
                             <div className="mt-1 space-y-2">
                                 <div className="relative">
+                                    <span className="absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground">
+                                        {singleData.currency === 'USD' ? '$' : '₱'}
+                                    </span>
                                     <Input
                                         type="number"
                                         step="0.01"
@@ -79,7 +104,7 @@ export default function SingleMode({
                                             }))
                                         }
                                         placeholder="0.00"
-                                        className="pr-16"
+                                        className="pl-8 pr-16"
                                     />
                                     {selectedPO && singleData.invoice_amount && (
                                         <div className="absolute top-0 right-1 flex h-10 items-center">
@@ -97,12 +122,12 @@ export default function SingleMode({
                                             <div className="flex justify-between">
                                                 <span className="text-slate-600">Vatable Amount:</span>
                                                 <span className="font-medium">
-                                                    ₱{calculateVAT(singleData.invoice_amount).vatableAmount.toFixed(2)}
+                                                    {singleData.currency === 'USD' ? '$' : '₱'}{calculateVAT(singleData.invoice_amount).vatableAmount.toFixed(2)}
                                                 </span>
                                             </div>
                                             <div className="flex justify-between">
                                                 <span className="text-slate-600">VAT (12%):</span>
-                                                <span className="font-medium">₱{calculateVAT(singleData.invoice_amount).vatAmount.toFixed(2)}</span>
+                                                <span className="font-medium">{singleData.currency === 'USD' ? '$' : '₱'}{calculateVAT(singleData.invoice_amount).vatAmount.toFixed(2)}</span>
                                             </div>
                                         </div>
                                     </div>

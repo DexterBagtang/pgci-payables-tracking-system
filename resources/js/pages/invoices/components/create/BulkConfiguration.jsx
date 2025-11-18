@@ -149,6 +149,36 @@ export default function BulkConfiguration({
 
                                     const fieldConfig = sharedFieldOptions.find((f) => f.key === fieldKey);
 
+                                    // Currency Field
+                                    if (fieldKey === 'currency') {
+                                        return (
+                                            <div key={fieldKey} className="">
+                                                <Label className="text-xs">Currency<RequiredLabel/></Label>
+                                                <Select
+                                                    value={bulkConfig.sharedValues[fieldKey] || 'PHP'}
+                                                    onValueChange={(value) =>
+                                                        setBulkConfig((prev) => ({
+                                                            ...prev,
+                                                            sharedValues: {
+                                                                ...prev.sharedValues,
+                                                                [fieldKey]: value,
+                                                            },
+                                                        }))
+                                                    }
+                                                >
+                                                    <SelectTrigger className="h-8 mt-1 text-xs">
+                                                        <SelectValue placeholder="Select currency" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="PHP">PHP (₱)</SelectItem>
+                                                        <SelectItem value="USD">USD ($)</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                                {errors[fieldKey] && <p className="mt-1 text-xs text-red-600">{errors[fieldKey]}</p>}
+                                            </div>
+                                        );
+                                    }
+
                                     // Date Fields
                                     if (['si_date', 'si_received_at', 'submitted_at', 'due_date'].includes(fieldKey)) {
                                         return (

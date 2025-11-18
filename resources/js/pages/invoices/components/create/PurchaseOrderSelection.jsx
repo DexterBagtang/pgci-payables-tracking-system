@@ -37,8 +37,9 @@ export default function PurchaseOrderSelection({
         }
     };
 
-    const formatAmount = (amount) => {
-        return `₱${Number(amount).toLocaleString()}`;
+    const formatAmount = (amount, currency = 'PHP') => {
+        const symbol = currency === 'USD' ? '$' : '₱';
+        return `${symbol}${Number(amount).toLocaleString()}`;
     };
 
     return (
@@ -88,7 +89,7 @@ export default function PurchaseOrderSelection({
                                                 </div>
                                                 <div className="flex items-center justify-between">
                                                     <span className="text-sm font-semibold text-green-700">
-                                                        {formatAmount(selectedPO.po_amount)}
+                                                        {formatAmount(selectedPO.po_amount, selectedPO.currency)}
                                                     </span>
                                                     <span className="text-xs text-slate-400">
                                                         CER: {selectedPO.cer_number}
@@ -127,12 +128,14 @@ export default function PurchaseOrderSelection({
                                                                 sharedValues: {
                                                                     ...prev.sharedValues,
                                                                     purchase_order_id: po.value,
+                                                                    currency: po.currency || 'PHP',
                                                                 },
                                                             }));
                                                         } else {
                                                             setSingleData((prev) => ({
                                                                 ...prev,
                                                                 purchase_order_id: po.value,
+                                                                currency: po.currency || 'PHP',
                                                             }));
                                                         }
                                                         setPoComboboxOpen(false);
@@ -173,7 +176,7 @@ export default function PurchaseOrderSelection({
                                                             <div className="flex items-center space-x-1">
                                                                 <Banknote className="h-3 w-3 text-green-600" />
                                                                 <span className="text-sm font-semibold text-green-700">
-                                                                    {formatAmount(po.po_amount)}
+                                                                    {formatAmount(po.po_amount, po.currency)}
                                                                 </span>
                                                             </div>
                                                             <div className="flex items-center space-x-1">

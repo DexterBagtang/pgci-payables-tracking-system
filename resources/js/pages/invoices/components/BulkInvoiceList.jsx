@@ -88,7 +88,7 @@ export default function BulkInvoiceList({
                                                                 <div className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 rounded px-2 py-1">
                                                                     <DollarSign className="h-3 w-3 text-emerald-600" />
                                                                     <span className="text-xs font-bold text-emerald-700">
-                                                                        {formatCurrency(invoice.invoice_amount).replace('PHP', '₱')}
+                                                                        {formatCurrency(invoice.invoice_amount, invoice.currency)}
                                                                     </span>
                                                                 </div>
 

@@ -66,6 +66,24 @@ class InvoiceController extends Controller
             $baseQuery->where('invoice_status', $request->status);
         }
 
+        // Date range filter
+        if ($request->has('date_from') || $request->has('date_to')) {
+            $dateField = $request->get('date_field', 'si_date');
+
+            // Validate date_field to prevent SQL injection
+            if (!in_array($dateField, ['si_date', 'si_received_at', 'created_at', 'due_date'])) {
+                $dateField = 'si_date';
+            }
+
+            if ($request->has('date_from') && !empty($request->date_from)) {
+                $baseQuery->whereDate("invoices.{$dateField}", '>=', $request->date_from);
+            }
+
+            if ($request->has('date_to') && !empty($request->date_to)) {
+                $baseQuery->whereDate("invoices.{$dateField}", '<=', $request->date_to);
+            }
+        }
+
         // Calculate status counts BEFORE pagination (counts all matching records)
         $statusCounts = [
             'all' => (clone $baseQuery)->count(),
@@ -123,6 +141,9 @@ class InvoiceController extends Controller
                 'status' => $request->status !== 'all' ? $request->status : 'all',
                 'sort_direction' => $request->get('sort_direction', 'desc'),
                 'per_page' => $request->get('per_page', 10),
+                'date_field' => $request->get('date_field', 'si_date'),
+                'date_from' => $request->get('date_from', null),
+                'date_to' => $request->get('date_to', null),
             ],
             'filterOptions' => [
                 'vendors' => $vendors,
@@ -152,6 +173,7 @@ class InvoiceController extends Controller
             'invoices.*.si_date' => 'required|date',
             'invoices.*.si_received_at' => 'required|date',
             'invoices.*.invoice_amount' => 'required|numeric|min:0',
+            'invoices.*.currency' => 'nullable|in:PHP,USD',
             'invoices.*.tax_amount' => 'nullable|numeric|min:0',
             'invoices.*.discount_amount' => 'nullable|numeric|min:0',
             'invoices.*.terms_of_payment' => 'required|string',
@@ -287,6 +309,7 @@ class InvoiceController extends Controller
             'si_date' => 'required|date',
             'si_received_at' => 'nullable|date',
             'invoice_amount' => 'required|numeric|min:0',
+            'currency' => 'nullable|in:PHP,USD',
             'due_date' => 'nullable|date',
             'notes' => 'nullable|string',
             'submitted_at' => 'nullable|date',

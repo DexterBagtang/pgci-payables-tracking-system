@@ -135,12 +135,12 @@ export default function BulkMode({
                                                 <div className="flex justify-between">
                                                     <span className="text-slate-500">Ex:</span>
                                                     <span className="font-medium">
-                                                        ₱{calculateVAT(invoice.invoice_amount).vatableAmount.toFixed(2)}
+                                                        {invoice.currency === 'USD' ? '$' : '₱'}{calculateVAT(invoice.invoice_amount).vatableAmount.toFixed(2)}
                                                     </span>
                                                 </div>
                                                 <div className="flex justify-between">
                                                     <span className="text-slate-500">VAT:</span>
-                                                    <span className="font-medium">₱{calculateVAT(invoice.invoice_amount).vatAmount.toFixed(2)}</span>
+                                                    <span className="font-medium">{invoice.currency === 'USD' ? '$' : '₱'}{calculateVAT(invoice.invoice_amount).vatAmount.toFixed(2)}</span>
                                                 </div>
                                             </div>
                                         </TableCell>

@@ -3,17 +3,22 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select.js';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Link, router } from '@inertiajs/react';
-import { differenceInDays, formatDate as formatDateTime } from 'date-fns';
+import { differenceInDays, format, formatDate as formatDateTime } from 'date-fns';
+import { cn } from '@/lib/utils';
 import {
     AlertCircle,
     ArrowDown,
     ArrowUp,
     ArrowUpDown,
     Building2,
+    CalendarIcon,
     CheckCircle2,
     Clock,
     DollarSign,
@@ -28,7 +33,7 @@ import {
     Receipt,
     Search,
     TrendingUp,
-    XCircle,
+    XCircle
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import StatusBadge, { AgingBadge, OverdueBadge } from '@/components/custom/StatusBadge.jsx';
@@ -46,14 +51,21 @@ const InvoicesTable = ({ invoices, filters, filterOptions, statusCounts, current
     const [purchaseOrderSearch, setPurchaseOrderSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState(filters.status || 'all');
     const [activeTab, setActiveTab] = useState('all');
+    const [dateField, setDateField] = useState(filters.date_field || 'si_date');
+    const [dateRange, setDateRange] = useState({
+        from: filters.date_from ? new Date(filters.date_from) : null,
+        to: filters.date_to ? new Date(filters.date_to) : null,
+    });
+    const [showDateFilter, setShowDateFilter] = useState(false);
 
     const invoiceStatuses = ['all', 'pending', 'received', 'approved', 'rejected', 'pending_disbursement'];
 
 
-    const formatCurrency = (amount) => {
-        return new Intl.NumberFormat('en-PH', {
+    const formatCurrency = (amount, currency = 'PHP') => {
+        const currencyCode = currency === 'USD' ? 'USD' : 'PHP';
+        return new Intl.NumberFormat('en-US', {
             style: 'currency',
-            currency: 'PHP',
+            currency: currencyCode,
             minimumFractionDigits: 2,
         }).format(amount);
     };
@@ -178,6 +190,20 @@ const InvoicesTable = ({ invoices, filters, filterOptions, statusCounts, current
         handleStatusChange(tab);
     };
 
+    const handleDateFieldChange = (value) => {
+        setDateField(value);
+        handleFilterChange({ date_field: value, page: 1 });
+    };
+
+    const handleDateRangeFilter = (range) => {
+        setDateRange(range);
+        handleFilterChange({
+            date_from: range?.from ? range.from.toISOString().split('T')[0] : null,
+            date_to: range?.to ? range.to.toISOString().split('T')[0] : null,
+            page: 1,
+        });
+    };
+
     return (
         <div className="py-6">
             <div className="mx-auto sm:px-6 lg:px-8">
@@ -299,7 +325,7 @@ const InvoicesTable = ({ invoices, filters, filterOptions, statusCounts, current
                         </div>
 
                         {/* Active Filters Indicator */}
-                        {(searchValue || vendor !== 'all' || project !== 'all' || purchaseOrder !== 'all' || statusFilter !== 'all') && (
+                        {(searchValue || vendor !== 'all' || project !== 'all' || purchaseOrder !== 'all' || statusFilter !== 'all' || dateRange.from || dateRange.to) && (
                             <div className="mb-4 flex flex-wrap items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 p-3">
                                 <div className="flex items-center gap-2 text-sm font-medium text-blue-700">
                                     <Filter className="h-4 w-4" />
@@ -365,6 +391,18 @@ const InvoicesTable = ({ invoices, filters, filterOptions, statusCounts, current
                                         </button>
                                     </Badge>
                                 )}
+                                {(dateRange.from || dateRange.to) && (
+                                    <Badge variant="secondary" className="bg-white border border-blue-200">
+                                        <CalendarIcon className="mr-1 h-3 w-3" />
+                                        Date Range: {dateRange.from ? format(dateRange.from, 'MMM dd') : '...'} - {dateRange.to ? format(dateRange.to, 'MMM dd') : '...'}
+                                        <button
+                                            onClick={() => handleDateRangeFilter({ from: null, to: null })}
+                                            className="ml-1.5 rounded-full hover:bg-gray-200"
+                                        >
+                                            <XCircle className="h-3 w-3" />
+                                        </button>
+                                    </Badge>
+                                )}
                                 <button
                                     onClick={() => {
                                         // Make a single navigation request with only sort params preserved
@@ -384,9 +422,9 @@ const InvoicesTable = ({ invoices, filters, filterOptions, statusCounts, current
                         )}
 
                         {/* Filters */}
-                        <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-4">
+                        <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-6">
                             {/* Search Input */}
-                            <div className="relative">
+                            <div className="relative md:col-span-2">
                                 <Search className="absolute top-2.5 left-2.5 h-4 w-4 text-muted-foreground" />
                                 <Input
                                     type="search"
@@ -494,6 +532,77 @@ const InvoicesTable = ({ invoices, filters, filterOptions, statusCounts, current
                                         ))}
                                 </SelectContent>
                             </Select>
+
+                            {/* Date Filter Popover */}
+                            <Popover open={showDateFilter} onOpenChange={setShowDateFilter}>
+                                    <PopoverTrigger asChild>
+                                        <Button
+                                            variant="outline"
+                                            className={cn(
+                                                'w-full justify-start text-left font-normal',
+                                                (dateRange.from || dateRange.to) && 'border-blue-500 bg-blue-50 text-blue-700'
+                                            )}
+                                        >
+                                            <CalendarIcon className="mr-2 h-4 w-4" />
+                                            {dateRange.from || dateRange.to ? (
+                                                <>
+                                                    {dateRange.from ? format(dateRange.from, 'MMM dd') : '...'} - {dateRange.to ? format(dateRange.to, 'MMM dd') : '...'}
+                                                </>
+                                            ) : (
+                                                'Date Filter'
+                                            )}
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto" align="start">
+                                        <div className="space-y-4">
+                                            <div>
+                                                <Label className="text-sm font-medium mb-2 block">Date Field</Label>
+                                                <Select value={dateField} onValueChange={handleDateFieldChange}>
+                                                    <SelectTrigger className="w-full">
+                                                        <SelectValue />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="si_date">SI Date</SelectItem>
+                                                        <SelectItem value="si_received_at">Received Date</SelectItem>
+                                                        <SelectItem value="created_at">Created Date</SelectItem>
+                                                        <SelectItem value="due_date">Due Date</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                            <div>
+                                                <Label className="text-sm font-medium mb-2 block">Select Date Range</Label>
+                                                <Calendar
+                                                    mode="range"
+                                                    selected={dateRange}
+                                                    onSelect={(range) => setDateRange(range || { from: null, to: null })}
+                                                    numberOfMonths={2}
+                                                    className="rounded-md border w-96"
+                                                />
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    onClick={() => {
+                                                        handleDateRangeFilter({ from: null, to: null });
+                                                        setShowDateFilter(false);
+                                                    }}
+                                                >
+                                                    Clear
+                                                </Button>
+                                                <Button
+                                                    size="sm"
+                                                    onClick={() => {
+                                                        handleDateRangeFilter(dateRange);
+                                                        setShowDateFilter(false);
+                                                    }}
+                                                >
+                                                    Apply
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    </PopoverContent>
+                                </Popover>
                         </div>
 
                         {/* Table */}
@@ -589,7 +698,7 @@ const InvoicesTable = ({ invoices, filters, filterOptions, statusCounts, current
                                                     <TableCell>
                                                         <div className="flex flex-col">
                                                             <span className="text-lg font-bold text-green-700">
-                                                                {formatCurrency(invoice.invoice_amount)}
+                                                                {formatCurrency(invoice.invoice_amount, invoice.currency)}
                                                             </span>
                                                             <span className="text-xs text-gray-500">Invoice Amount</span>
                                                         </div>

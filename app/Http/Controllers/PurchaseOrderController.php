@@ -51,6 +51,24 @@ class PurchaseOrderController extends Controller
             });
         }
 
+        // Date range filter
+        if ($request->has('date_from') || $request->has('date_to')) {
+            $dateField = $request->get('date_field', 'po_date');
+
+            // Validate date_field to prevent SQL injection
+            if (!in_array($dateField, ['po_date', 'created_at'])) {
+                $dateField = 'po_date';
+            }
+
+            if ($request->has('date_from') && !empty($request->date_from)) {
+                $query->whereDate("purchase_orders.{$dateField}", '>=', $request->date_from);
+            }
+
+            if ($request->has('date_to') && !empty($request->date_to)) {
+                $query->whereDate("purchase_orders.{$dateField}", '<=', $request->date_to);
+            }
+        }
+
         // Apply sorting - KISS approach
         $sortField = $request->get('sort_field', 'po_date');
         $sortDirection = $request->get('sort_direction', 'desc');
@@ -88,6 +106,9 @@ class PurchaseOrderController extends Controller
                 'status' => $request->get('status', 'all'),
                 'vendor' => $request->vendor !== 'all' ? (int) $request->vendor : 'all',
                 'project' => $request->project !== 'all' ? (int) $request->project : 'all',
+                'date_field' => $request->get('date_field', 'po_date'),
+                'date_from' => $request->get('date_from', null),
+                'date_to' => $request->get('date_to', null),
                 'sort_field' => $request->get('sort_field', 'po_date'),
                 'sort_direction' => $request->get('sort_direction', 'desc'),
             ],
@@ -123,6 +144,7 @@ class PurchaseOrderController extends Controller
             'project_id' => $request->po_status === 'draft' ? 'nullable|exists:projects,id' : 'required|exists:projects,id',
             'vendor_id' => $request->po_status === 'draft' ? 'nullable|exists:vendors,id' : 'required|exists:vendors,id',
             'po_amount' => $request->po_status === 'draft' ? 'nullable|numeric|min:0' : 'required|numeric|min:0',
+            'currency' => 'nullable|in:PHP,USD',
             'payment_term' => 'nullable|string',
             'po_date' => $request->po_status === 'draft' ? 'nullable|date' : 'required|date',
             'expected_delivery_date' => 'nullable|date|after:po_date',
@@ -248,6 +270,7 @@ class PurchaseOrderController extends Controller
             'project_id' => $request->po_status === 'draft' ? 'nullable|exists:projects,id' : 'required|exists:projects,id',
             'vendor_id' => $request->po_status === 'draft' ? 'nullable|exists:vendors,id' : 'required|exists:vendors,id',
             'po_amount' => $request->po_status === 'draft' ? 'nullable|numeric|min:0' : 'required|numeric|min:0',
+            'currency' => 'nullable|in:PHP,USD',
             'payment_term' => 'nullable|string',
             'po_date' => $request->po_status === 'draft' ? 'nullable|date' : 'required|date',
             'expected_delivery_date' => 'nullable|date|after:po_date',

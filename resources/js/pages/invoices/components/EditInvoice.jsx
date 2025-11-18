@@ -67,6 +67,7 @@ const EditInvoice = ({ invoice, purchaseOrders }) => {
         si_date: invoice.si_date || '',
         si_received_at: invoice.si_received_at || '',
         invoice_amount: invoice.invoice_amount || '',
+        currency: invoice.currency || 'PHP',
         terms_of_payment: invoice.terms_of_payment || '',
         other_payment_terms: invoice.other_payment_terms || '',
         due_date: invoice.due_date || '',
@@ -85,6 +86,7 @@ const EditInvoice = ({ invoice, purchaseOrders }) => {
             si_date: invoice.si_date || '',
             si_received_at: invoice.si_received_at || '',
             invoice_amount: invoice.invoice_amount || '',
+            currency: invoice.currency || 'PHP',
             terms_of_payment: invoice.terms_of_payment || '',
             other_payment_terms: invoice.other_payment_terms || '',
             due_date: invoice.due_date || '',
@@ -357,9 +359,29 @@ const EditInvoice = ({ invoice, purchaseOrders }) => {
                                         />
 
                                         <div>
+                                            <Label className="text-sm font-medium">Currency</Label>
+                                            <Select
+                                                value={data.currency || 'PHP'}
+                                                onValueChange={(value) => setData('currency', value)}
+                                            >
+                                                <SelectTrigger className="mt-1">
+                                                    <SelectValue placeholder="Select currency" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="PHP">PHP (₱)</SelectItem>
+                                                    <SelectItem value="USD">USD ($)</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                            {errors.currency && <p className="mt-1 text-xs text-red-600">{errors.currency}</p>}
+                                        </div>
+
+                                        <div>
                                             <Label className="text-sm font-medium">Invoice Amount<RequiredLabel /></Label>
                                             <div className="mt-1 space-y-2">
                                                 <div className="relative">
+                                                    <span className="absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground">
+                                                        {data.currency === 'USD' ? '$' : '₱'}
+                                                    </span>
                                                     <Input
                                                         type="number"
                                                         step="0.01"
@@ -367,7 +389,7 @@ const EditInvoice = ({ invoice, purchaseOrders }) => {
                                                         value={data.invoice_amount}
                                                         onChange={(e) => setData('invoice_amount', e.target.value)}
                                                         placeholder="0.00"
-                                                        className="pr-16"
+                                                        className="pl-8 pr-16"
                                                     />
                                                     {selectedPO && data.invoice_amount && (
                                                         <div className="absolute top-0 right-1 flex h-10 items-center">
@@ -385,13 +407,13 @@ const EditInvoice = ({ invoice, purchaseOrders }) => {
                                                             <div className="flex justify-between">
                                                                 <span className="text-slate-600">Vatable Amount:</span>
                                                                 <span className="font-medium">
-                                                                    ₱{calculateVAT(data.invoice_amount).vatableAmount.toFixed(2)}
+                                                                    {data.currency === 'USD' ? '$' : '₱'}{calculateVAT(data.invoice_amount).vatableAmount.toFixed(2)}
                                                                 </span>
                                                             </div>
                                                             <div className="flex justify-between">
                                                                 <span className="text-slate-600">VAT (12%):</span>
                                                                 <span className="font-medium">
-                                                                    ₱{calculateVAT(data.invoice_amount).vatAmount.toFixed(2)}
+                                                                    {data.currency === 'USD' ? '$' : '₱'}{calculateVAT(data.invoice_amount).vatAmount.toFixed(2)}
                                                                 </span>
                                                             </div>
                                                         </div>
@@ -612,7 +634,7 @@ const EditInvoice = ({ invoice, purchaseOrders }) => {
                                     <div className="text-center p-4 bg-slate-50 rounded border">
                                         <div className="text-sm text-slate-600 mb-1">Total Amount</div>
                                         <div className="text-3xl font-bold text-slate-900">
-                                            ₱{Number(data.invoice_amount || 0).toLocaleString()}
+                                            {data.currency === 'USD' ? '$' : '₱'}{Number(data.invoice_amount || 0).toLocaleString()}
                                         </div>
                                     </div>
 
@@ -635,13 +657,13 @@ const EditInvoice = ({ invoice, purchaseOrders }) => {
                                                 <div className="flex justify-between">
                                                     <span className="text-slate-600">Vatable Amount:</span>
                                                     <span className="font-medium">
-                                                        ₱{calculateVAT(data.invoice_amount).vatableAmount.toFixed(2)}
+                                                        {data.currency === 'USD' ? '$' : '₱'}{calculateVAT(data.invoice_amount).vatableAmount.toFixed(2)}
                                                     </span>
                                                 </div>
                                                 <div className="flex justify-between">
                                                     <span className="text-slate-600">VAT (12%):</span>
                                                     <span className="font-medium">
-                                                        ₱{calculateVAT(data.invoice_amount).vatAmount.toFixed(2)}
+                                                        {data.currency === 'USD' ? '$' : '₱'}{calculateVAT(data.invoice_amount).vatAmount.toFixed(2)}
                                                     </span>
                                                 </div>
                                             </div>
@@ -804,7 +826,7 @@ const EditInvoice = ({ invoice, purchaseOrders }) => {
                                     <div>
                                         <div className="text-slate-500">Invoice Amount</div>
                                         <div className="font-bold text-emerald-600">
-                                            {data.invoice_amount ? `₱${Number(data.invoice_amount).toLocaleString()}` : "—"}
+                                            {data.invoice_amount ? `${data.currency === 'USD' ? '$' : '₱'}${Number(data.invoice_amount).toLocaleString()}` : "—"}
                                         </div>
                                     </div>
                                     <div>

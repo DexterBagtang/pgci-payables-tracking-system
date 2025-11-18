@@ -15,8 +15,9 @@ import {
 } from 'lucide-react';
 import StatusBadge from '@/components/custom/StatusBadge.jsx';
 
-const InvoiceDetailsTab = ({ invoice, formatCurrency, formatDate }) => {
+const InvoiceDetailsTab = ({ invoice, formatCurrency, formatDate, currency }) => {
     const { purchase_order: po } = invoice;
+    const invoiceCurrency = currency || invoice.currency || 'PHP';
 
     // Calculate days until due
     const calculateDaysUntilDue = () => {
@@ -72,19 +73,19 @@ const InvoiceDetailsTab = ({ invoice, formatCurrency, formatDate }) => {
                     <div className="space-y-2">
                         <div className="flex justify-between border-b pb-2">
                             <span className="text-sm text-slate-600">Invoice Amount</span>
-                            <span className="font-semibold text-slate-900">{formatCurrency(invoice.invoice_amount)}</span>
+                            <span className="font-semibold text-slate-900">{formatCurrency(invoice.invoice_amount, invoiceCurrency)}</span>
                         </div>
                         <div className="flex justify-between border-b pb-2">
                             <span className="text-sm text-slate-600">Tax Amount</span>
-                            <span className="font-medium text-slate-700">{formatCurrency(invoice.tax_amount)}</span>
+                            <span className="font-medium text-slate-700">{formatCurrency(invoice.tax_amount, invoiceCurrency)}</span>
                         </div>
                         <div className="flex justify-between border-b pb-2">
                             <span className="text-sm text-slate-600">Discount</span>
-                            <span className="font-medium text-slate-700">{formatCurrency(invoice.discount_amount)}</span>
+                            <span className="font-medium text-slate-700">{formatCurrency(invoice.discount_amount, invoiceCurrency)}</span>
                         </div>
                         <div className="flex justify-between bg-slate-50 p-2 rounded">
                             <span className="text-sm font-semibold text-slate-700">Net Amount</span>
-                            <span className="font-bold text-slate-900">{formatCurrency(invoice.net_amount)}</span>
+                            <span className="font-bold text-slate-900">{formatCurrency(invoice.net_amount, invoiceCurrency)}</span>
                         </div>
                     </div>
 
@@ -97,11 +98,11 @@ const InvoiceDetailsTab = ({ invoice, formatCurrency, formatDate }) => {
                             <div className="text-xs text-slate-500">
                                 <div className="flex justify-between">
                                     <span>PO Amount:</span>
-                                    <span>{formatCurrency(po?.po_amount)}</span>
+                                    <span>{formatCurrency(po?.po_amount, invoiceCurrency)}</span>
                                 </div>
                                 <div className="flex justify-between">
                                     <span>Remaining:</span>
-                                    <span>{formatCurrency(remainingPOBalance)}</span>
+                                    <span>{formatCurrency(remainingPOBalance, invoiceCurrency)}</span>
                                 </div>
                             </div>
                         </div>

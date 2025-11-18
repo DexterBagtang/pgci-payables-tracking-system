@@ -60,11 +60,13 @@ export function getUniqueProjectsWithFormattedDate(orders) {
 }
 
 
-export const formatCurrency = (amount) => {
+export const formatCurrency = (amount, currency = 'PHP') => {
     if (!amount) return '';
-    return new Intl.NumberFormat('en-PH', {
+    const locale = currency === 'USD' ? 'en-US' : 'en-PH';
+    return new Intl.NumberFormat(locale, {
         style: 'currency',
-        currency: 'PHP',
+        currency: currency,
+        minimumFractionDigits: 2,
     }).format(amount);
 };
 

@@ -96,7 +96,7 @@ const ReviewActionCard = ({ invoice, reviewLogs, onOpenDialog }) => {
                             </p>
                             <div className="flex items-center space-x-4 text-xs text-gray-500">
                                 <span>Invoice: #{invoice.si_number}</span>
-                                <span>Amount: ₱{Number(invoice.invoice_amount).toLocaleString()}</span>
+                                <span>Amount: {invoice.currency === 'USD' ? '$' : '₱'}{Number(invoice.invoice_amount).toLocaleString()}</span>
                             </div>
                         </div>
                     </div>

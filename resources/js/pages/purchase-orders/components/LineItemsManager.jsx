@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge.js";
 import { Trash2, Plus, Package } from 'lucide-react';
 import { Separator } from '@/components/ui/separator.js';
 
-const LineItemsManager = ({ lineItems, setLineItems, poAmount, setPoAmount }) => {
+const LineItemsManager = ({ lineItems, setLineItems, poAmount, setPoAmount, currency = 'PHP' }) => {
     const [showLineItems, setShowLineItems] = useState(false);
 
     const addLineItem = () => {
@@ -58,10 +58,14 @@ const LineItemsManager = ({ lineItems, setLineItems, poAmount, setPoAmount }) =>
     };
 
     const formatCurrency = (amount) => {
-        if (!amount) return '₱0.00';
-        return new Intl.NumberFormat('en-PH', {
+        if (!amount) {
+            return currency === 'USD' ? '$0.00' : '₱0.00';
+        }
+        const locale = currency === 'USD' ? 'en-US' : 'en-PH';
+        return new Intl.NumberFormat(locale, {
             style: 'currency',
-            currency: 'PHP',
+            currency: currency,
+            minimumFractionDigits: 2,
         }).format(amount);
     };
 
@@ -193,7 +197,9 @@ const LineItemsManager = ({ lineItems, setLineItems, poAmount, setPoAmount }) =>
                                     <div className="space-y-2">
                                         <Label>Unit Price *</Label>
                                         <div className="relative">
-                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">₱</span>
+                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                                                {currency === 'USD' ? '$' : '₱'}
+                                            </span>
                                             <Input
                                                 type="number"
                                                 min="0"

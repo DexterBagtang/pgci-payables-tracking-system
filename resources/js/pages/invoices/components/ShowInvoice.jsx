@@ -40,9 +40,10 @@ const ShowInvoice = ({ invoice }) => {
     const [tab, setTab] = useRemember('details', 'invoice-detail-tab');
 
     // Memoized helper functions
-    const formatCurrency = useCallback((amount) => {
-        if (!amount) return '₱0.00';
-        return `₱${Number(amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+    const formatCurrency = useCallback((amount, currency = 'PHP') => {
+        if (!amount) return currency === 'USD' ? '$0.00' : '₱0.00';
+        const symbol = currency === 'USD' ? '$' : '₱';
+        return `${symbol}${Number(amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
     }, []);
 
     const formatDate = useCallback((date) => {
@@ -95,7 +96,7 @@ const ShowInvoice = ({ invoice }) => {
                         {/* Key Information Grid */}
                         <div className="mt-6 grid grid-cols-1 gap-6 border-t pt-6 md:grid-cols-2 xl:grid-cols-4">
                             <div className="text-center">
-                                <div className="mb-1 text-3xl font-bold text-green-600">{formatCurrency(invoice.invoice_amount)}</div>
+                                <div className="mb-1 text-3xl font-bold text-green-600">{formatCurrency(invoice.invoice_amount, invoice.currency)}</div>
                                 <div className="text-sm text-slate-500">Invoice Amount</div>
                             </div>
 
@@ -148,7 +149,7 @@ const ShowInvoice = ({ invoice }) => {
 
                         {/* Details Tab */}
                         <TabsContent value="details">
-                            <InvoiceDetailsTab invoice={invoice} formatCurrency={formatCurrency} formatDate={formatDate} />
+                            <InvoiceDetailsTab invoice={invoice} formatCurrency={formatCurrency} formatDate={formatDate} currency={invoice.currency} />
                         </TabsContent>
 
                         {/* Files Tab */}

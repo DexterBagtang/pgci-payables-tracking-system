@@ -101,9 +101,16 @@ export default function ShowPO({ purchaseOrder, vendors, projects , backUrl}) {
     }, [purchaseOrder, invoices]);
 
     // Helper function to format currency
-    const formatCurrency = (amount) => {
-        if (!amount) return '₱0.00';
-        return `₱${Number(amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+    const formatCurrency = (amount, currency = 'PHP') => {
+        if (!amount) {
+            return currency === 'USD' ? '$0.00' : '₱0.00';
+        }
+        const locale = currency === 'USD' ? 'en-US' : 'en-PH';
+        return new Intl.NumberFormat(locale, {
+            style: 'currency',
+            currency: currency,
+            minimumFractionDigits: 2,
+        }).format(amount);
     };
 
     // Helper function to format date
@@ -186,11 +193,11 @@ export default function ShowPO({ purchaseOrder, vendors, projects , backUrl}) {
                                 <div className="space-y-2">
                                     <p className="text-sm font-medium text-gray-600">PO Amount</p>
                                     <p className="text-lg font-bold text-blue-600">
-                                        {formatCurrency(financialMetrics.poAmount)}
+                                        {formatCurrency(financialMetrics.poAmount, purchaseOrder.currency)}
                                     </p>
                                     <div className="space-y-1 text-xs text-gray-500">
-                                        <div>VAT Ex: {formatCurrency(financialMetrics.vatExAmount)}</div>
-                                        <div>VAT (12%): {formatCurrency(financialMetrics.vatAmount)}</div>
+                                        <div>VAT Ex: {formatCurrency(financialMetrics.vatExAmount, purchaseOrder.currency)}</div>
+                                        <div>VAT (12%): {formatCurrency(financialMetrics.vatAmount, purchaseOrder.currency)}</div>
                                     </div>
                                 </div>
                             </CardContent>
@@ -203,8 +210,8 @@ export default function ShowPO({ purchaseOrder, vendors, projects , backUrl}) {
                                     <p className="text-sm font-medium text-gray-600">Invoiced</p>
                                     <p className="text-lg font-bold text-orange-600">
                                         {financialMetrics.totalInvoicedAmount > 0 ?
-                                            formatCurrency(financialMetrics.totalInvoicedAmount) :
-                                            <span className="text-gray-400">₱0.00</span>
+                                            formatCurrency(financialMetrics.totalInvoicedAmount, purchaseOrder.currency) :
+                                            <span className="text-gray-400">{purchaseOrder.currency === 'USD' ? '$0.00' : '₱0.00'}</span>
                                         }
                                     </p>
                                     <div className="space-y-1">
@@ -237,8 +244,8 @@ export default function ShowPO({ purchaseOrder, vendors, projects , backUrl}) {
                                     <p className="text-sm font-medium text-gray-600">Paid</p>
                                     <p className="text-lg font-bold text-green-600">
                                         {financialMetrics.paidAmount > 0 ?
-                                            formatCurrency(financialMetrics.paidAmount) :
-                                            <span className="text-gray-400">₱0.00</span>
+                                            formatCurrency(financialMetrics.paidAmount, purchaseOrder.currency) :
+                                            <span className="text-gray-400">{purchaseOrder.currency === 'USD' ? '$0.00' : '₱0.00'}</span>
                                         }
                                     </p>
                                     <div className="space-y-1">
@@ -274,12 +281,12 @@ export default function ShowPO({ purchaseOrder, vendors, projects , backUrl}) {
                                     <p className={`text-lg font-bold ${
                                         financialMetrics.outstandingAmount > 0 ? 'text-red-600' : 'text-green-600'
                                     }`}>
-                                        {formatCurrency(financialMetrics.outstandingAmount)}
+                                        {formatCurrency(financialMetrics.outstandingAmount, purchaseOrder.currency)}
                                     </p>
                                     <div className="text-xs space-y-1">
                                         <div className="flex justify-between">
                                             <span>Pending Payment:</span>
-                                            <span className="font-medium">{formatCurrency(financialMetrics.pendingInvoiceAmount)}</span>
+                                            <span className="font-medium">{formatCurrency(financialMetrics.pendingInvoiceAmount, purchaseOrder.currency)}</span>
                                         </div>
                                         <Badge variant={
                                             financialMetrics.outstandingAmount === 0 ? 'default' : 'destructive'
@@ -627,7 +634,7 @@ export default function ShowPO({ purchaseOrder, vendors, projects , backUrl}) {
                                                     <div className="flex justify-between">
                                                         <span className="text-slate-500">Total Project Cost:</span>
                                                         <span className="font-medium capitalize">
-                                                            {formatCurrency(purchaseOrder.project.total_project_cost) || 'Not specified'}
+                                                            {purchaseOrder.project.total_project_cost ? formatCurrency(purchaseOrder.project.total_project_cost, purchaseOrder.currency) : 'Not specified'}
                                                         </span>
                                                     </div>
                                                 </div>
@@ -674,15 +681,15 @@ export default function ShowPO({ purchaseOrder, vendors, projects , backUrl}) {
                                         <div className="space-y-4">
                                             <div className="flex justify-between border-b pb-2">
                                                 <span className="text-slate-500">Subtotal (VAT Excluded)</span>
-                                                <span className="font-medium">{formatCurrency(financialMetrics.vatExAmount)}</span>
+                                                <span className="font-medium">{formatCurrency(financialMetrics.vatExAmount, purchaseOrder.currency)}</span>
                                             </div>
                                             <div className="flex justify-between border-b pb-2">
                                                 <span className="text-slate-500">VAT (12%)</span>
-                                                <span className="font-medium">{formatCurrency(financialMetrics.vatAmount)}</span>
+                                                <span className="font-medium">{formatCurrency(financialMetrics.vatAmount, purchaseOrder.currency)}</span>
                                             </div>
                                             <div className="flex justify-between border-b pb-2">
                                                 <span className="text-slate-500">Total PO Amount</span>
-                                                <span className="font-bold text-green-600">{formatCurrency(financialMetrics.poAmount)}</span>
+                                                <span className="font-bold text-green-600">{formatCurrency(financialMetrics.poAmount, purchaseOrder.currency)}</span>
                                             </div>
                                         </div>
 
@@ -693,28 +700,28 @@ export default function ShowPO({ purchaseOrder, vendors, projects , backUrl}) {
                                                 <div className="flex justify-between items-center">
                                                     <span className="text-slate-500">Total Invoiced:</span>
                                                     <div className="text-right">
-                                                        <span className="font-medium text-orange-600">{formatCurrency(financialMetrics.totalInvoicedAmount)}</span>
+                                                        <span className="font-medium text-orange-600">{formatCurrency(financialMetrics.totalInvoicedAmount, purchaseOrder.currency)}</span>
                                                         <div className="text-xs text-slate-400">{formatPercentage(financialMetrics.invoicedPercentage)} of PO</div>
                                                     </div>
                                                 </div>
                                                 <div className="flex justify-between items-center">
                                                     <span className="text-slate-500">Amount Paid:</span>
                                                     <div className="text-right">
-                                                        <span className="font-medium text-green-600">{formatCurrency(financialMetrics.paidAmount)}</span>
+                                                        <span className="font-medium text-green-600">{formatCurrency(financialMetrics.paidAmount, purchaseOrder.currency)}</span>
                                                         <div className="text-xs text-slate-400">{formatPercentage(financialMetrics.paidPercentage)} of invoiced</div>
                                                     </div>
                                                 </div>
                                                 <div className="flex justify-between items-center">
                                                     <span className="text-slate-500">Pending Payment:</span>
                                                     <div className="text-right">
-                                                        <span className="font-medium text-yellow-600">{formatCurrency(financialMetrics.pendingInvoiceAmount)}</span>
+                                                        <span className="font-medium text-yellow-600">{formatCurrency(financialMetrics.pendingInvoiceAmount, purchaseOrder.currency)}</span>
                                                     </div>
                                                 </div>
                                                 <div className="flex justify-between items-center border-t pt-3">
                                                     <span className="text-slate-500 font-medium">Outstanding Balance:</span>
                                                     <div className="text-right">
                                                         <span className={`font-bold ${financialMetrics.outstandingAmount === 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                                            {formatCurrency(financialMetrics.outstandingAmount)}
+                                                            {formatCurrency(financialMetrics.outstandingAmount, purchaseOrder.currency)}
                                                         </span>
                                                         <div className="text-xs text-slate-400">{formatPercentage((financialMetrics.outstandingAmount / financialMetrics.poAmount) * 100)} remaining</div>
                                                     </div>
@@ -834,8 +841,8 @@ export default function ShowPO({ purchaseOrder, vendors, projects , backUrl}) {
 
                                                     <div className="flex items-center justify-between text-xs text-slate-600">
                                                         <div className="flex gap-4">
-                                                            <span>Amount: <strong className="text-slate-900">{formatCurrency(invoice.invoice_amount)}</strong></span>
-                                                            <span>Net: <strong className="text-slate-900">{formatCurrency(invoice.net_amount)}</strong></span>
+                                                            <span>Amount: <strong className="text-slate-900">{formatCurrency(invoice.invoice_amount, purchaseOrder.currency)}</strong></span>
+                                                            <span>Net: <strong className="text-slate-900">{formatCurrency(invoice.net_amount, purchaseOrder.currency)}</strong></span>
                                                             {invoice.due_date && (
                                                                 <span>Due: <strong className="text-slate-900">{formatDate(invoice.due_date)}</strong></span>
                                                             )}
