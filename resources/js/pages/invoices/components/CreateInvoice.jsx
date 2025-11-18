@@ -37,6 +37,10 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
     const [processing, setProcessing] = useState(false);
     const [errors, setErrors] = useState({});
 
+    // Bulk file upload state
+    const [bulkFiles, setBulkFiles] = useState([]);
+    const [fileMatching, setFileMatching] = useState([]);
+
     // Bulk configuration
     const [bulkConfig, setBulkConfig] = useState({
         count: 2,
@@ -124,6 +128,103 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
         },
         [bulkInvoices],
     );
+
+    // Filename matching logic - fuzzy match invoice numbers
+    const matchFileToInvoice = useCallback((fileName, invoices) => {
+        // Remove file extension
+        const nameWithoutExt = fileName.replace(/\.[^/.]+$/, '');
+
+        // Try to find matching invoice by SI number
+        for (let i = 0; i < invoices.length; i++) {
+            const invoice = invoices[i];
+            if (!invoice.si_number) continue;
+
+            // Normalize both for comparison (remove spaces, hyphens, underscores, lowercase)
+            const normalizedSI = invoice.si_number.toLowerCase().replace(/[\s\-_]/g, '');
+            const normalizedFileName = nameWithoutExt.toLowerCase().replace(/[\s\-_]/g, '');
+
+            // Check if filename contains the SI number
+            if (normalizedFileName.includes(normalizedSI) || normalizedSI.includes(normalizedFileName)) {
+                return { matched: true, invoiceIndex: i, invoiceNumber: invoice.si_number };
+            }
+        }
+
+        return { matched: false, invoiceIndex: null, invoiceNumber: null };
+    }, []);
+
+    // Handle bulk file upload
+    const handleBulkFilesUpload = useCallback((e) => {
+        const files = Array.from(e.target.files);
+        const validFiles = files.filter((file) => {
+            const maxSize = 10 * 1024 * 1024; // 10MB
+            return file.size <= maxSize;
+        });
+
+        if (validFiles.length !== files.length) {
+            toast.error('Some files were too large (max 10MB per file) and were not selected.');
+        }
+
+        // Match files to invoices
+        const matches = validFiles.map((file) => {
+            const match = matchFileToInvoice(file.name, bulkInvoices);
+            return {
+                file,
+                ...match,
+            };
+        });
+
+        setFileMatching(matches);
+
+        // Auto-assign matched files to invoices
+        matches.forEach((match) => {
+            if (match.matched && match.invoiceIndex !== null) {
+                const invoice = bulkInvoices[match.invoiceIndex];
+                const existingFiles = invoice.files || [];
+                updateBulkInvoice(match.invoiceIndex, 'files', [...existingFiles, match.file]);
+            }
+        });
+
+        e.target.value = '';
+    }, [bulkInvoices, matchFileToInvoice]);
+
+    // Handle remove matched file
+    const handleRemoveMatchedFile = useCallback((matchIndex) => {
+        const match = fileMatching[matchIndex];
+
+        // Remove from invoice files if it was matched
+        if (match.matched && match.invoiceIndex !== null) {
+            const invoice = bulkInvoices[match.invoiceIndex];
+            const updatedFiles = (invoice.files || []).filter(f => f.name !== match.file.name);
+            updateBulkInvoice(match.invoiceIndex, 'files', updatedFiles);
+        }
+
+        // Remove from file matching list
+        setFileMatching(prev => prev.filter((_, i) => i !== matchIndex));
+    }, [fileMatching, bulkInvoices]);
+
+    // Handle file reassignment
+    const handleReassignFile = useCallback((matchIndex, newInvoiceIndex) => {
+        const match = fileMatching[matchIndex];
+
+        // Remove from old invoice if previously assigned
+        if (match.invoiceIndex !== null) {
+            const oldInvoice = bulkInvoices[match.invoiceIndex];
+            const updatedOldFiles = (oldInvoice.files || []).filter(f => f.name !== match.file.name);
+            updateBulkInvoice(match.invoiceIndex, 'files', updatedOldFiles);
+        }
+
+        // Add to new invoice
+        const newInvoice = bulkInvoices[newInvoiceIndex];
+        const existingFiles = newInvoice.files || [];
+        updateBulkInvoice(newInvoiceIndex, 'files', [...existingFiles, match.file]);
+
+        // Update matching state
+        setFileMatching(prev => prev.map((m, i) =>
+            i === matchIndex
+                ? { ...m, matched: true, invoiceIndex: newInvoiceIndex, invoiceNumber: newInvoice.si_number || `Invoice ${newInvoiceIndex + 1}` }
+                : m
+        ));
+    }, [fileMatching, bulkInvoices]);
 
     // Generate bulk invoices based on configuration
     const generateBulkInvoices = useCallback(() => {
@@ -343,10 +444,7 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
                 if (invoice.terms_of_payment === 'others' && !bulkConfig.sharedFields.terms_of_payment && !invoice.other_payment_terms) {
                     newErrors[`bulk_${index}_other_payment_terms`] = `Invoice ${index + 1}: Please specify other payment terms`;
                 }
-                // Validate file upload - REQUIRED
-                if (!invoice.files || invoice.files.length === 0) {
-                    newErrors[`bulk_${index}_files`] = `Invoice ${index + 1}: At least one file is required`;
-                }
+                // File upload is now optional - removed validation
             });
         } else {
             // Validate single invoice
@@ -361,10 +459,7 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
             if (singleData.terms_of_payment === 'others' && !singleData.other_payment_terms) {
                 newErrors.other_payment_terms = 'Please specify other payment terms';
             }
-            // Validate file upload - REQUIRED
-            if (!singleData.files || singleData.files.length === 0) {
-                newErrors.files = 'At least one file is required';
-            }
+            // File upload is now optional - removed validation
         }
 
         setErrors(newErrors);
@@ -541,6 +636,12 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
                                         selectedPO={selectedPO}
                                         calculatePOPercentage={calculatePOPercentage}
                                         calculateVAT={calculateVAT}
+                                        bulkFiles={bulkFiles}
+                                        setBulkFiles={setBulkFiles}
+                                        fileMatching={fileMatching}
+                                        handleBulkFilesUpload={handleBulkFilesUpload}
+                                        handleRemoveMatchedFile={handleRemoveMatchedFile}
+                                        handleReassignFile={handleReassignFile}
                                     />
                                 </Suspense>
 

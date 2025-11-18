@@ -182,6 +182,7 @@ class InvoiceController extends Controller
             'invoices.*.notes' => 'nullable|string',
             'invoices.*.submitted_at' => 'nullable|date',
             'invoices.*.submitted_to' => 'nullable|string|max:255',
+            'invoices.*.files' => 'nullable|array',
             'invoices.*.files.*' => 'file|max:10240|mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png',
         ]);
 
