@@ -225,7 +225,7 @@ const InvoicesTable = ({ invoices, filters, filterOptions, statusCounts, current
                                 <Link href="/invoices/create" prefetch>
                                     <Button size="sm">
                                         <Plus className="mr-2 h-4 w-4" />
-                                        Create Invoice
+                                        Add Invoice
                                     </Button>
                                 </Link>
                             </div>

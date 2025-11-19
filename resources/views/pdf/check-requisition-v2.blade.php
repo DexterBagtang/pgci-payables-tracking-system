@@ -143,5 +143,15 @@
         </div>
     </div>
 </div>
+
+<!-- Notes Section -->
+<div class="mx-4 mb-4 mt-6" style="min-height: 200px;">
+    <div class="px-4 py-2">
+        <span class="label-text text-sm">NOTES / REMARKS:</span>
+    </div>
+    <div class="p-4" style="min-height: 160px;">
+        <!-- Empty space for notes -->
+    </div>
+</div>
 </body>
 </html>

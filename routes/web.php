@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\CheckRequisitionController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DisbursementController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\PurchaseOrderController;
@@ -49,6 +50,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('check-requisitions.approve');
     Route::post('/check-requisitions/{checkRequisition}/reject', [CheckRequisitionController::class, 'reject'])
         ->name('check-requisitions.reject');
+
+    Route::resource('disbursements', DisbursementController::class);
 
     Route::resource('remarks',RemarksController::class);
 

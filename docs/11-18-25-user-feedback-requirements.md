@@ -126,14 +126,41 @@ Create a new "Disbursement" module that represents the final stage of the paymen
 **Workflow:**
 1. Check requisition gets approved
 2. Related invoices status → `pending_disbursement`
-3. Disbursement officer fills in disbursement details
-4. When disbursement is completed → invoices status → `paid`
+3. Disbursement officer creates disbursement by selecting approved check reqs
+4. When "date check released to vendor" is filled → invoices status → `paid`
 5. Aging calculation stops when "date check released to vendor" is filled
+
+**Adding Disbursement Flow (Similar to Check Req Creation):**
+The process works like creating a new check requisition, but selecting check requisitions instead of invoices:
+
+1. **Display approved check requisitions**
+   - Show table listing all check requisitions with status = "approved"
+   - Display each check req along with its associated invoices (expandable/nested view)
+   - Allow selecting multiple check requisitions at once
+
+2. **Select check requisitions**
+   - User selects one or more approved check reqs (with checkboxes similar to invoice selection in check req)
+   - Selected check reqs show their invoices for review
+   - Only check requisitions that are already approved can be selected
+
+3. **Input disbursement details**
+   - After selection, user fills in disbursement fields:
+     - Check voucher number
+     - Date check scheduled for release
+     - Date check released to vendor (stops aging calculation)
+     - Date check printing
+     - Remarks
+     - File upload (multiple files support)
+
+4. **Automatic status update**
+   - **If "date check released to vendor" is filled**: Related invoices status → `paid`
+   - **If "date check released to vendor" is NOT filled**: Invoices remain in `pending_disbursement` status
+   - This allows partial completion (disbursement record created but check not yet released)
 
 **Disbursement Fields:**
 - Check voucher number
 - Date check scheduled for release
-- Date check released to vendor (stops aging calculation)
+- Date check released to vendor (stops aging calculation) **← triggers invoice status to `paid`**
 - Date check printing
 - Remarks
 - File upload (multiple files support)
@@ -144,19 +171,27 @@ Create a new "Disbursement" module that represents the final stage of the paymen
 - [ ] Add 'pending_disbursement' and 'paid' statuses to invoice status enum
 - [ ] Create disbursement controller with CRUD operations
 - [ ] Add disbursement routes to web.php
+- [ ] Create approved check requisitions selection table (similar to invoice selection in check req)
+- [ ] Implement expandable/nested view showing invoices under each check req
 - [ ] Create disbursement form component with all fields (voucher no, dates, remarks, files)
+- [ ] Implement conditional invoice status update logic (only when date check released is filled)
 - [ ] Implement aging calculation logic (stops when check released to vendor)
-- [ ] Update invoice status to 'paid' when disbursement is completed
 - [ ] Add aging display column/field in disbursement views
+- [ ] Add validation to ensure only approved check reqs can be selected
 
 ### Technical Notes
 - **One check/disbursement can cover multiple check requisitions** (one-to-many relationship)
 - Disbursement has many-to-many relationship with invoices (via check requisitions)
+- **UI Flow**: Similar to check req creation - show table of approved check reqs with nested invoices, allow multi-selection
+- **Conditional Status Update**: Invoice status changes to `paid` ONLY when "date check released to vendor" is filled
+  - Allows saving disbursement record without marking invoices as paid immediately
+  - Can update disbursement later to add release date and trigger status change
 - Aging calculation: days between "date invoice received" and "date check released to vendor"
 - **Display aging information in disbursement views** - show current aging for each invoice
 - Multiple file uploads for supporting documents (check copies, receipts, etc.)
 - Consider validation: date fields should be chronological
 - Add disbursement index/show pages to navigation
+- Only check requisitions with status = "approved" can be selected for disbursement
 
 ### Database Schema (Proposed)
 ```sql
@@ -295,12 +330,13 @@ All requirements have been clarified and incorporated into the respective sectio
 4. ✅ **Disbursement**: One check can cover multiple check requisitions (many-to-many)
 5. ✅ **Aging**: Yes, display aging in disbursement views
 6. ✅ **PO Close**: All invoices must be paid before PO can be closed
+7. ✅ **Disbursement Flow**: Works like check req creation - select approved check reqs (with nested invoices), then input disbursement details. Invoices change to `paid` only when "date check released to vendor" is filled.
 
 ---
 
 **Document Created:** November 18, 2025
-**Last Updated:** November 18, 2025
+**Last Updated:** November 19, 2025
 **Status:** ✅ Requirements Complete & Clarified
 **Next Step:** Begin Implementation
 
-**Total Tasks:** 35 (updated from original 32 after clarifications)
+**Total Tasks:** 37 (updated from original 32 after clarifications)

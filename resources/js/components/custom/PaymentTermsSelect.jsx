@@ -23,7 +23,7 @@ export function PaymentTermsSelect({
     return (
         <div className={className}>
             <div className={value === 'others' ? 'flex gap-2' : ''}>
-                <div className="flex-1 space-y-1">
+                <div className={cn('space-y-1', value === 'others' ? 'flex-[1]' : 'flex-1')}>
                     {label && (
                         <Label className={cn('font-medium', labelSize)}>
                             {label}
@@ -46,7 +46,7 @@ export function PaymentTermsSelect({
                 </div>
 
                 {value === 'others' && (
-                    <div className="flex-1 space-y-1">
+                    <div className="flex-[3] space-y-1">
                         {label && (
                             <Label className={cn('font-medium', labelSize)}>Specify {required && <span className="ml-1 text-red-500">*</span>}</Label>
                         )}

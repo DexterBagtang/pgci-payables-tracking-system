@@ -431,12 +431,19 @@ class CheckRequisitionController extends Controller
     public function review(CheckRequisition $checkRequisition)
     {
         // Load relationships
-        $checkRequisition->load(['invoices', 'files', 'activityLogs.user']);
+        $checkRequisition->load(['invoices', 'activityLogs.user']);
+
+        // Get files with proper ordering (latest check_requisition PDF first)
+        $files = $checkRequisition->files()
+            ->where('is_active', true)
+            ->orderByRaw("CASE WHEN file_purpose = 'check_requisition' THEN 0 ELSE 1 END")
+            ->orderBy('created_at', 'desc')
+            ->get();
 
         return Inertia::render('check-requisitions/review', [
             'checkRequisition' => $checkRequisition,
             'invoices' => $checkRequisition->invoices,
-            'files' => $checkRequisition->files,
+            'files' => $files,
             'activityLogs' => $checkRequisition->activityLogs()->with('user')->latest()->get(),
         ]);
     }

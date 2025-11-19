@@ -394,7 +394,7 @@ class InvoiceController extends Controller
         ])
             ->select('invoices.*')
             ->leftJoin('purchase_orders', 'purchase_orders.id', '=', 'invoices.purchase_order_id')
-            ->whereNotIn('invoices.invoice_status', ['approved','pending_disbursement']);
+            ->whereNotIn('invoices.invoice_status', ['approved', 'pending_disbursement', 'paid']);
 
         // Search
         if ($request->has('search')) {
@@ -453,8 +453,8 @@ class InvoiceController extends Controller
             $query->orderBy('invoices.created_at', 'desc');
         }
 
-        $perPage = $request->get('per_page', 10);
-        $perPage = in_array($perPage, [10, 15, 25, 50]) ? $perPage : 10;
+        $perPage = $request->get('per_page', 100);
+        $perPage = in_array($perPage, [10, 15, 25, 50, 100, 200, 500]) ? $perPage : 100;
 
         $invoices = $query->paginate($perPage);
         $invoices->appends($request->query());
@@ -475,7 +475,7 @@ class InvoiceController extends Controller
                 'sort_direction' => $request->get('sort_direction', 'desc'),
                 'date_from' => $request->get('date_from'),
                 'date_to' => $request->get('date_to'),
-                'per_page' => $request->get('per_page', 10),
+                'per_page' => $request->get('per_page', 100),
             ],
             'filterOptions' => [
                 'vendors' => $vendors,

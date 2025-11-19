@@ -55,6 +55,9 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
         siPrefix: '',
         autoIncrementEnabled: false,
         startingNumber: 1,
+        inputMode: 'manual', // 'manual' or 'range'
+        rangeStart: '',
+        rangeEnd: '',
         sharedFields: {
             purchase_order_id: true,
             currency: true,
@@ -101,17 +104,27 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
     });
 
     function createEmptyInvoice(index = 0) {
-        // Generate SI number with auto-increment if enabled
+        // Generate SI number based on input mode
         let siNumber = '';
-        if (bulkConfig.siPrefix) {
-            if (bulkConfig.autoIncrementEnabled) {
-                const currentNumber = bulkConfig.startingNumber + index;
-                // Count digits in prefix to determine padding
-                const prefixMatch = bulkConfig.siPrefix.match(/0+$/);
-                const paddingLength = prefixMatch ? prefixMatch[0].length : 3; // Default to 3 if no zeros
-                siNumber = `${bulkConfig.siPrefix.replace(/0+$/, '')}${String(currentNumber).padStart(paddingLength, '0')}`;
-            } else {
-                siNumber = bulkConfig.siPrefix;
+
+        if (bulkConfig.inputMode === 'range') {
+            // Range Mode: Use range numbers directly as SI numbers (no prefix, no padding)
+            if (bulkConfig.rangeStart) {
+                const rangeStartNum = parseInt(bulkConfig.rangeStart);
+                siNumber = String(rangeStartNum + index);
+            }
+        } else {
+            // Manual Mode: Use prefix with optional auto-increment
+            if (bulkConfig.siPrefix) {
+                if (bulkConfig.autoIncrementEnabled) {
+                    const currentNumber = bulkConfig.startingNumber + index;
+                    // Count digits in prefix to determine padding
+                    const prefixMatch = bulkConfig.siPrefix.match(/0+$/);
+                    const paddingLength = prefixMatch ? prefixMatch[0].length : 3; // Default to 3 if no zeros
+                    siNumber = `${bulkConfig.siPrefix.replace(/0+$/, '')}${String(currentNumber).padStart(paddingLength, '0')}`;
+                } else {
+                    siNumber = bulkConfig.siPrefix;
+                }
             }
         }
 

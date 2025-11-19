@@ -393,7 +393,7 @@ export default function PurchaseOrderTable({ purchaseOrders, filters, filterOpti
 
                                 <Button onClick={()=>setCreateOpen(true)} size="sm">
                                     <Plus className="mr-2 h-4 w-4" />
-                                    Create PO
+                                    Add PO
                                 </Button>
 
                             </div>

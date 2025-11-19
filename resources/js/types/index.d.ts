@@ -47,3 +47,19 @@ export interface User {
     updated_at: string;
     [key: string]: unknown; // This allows for additional properties...
 }
+
+export interface Disbursement {
+    id: number;
+    check_voucher_number: string;
+    date_check_scheduled: string | null;
+    date_check_released_to_vendor: string | null;
+    date_check_printing: string | null;
+    remarks: string | null;
+    created_by: number;
+    creator?: User;
+    created_at: string;
+    updated_at: string;
+    check_requisitions?: unknown[];
+    files?: unknown[];
+    [key: string]: unknown;
+}

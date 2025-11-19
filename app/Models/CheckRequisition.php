@@ -17,6 +17,12 @@ class CheckRequisition extends Model
             ->withTimestamps();
     }
 
+    public function disbursements()
+    {
+        return $this->belongsToMany(Disbursement::class, 'check_requisition_disbursement')
+            ->withTimestamps();
+    }
+
     public function generator()
     {
         return $this->belongsTo(User::class, 'generated_by');

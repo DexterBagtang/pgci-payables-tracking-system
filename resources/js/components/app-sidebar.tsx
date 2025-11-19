@@ -7,11 +7,13 @@ import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
 import {
     Building,
-    Files, FileSignature,
+    Files,
+    FileSignature,
     FolderKanban,
     LayoutGrid,
     Receipt,
-    ScanSearch
+    ScanSearch,
+    Banknote
 } from 'lucide-react';
 import AppLogo from './app-logo';
 
@@ -50,6 +52,11 @@ const mainNavItems: NavItem[] = [
         title:'Check Requisitions',
         href: '/check-requisitions',
         icon: FileSignature,
+    },
+    {
+        title: 'Disbursements',
+        href: '/disbursements',
+        icon: Banknote,
     }
 
 ];
