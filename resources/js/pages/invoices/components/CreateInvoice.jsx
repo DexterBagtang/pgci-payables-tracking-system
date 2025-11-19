@@ -45,6 +45,10 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
     const [showSingleFileDialog, setShowSingleFileDialog] = useState(false);
     const [pendingSingleFile, setPendingSingleFile] = useState(null);
 
+    // Partial upload handling (files < invoices)
+    const [showPartialUploadDialog, setShowPartialUploadDialog] = useState(false);
+    const [partialUploadData, setPartialUploadData] = useState({ files: [], matches: [], unmatchedInvoiceCount: 0 });
+
     // Bulk configuration
     const [bulkConfig, setBulkConfig] = useState({
         count: 2,
@@ -111,15 +115,17 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
             }
         }
 
+        // Always populate shared values for flexibility, regardless of sharedFields setting
         const invoice = {
             si_number: siNumber,
-            si_date: bulkConfig.sharedFields.si_date ? bulkConfig.sharedValues.si_date : '',
-            si_received_at: bulkConfig.sharedFields.si_received_at ? bulkConfig.sharedValues.si_received_at : '',
-            invoice_amount: bulkConfig.sharedFields.invoice_amount ? bulkConfig.sharedValues.invoice_amount : '',
+            si_date: bulkConfig.sharedValues.si_date || '',
+            si_received_at: bulkConfig.sharedValues.si_received_at || '',
+            invoice_amount: bulkConfig.sharedValues.invoice_amount || '',
             currency: bulkConfig.sharedValues.currency || 'PHP',
-            terms_of_payment: bulkConfig.sharedFields.terms_of_payment ? bulkConfig.sharedValues.terms_of_payment : '',
-            other_payment_terms: bulkConfig.sharedFields.other_payment_terms ? bulkConfig.sharedValues.other_payment_terms : '',
-            due_date: bulkConfig.sharedFields.due_date ? bulkConfig.sharedValues.due_date : '',
+            terms_of_payment: bulkConfig.sharedValues.terms_of_payment || '',
+            other_payment_terms: bulkConfig.sharedValues.other_payment_terms || '',
+            due_date: bulkConfig.sharedValues.due_date || '',
+            notes: bulkConfig.sharedValues.notes || '',
             files: [],
         };
         return invoice;
@@ -202,6 +208,27 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
                 ...match,
             };
         });
+
+        // Check if files < invoices (partial upload scenario)
+        if (validFiles.length < bulkInvoices.length && validFiles.length > 1) {
+            // Count how many invoices will remain unmatched
+            const matchedInvoiceIndices = new Set(
+                matches.filter(m => m.matched && m.invoiceIndex !== null).map(m => m.invoiceIndex)
+            );
+            const unmatchedInvoiceCount = bulkInvoices.length - matchedInvoiceIndices.size;
+
+            // Show dialog if there are unmatched invoices after auto-matching
+            if (unmatchedInvoiceCount > 0) {
+                setPartialUploadData({
+                    files: validFiles,
+                    matches: matches,
+                    unmatchedInvoiceCount: unmatchedInvoiceCount
+                });
+                setShowPartialUploadDialog(true);
+                e.target.value = '';
+                return;
+            }
+        }
 
         setFileMatching(matches);
 
@@ -294,6 +321,61 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
         setShowSingleFileDialog(false);
         setPendingSingleFile(null);
     }, [pendingSingleFile, bulkInvoices, matchFileToInvoice]);
+
+    // Handle partial upload - Share all files with all invoices
+    const handleShareAllFilesWithAll = useCallback(() => {
+        if (!partialUploadData.files || partialUploadData.files.length === 0) return;
+
+        // Assign all uploaded files to all invoices
+        bulkInvoices.forEach((invoice, index) => {
+            const existingFiles = invoice.files || [];
+            // Add all uploaded files to this invoice
+            const allFiles = [...existingFiles, ...partialUploadData.files];
+            // Remove duplicates based on file name
+            const uniqueFiles = allFiles.filter((file, idx, self) =>
+                idx === self.findIndex((f) => f.name === file.name)
+            );
+            updateBulkInvoice(index, 'files', uniqueFiles);
+        });
+
+        toast.success(`${partialUploadData.files.length} file(s) have been assigned to all ${bulkInvoices.length} invoices.`);
+        setShowPartialUploadDialog(false);
+        setPartialUploadData({ files: [], matches: [], unmatchedInvoiceCount: 0 });
+    }, [partialUploadData, bulkInvoices]);
+
+    // Handle partial upload - Continue with manual assignment
+    const handleContinueManualAssignment = useCallback(() => {
+        if (!partialUploadData.matches || partialUploadData.matches.length === 0) return;
+
+        setFileMatching(partialUploadData.matches);
+
+        // Auto-assign matched files to invoices
+        partialUploadData.matches.forEach((match) => {
+            if (match.matched && match.invoiceIndex !== null) {
+                const invoice = bulkInvoices[match.invoiceIndex];
+                const existingFiles = invoice.files || [];
+                updateBulkInvoice(match.invoiceIndex, 'files', [...existingFiles, match.file]);
+            }
+        });
+
+        const matchedCount = partialUploadData.matches.filter(m => m.matched).length;
+        const unmatchedCount = partialUploadData.matches.length - matchedCount;
+
+        if (matchedCount > 0) {
+            toast.success(`${matchedCount} file(s) auto-matched. ${unmatchedCount > 0 ? `${unmatchedCount} file(s) need manual assignment.` : ''}`);
+        } else {
+            toast.info(`${unmatchedCount} file(s) need manual assignment.`);
+        }
+
+        setShowPartialUploadDialog(false);
+        setPartialUploadData({ files: [], matches: [], unmatchedInvoiceCount: 0 });
+    }, [partialUploadData, bulkInvoices]);
+
+    // Handle partial upload - Leave unmatched invoices without files
+    const handleLeaveUnmatched = useCallback(() => {
+        // Same as manual assignment - just proceed with auto-matching
+        handleContinueManualAssignment();
+    }, [handleContinueManualAssignment]);
 
     // Generate bulk invoices based on configuration
     const generateBulkInvoices = useCallback(() => {
@@ -477,47 +559,22 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
         const newErrors = {};
 
         if (isBulkMode) {
-            // Validate shared fields
-            if (bulkConfig.sharedFields.purchase_order_id && !bulkConfig.sharedValues.purchase_order_id) {
+            // Validate purchase order (required for all invoices)
+            if (!bulkConfig.sharedValues.purchase_order_id) {
                 newErrors.purchase_order_id = 'Purchase order is required';
             }
-            if (bulkConfig.sharedFields.currency && !bulkConfig.sharedValues.currency) {
-                newErrors.currency = 'Currency is required';
-            }
-            if (bulkConfig.sharedFields.si_date && !bulkConfig.sharedValues.si_date) {
-                newErrors.si_date = 'SI Date is required';
-            }
-            if (bulkConfig.sharedFields.si_received_at && !bulkConfig.sharedValues.si_received_at) {
-                newErrors.si_received_at = 'SI Received Date is required';
-            }
-            if (bulkConfig.sharedFields.terms_of_payment && !bulkConfig.sharedValues.terms_of_payment) {
-                newErrors.terms_of_payment = 'Payment terms is required';
-            }
-            if (bulkConfig.sharedValues.terms_of_payment === 'others' && !bulkConfig.sharedValues.other_payment_terms) {
-                newErrors.other_payment_terms = 'Please specify other payment terms';
-            }
-            if (bulkConfig.sharedFields.submitted_to && !bulkConfig.sharedValues.submitted_to) {
-                newErrors.submitted_to = 'Submit to is required';
-            }
-            if (bulkConfig.sharedFields.submitted_at && !bulkConfig.sharedValues.submitted_at) {
-                newErrors.submitted_at = 'Submission date is required';
-            }
 
-            // Validate shared invoice amount
-            if (bulkConfig.sharedFields.invoice_amount && !bulkConfig.sharedValues.invoice_amount) {
-                newErrors.invoice_amount = 'Shared invoice amount is required';
-            }
-
-            // Validate each bulk invoice
+            // Validate each bulk invoice individually (since shared values can be edited)
             bulkInvoices.forEach((invoice, index) => {
-                if (!invoice.si_number) newErrors[`bulk_${index}_si_number`] = `Invoice ${index + 1}: SI Number is required`;
-                if (!bulkConfig.sharedFields.si_date && !invoice.si_date)
+                if (!invoice.si_number)
+                    newErrors[`bulk_${index}_si_number`] = `Invoice ${index + 1}: SI Number is required`;
+                if (!invoice.si_date)
                     newErrors[`bulk_${index}_si_date`] = `Invoice ${index + 1}: SI Date is required`;
-                if (!bulkConfig.sharedFields.invoice_amount && !invoice.invoice_amount)
+                if (!invoice.invoice_amount)
                     newErrors[`bulk_${index}_invoice_amount`] = `Invoice ${index + 1}: Amount is required`;
-                if (!bulkConfig.sharedFields.terms_of_payment && !invoice.terms_of_payment)
+                if (!invoice.terms_of_payment)
                     newErrors[`bulk_${index}_terms_of_payment`] = `Invoice ${index + 1}: Payment terms are required`;
-                if (invoice.terms_of_payment === 'others' && !bulkConfig.sharedFields.terms_of_payment && !invoice.other_payment_terms) {
+                if (invoice.terms_of_payment === 'others' && !invoice.other_payment_terms) {
                     newErrors[`bulk_${index}_other_payment_terms`] = `Invoice ${index + 1}: Please specify other payment terms`;
                 }
                 // File upload is now optional - removed validation
@@ -549,18 +606,14 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
         setShowConfirmation(false);
         setProcessing(true);
 
-        // Join the shared values to each bulk invoice
+        // Use individual invoice data as-is (shared values were pre-filled during generation)
+        // No need to override since users can edit the pre-filled values
         const invoicesWithSharedData = bulkInvoices.map((invoice) => {
-            const mergedInvoice = { ...invoice };
-
-            // Add shared values for fields that are configured as shared
-            Object.entries(bulkConfig.sharedFields).forEach(([fieldKey, isShared]) => {
-                if (isShared && bulkConfig.sharedValues[fieldKey]) {
-                    mergedInvoice[fieldKey] = bulkConfig.sharedValues[fieldKey];
-                }
-            });
-
-            return mergedInvoice;
+            // Only add purchase_order_id from shared config as it's always required
+            return {
+                ...invoice,
+                purchase_order_id: bulkConfig.sharedValues.purchase_order_id,
+            };
         });
 
 
@@ -1132,6 +1185,152 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
                                 onClick={() => {
                                     setShowSingleFileDialog(false);
                                     setPendingSingleFile(null);
+                                }}
+                            >
+                                Cancel
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+
+                {/* Partial Upload Dialog - Files < Invoices */}
+                <Dialog open={showPartialUploadDialog} onOpenChange={setShowPartialUploadDialog}>
+                    <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+                        <DialogHeader className="pb-2">
+                            <DialogTitle className="flex items-center text-base">
+                                <Upload className="mr-2 h-4 w-4 text-orange-600" />
+                                Partial Upload: {partialUploadData.files.length} files for {bulkInvoices.length} invoices
+                            </DialogTitle>
+                            <DialogDescription className="text-xs">
+                                {partialUploadData.unmatchedInvoiceCount > 0 && (
+                                    <span className="font-medium text-orange-600">
+                                        {partialUploadData.unmatchedInvoiceCount} invoice(s) will remain unmatched.
+                                    </span>
+                                )}
+                                {' '}Choose how to handle the files below.
+                            </DialogDescription>
+                        </DialogHeader>
+
+                        <div className="space-y-3">
+                            {/* Compact Summary + Files Preview in one section */}
+                            <div className="grid grid-cols-2 gap-2">
+                                {/* Left: Stats */}
+                                <div className="space-y-1.5">
+                                    <div className="flex items-center justify-between rounded border bg-blue-50 px-2 py-1.5">
+                                        <span className="text-xs text-blue-700">Files</span>
+                                        <span className="text-sm font-bold text-blue-900">{partialUploadData.files.length}</span>
+                                    </div>
+                                    <div className="flex items-center justify-between rounded border bg-green-50 px-2 py-1.5">
+                                        <span className="text-xs text-green-700">Invoices</span>
+                                        <span className="text-sm font-bold text-green-900">{bulkInvoices.length}</span>
+                                    </div>
+                                    <div className="flex items-center justify-between rounded border bg-orange-50 px-2 py-1.5">
+                                        <span className="text-xs text-orange-700">Unmatched</span>
+                                        <span className="text-sm font-bold text-orange-900">{partialUploadData.unmatchedInvoiceCount}</span>
+                                    </div>
+                                </div>
+
+                                {/* Right: Files List */}
+                                <div className="rounded border bg-slate-50 p-2">
+                                    <h4 className="mb-1 text-xs font-medium text-slate-700">Uploaded Files:</h4>
+                                    <div className="max-h-20 space-y-0.5 overflow-y-auto">
+                                        {partialUploadData.files.map((file, idx) => (
+                                            <div key={idx} className="flex items-center gap-1.5 text-xs text-slate-600">
+                                                <FileText className="h-3 w-3 flex-shrink-0" />
+                                                <span className="flex-1 truncate">{file.name}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Compact Options - Reduced vertical spacing */}
+                            <div className="space-y-2">
+                                {/* Option 1: Share all files with all invoices */}
+                                <div className="rounded border-2 border-blue-200 bg-blue-50/50 p-2.5">
+                                    <div className="mb-2 flex items-start gap-2">
+                                        <FileStack className="mt-0.5 h-4 w-4 flex-shrink-0 text-blue-600" />
+                                        <div className="flex-1 min-w-0">
+                                            <h4 className="text-sm font-semibold text-blue-900">Share with all invoices</h4>
+                                            <p className="text-xs text-blue-700">
+                                                All {partialUploadData.files.length} files → all {bulkInvoices.length} invoices
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <Button
+                                        type="button"
+                                        onClick={handleShareAllFilesWithAll}
+                                        size="sm"
+                                        className="w-full bg-blue-600 text-white hover:bg-blue-700"
+                                    >
+                                        <FileStack className="mr-1.5 h-3.5 w-3.5" />
+                                        Share All Files
+                                    </Button>
+                                </div>
+
+                                {/* Option 2: Manual assignment */}
+                                <div className="rounded border bg-slate-50 p-2.5">
+                                    <div className="mb-2 flex items-start gap-2">
+                                        <Settings className="mt-0.5 h-4 w-4 flex-shrink-0 text-slate-600" />
+                                        <div className="flex-1 min-w-0">
+                                            <h4 className="text-sm font-semibold text-slate-900">Manual assignment</h4>
+                                            <p className="text-xs text-slate-600">
+                                                Auto-match by SI number, then assign unmatched files manually
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={handleContinueManualAssignment}
+                                        className="w-full"
+                                    >
+                                        <Settings className="mr-1.5 h-3.5 w-3.5" />
+                                        Manual Assignment
+                                    </Button>
+                                </div>
+
+                                {/* Option 3: Leave unmatched */}
+                                <div className="rounded border border-orange-200 bg-orange-50/50 p-2.5">
+                                    <div className="mb-2 flex items-start gap-2">
+                                        <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-orange-600" />
+                                        <div className="flex-1 min-w-0">
+                                            <h4 className="text-sm font-semibold text-orange-900">Auto-match only</h4>
+                                            <p className="text-xs text-orange-700">
+                                                Only matched files assigned, rest left empty
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={handleLeaveUnmatched}
+                                        className="w-full border-orange-300 text-orange-900 hover:bg-orange-100"
+                                    >
+                                        <AlertCircle className="mr-1.5 h-3.5 w-3.5" />
+                                        Auto-Match Only
+                                    </Button>
+                                </div>
+                            </div>
+
+                            {/* Compact Info Box */}
+                            <div className="rounded border border-slate-200 bg-slate-50 px-2 py-1.5">
+                                <p className="text-xs text-slate-600">
+                                    <strong>Tip:</strong> Fuzzy matching compares filenames with SI numbers (e.g., "INV-001.pdf" → "INV001")
+                                </p>
+                            </div>
+                        </div>
+
+                        <DialogFooter className="pt-2">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                    setShowPartialUploadDialog(false);
+                                    setPartialUploadData({ files: [], matches: [], unmatchedInvoiceCount: 0 });
                                 }}
                             >
                                 Cancel

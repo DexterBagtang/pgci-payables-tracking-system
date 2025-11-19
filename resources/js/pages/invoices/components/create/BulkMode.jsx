@@ -46,7 +46,7 @@ export default function BulkMode({
                             <Receipt className="mr-2 h-4 w-4 text-green-600" />
                             Invoice Details ({bulkInvoices.length} items)
                         </CardTitle>
-                        <CardDescription className="text-xs">Enter invoice details. Shared fields are pre-filled.</CardDescription>
+                        <CardDescription className="text-xs">Enter invoice details. Shared values are pre-filled but can be edited for flexibility.</CardDescription>
                     </div>
                     <Button
                         type="button"
@@ -67,15 +67,13 @@ export default function BulkMode({
                                 <TableRow className="bg-slate-100 hover:bg-slate-100">
                                     <TableHead className="w-[50px] text-xs font-medium">#</TableHead>
                                     <TableHead className="w-[180px] text-xs font-medium">SI Number *</TableHead>
-                                    {!bulkConfig.sharedFields.si_date && <TableHead className="text-xs font-medium">SI Date *</TableHead>}
-                                    {!bulkConfig.sharedFields.invoice_amount && <TableHead className="text-xs font-medium">Amount *</TableHead>}
-                                    {!bulkConfig.sharedFields.invoice_amount && <TableHead className="text-center text-xs font-medium">VAT</TableHead>}
-                                    {!bulkConfig.sharedFields.terms_of_payment && (
-                                        <TableHead className="text-xs font-medium">Terms *</TableHead>
-                                    )}
-                                    {!bulkConfig.sharedFields.si_received_at && <TableHead className="text-xs font-medium">Received Date *</TableHead>}
-                                    {!bulkConfig.sharedFields.due_date && <TableHead className="text-xs font-medium">Due Date</TableHead>}
-                                    {!bulkConfig.sharedFields.notes && <TableHead className="text-xs font-medium">Notes</TableHead>}
+                                    <TableHead className="text-xs font-medium">SI Date *</TableHead>
+                                    <TableHead className="text-xs font-medium">Amount *</TableHead>
+                                    <TableHead className="text-center text-xs font-medium">VAT</TableHead>
+                                    <TableHead className="text-xs font-medium">Terms *</TableHead>
+                                    <TableHead className="text-xs font-medium">Received Date *</TableHead>
+                                    <TableHead className="text-xs font-medium">Due Date</TableHead>
+                                    <TableHead className="text-xs font-medium">Notes</TableHead>
                                     <TableHead className="w-[80px] text-xs font-medium">Actions</TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -99,120 +97,105 @@ export default function BulkMode({
                                         </TableCell>
 
                                         {/* SI Date */}
-                                        {!bulkConfig.sharedFields.si_date && (
-                                            <TableCell>
-                                                <DatePicker
-                                                    value={invoice.si_date}
-                                                    onChange={(date) => handleBulkDateSelect(index, 'si_date', date)}
-                                                    size="sm"
-                                                    error={errors[`bulk_${index}_si_date`]}
-                                                    placeholder="SI Date"
-                                                />
-                                            </TableCell>
-                                        )}
+                                        <TableCell>
+                                            <DatePicker
+                                                value={invoice.si_date}
+                                                onChange={(date) => handleBulkDateSelect(index, 'si_date', date)}
+                                                size="sm"
+                                                error={errors[`bulk_${index}_si_date`]}
+                                                placeholder="SI Date"
+                                            />
+                                        </TableCell>
 
                                         {/* Invoice Amount */}
-                                        {!bulkConfig.sharedFields.invoice_amount && (
-                                            <>
-                                                <TableCell>
-                                                    <div className="space-y-1">
-                                                        <div className="relative">
-                                                            <Input
-                                                                type="number"
-                                                                step="0.01"
-                                                                value={invoice.invoice_amount}
-                                                                onChange={(e) => updateBulkInvoice(index, 'invoice_amount', e.target.value)}
-                                                                placeholder="0.00"
-                                                                className="h-8 pr-9 text-xs" // add padding-right so text doesn't overlap
-                                                            />
-                                                            <span className="absolute inset-y-0 right-2 flex items-center text-xs text-slate-500">
-                                                                {selectedPO && (
-                                                                    <span className="font-semibold text-blue-700">
-                                                                        {calculatePOPercentage(invoice.invoice_amount, selectedPO.po_amount).toFixed(0)}%
-                                                                    </span>
-                                                                )}
+                                        <TableCell>
+                                            <div className="space-y-1">
+                                                <div className="relative">
+                                                    <Input
+                                                        type="number"
+                                                        step="0.01"
+                                                        value={invoice.invoice_amount}
+                                                        onChange={(e) => updateBulkInvoice(index, 'invoice_amount', e.target.value)}
+                                                        placeholder="0.00"
+                                                        className="h-8 pr-9 text-xs"
+                                                    />
+                                                    <span className="absolute inset-y-0 right-2 flex items-center text-xs text-slate-500">
+                                                        {selectedPO && (
+                                                            <span className="font-semibold text-blue-700">
+                                                                {calculatePOPercentage(invoice.invoice_amount, selectedPO.po_amount).toFixed(0)}%
                                                             </span>
-                                                        </div>
-                                                    </div>
-                                                    {errors[`bulk_${index}_invoice_amount`] && (
-                                                        <p className="mt-1 text-xs text-red-600">{errors[`bulk_${index}_invoice_amount`]}</p>
-                                                    )}
-                                                </TableCell>
-                                                <TableCell className="align-top">
-                                                    <div className="space-y-0.5 rounded-md border bg-slate-50 p-1 text-[11px] leading-tight text-slate-700">
-                                                        <div className="flex justify-between">
-                                                            <span className="text-slate-500">Ex:</span>
-                                                            <span className="font-medium">
-                                                                {invoice.currency === 'USD' ? '$' : '₱'}{calculateVAT(invoice.invoice_amount).vatableAmount.toFixed(2)}
-                                                            </span>
-                                                        </div>
-                                                        <div className="flex justify-between">
-                                                            <span className="text-slate-500">VAT:</span>
-                                                            <span className="font-medium">{invoice.currency === 'USD' ? '$' : '₱'}{calculateVAT(invoice.invoice_amount).vatAmount.toFixed(2)}</span>
-                                                        </div>
-                                                    </div>
-                                                </TableCell>
-                                            </>
-                                        )}
+                                                        )}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            {errors[`bulk_${index}_invoice_amount`] && (
+                                                <p className="mt-1 text-xs text-red-600">{errors[`bulk_${index}_invoice_amount`]}</p>
+                                            )}
+                                        </TableCell>
+                                        <TableCell className="align-top">
+                                            <div className="space-y-0.5 rounded-md border bg-slate-50 p-1 text-[11px] leading-tight text-slate-700">
+                                                <div className="flex justify-between">
+                                                    <span className="text-slate-500">Ex:</span>
+                                                    <span className="font-medium">
+                                                        {invoice.currency === 'USD' ? '$' : '₱'}{calculateVAT(invoice.invoice_amount).vatableAmount.toFixed(2)}
+                                                    </span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span className="text-slate-500">VAT:</span>
+                                                    <span className="font-medium">{invoice.currency === 'USD' ? '$' : '₱'}{calculateVAT(invoice.invoice_amount).vatAmount.toFixed(2)}</span>
+                                                </div>
+                                            </div>
+                                        </TableCell>
 
                                         {/* Payment Terms */}
-                                        {!bulkConfig.sharedFields.terms_of_payment && (
-                                            <TableCell>
-                                                <div className="max-w-[200px]">
-                                                    <PaymentTermsSelect
-                                                        value={invoice.terms_of_payment}
-                                                        onChange={(value) => updateBulkInvoice(index, 'terms_of_payment', value)}
-                                                        otherValue={invoice.other_payment_terms}
-                                                        onOtherChange={(value) => updateBulkInvoice(index, 'other_payment_terms', value)}
-                                                        error={errors[`bulk_${index}_terms_of_payment`]}
-                                                        otherError={errors[`bulk_${index}_other_payment_terms`]}
-                                                        paymentTermsOptions={paymentTermsOptions}
-                                                        required={true}
-                                                        size={'sm'}
-                                                        label=''
-                                                    />
-                                                </div>
-                                            </TableCell>
-                                        )}
+                                        <TableCell>
+                                            <div className="max-w-[200px]">
+                                                <PaymentTermsSelect
+                                                    value={invoice.terms_of_payment}
+                                                    onChange={(value) => updateBulkInvoice(index, 'terms_of_payment', value)}
+                                                    otherValue={invoice.other_payment_terms}
+                                                    onOtherChange={(value) => updateBulkInvoice(index, 'other_payment_terms', value)}
+                                                    error={errors[`bulk_${index}_terms_of_payment`]}
+                                                    otherError={errors[`bulk_${index}_other_payment_terms`]}
+                                                    paymentTermsOptions={paymentTermsOptions}
+                                                    required={true}
+                                                    size={'sm'}
+                                                    label=''
+                                                />
+                                            </div>
+                                        </TableCell>
 
                                         {/* SI Received Date */}
-                                        {!bulkConfig.sharedFields.si_received_at && (
-                                            <TableCell>
-                                                <DatePicker
-                                                    placeholder={"Received"}
-                                                    value={invoice.si_received_at}
-                                                    onChange={(date) => handleBulkDateSelect(index, 'si_received_at', date)}
-                                                    size="sm"
-                                                    error={errors[`bulk_${index}_si_received_at`]}
-                                                />
-                                            </TableCell>
-                                        )}
+                                        <TableCell>
+                                            <DatePicker
+                                                placeholder={"Received"}
+                                                value={invoice.si_received_at}
+                                                onChange={(date) => handleBulkDateSelect(index, 'si_received_at', date)}
+                                                size="sm"
+                                                error={errors[`bulk_${index}_si_received_at`]}
+                                            />
+                                        </TableCell>
 
                                         {/* Due Date */}
-                                        {!bulkConfig.sharedFields.due_date && (
-                                            <TableCell>
-
-                                                <DatePicker
-                                                    placeholder={"Due"}
-                                                    value={invoice.due_date}
-                                                    onChange={(date) => handleBulkDateSelect(index, 'due_date', date)}
-                                                    size="sm"
-                                                    error={errors[`bulk_${index}_due_date`]}
-                                                />
-                                            </TableCell>
-                                        )}
+                                        <TableCell>
+                                            <DatePicker
+                                                placeholder={"Due"}
+                                                value={invoice.due_date}
+                                                onChange={(date) => handleBulkDateSelect(index, 'due_date', date)}
+                                                size="sm"
+                                                error={errors[`bulk_${index}_due_date`]}
+                                            />
+                                        </TableCell>
 
                                         {/* Notes */}
-                                        {!bulkConfig.sharedFields.notes && (
-                                            <TableCell>
-                                                <Input
-                                                    value={invoice.notes || ''}
-                                                    onChange={(e) => updateBulkInvoice(index, 'notes', e.target.value)}
-                                                    placeholder="Invoice notes..."
-                                                    className="h-8 text-xs"
-                                                />
-                                            </TableCell>
-                                        )}
+                                        <TableCell>
+                                            <Input
+                                                value={invoice.notes || ''}
+                                                onChange={(e) => updateBulkInvoice(index, 'notes', e.target.value)}
+                                                placeholder="Invoice notes..."
+                                                className="h-8 text-xs"
+                                            />
+                                        </TableCell>
 
                                         {/* Actions */}
                                         <TableCell>
