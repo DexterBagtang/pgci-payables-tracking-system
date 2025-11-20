@@ -275,12 +275,46 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
         // Append the invoice data as JSON (without files)
         formData.append('_invoices_json', JSON.stringify(invoicesData));
 
-        // Append files with proper Laravel nested array structure
+        // Frontend file deduplication - send each unique file only once
         const sourceInvoices = isBulkMode ? bulkInvoices : [singleData];
+        const fileMap = new Map(); // Map to track unique files: key = file signature, value = file object
+        const invoiceFileReferences = []; // Track which invoices use which files
+
         sourceInvoices.forEach((invoice, index) => {
+            invoiceFileReferences[index] = [];
+
             if (invoice.files && invoice.files.length > 0) {
-                invoice.files.forEach((file, fileIndex) => {
-                    formData.append(`invoices[${index}][files][${fileIndex}]`, file);
+                invoice.files.forEach((file) => {
+                    // Create unique signature for file (name + size)
+                    const fileSignature = `${file.name}_${file.size}`;
+
+                    if (!fileMap.has(fileSignature)) {
+                        // First occurrence - add to map
+                        fileMap.set(fileSignature, file);
+                    }
+
+                    // Track that this invoice uses this file
+                    invoiceFileReferences[index].push(fileSignature);
+                });
+            }
+        });
+
+        // Append unique files only once with a global index
+        let globalFileIndex = 0;
+        const fileSignatureToIndex = new Map();
+
+        fileMap.forEach((file, signature) => {
+            formData.append(`unique_files[${globalFileIndex}]`, file);
+            fileSignatureToIndex.set(signature, globalFileIndex);
+            globalFileIndex++;
+        });
+
+        // Append file references for each invoice
+        sourceInvoices.forEach((invoice, invoiceIndex) => {
+            if (invoiceFileReferences[invoiceIndex]) {
+                invoiceFileReferences[invoiceIndex].forEach((signature, localFileIndex) => {
+                    const globalIndex = fileSignatureToIndex.get(signature);
+                    formData.append(`invoices[${invoiceIndex}][file_refs][${localFileIndex}]`, globalIndex);
                 });
             }
         });

@@ -171,8 +171,27 @@ class InvoiceController extends Controller
             ? json_decode($request->input('_invoices_json'), true)
             : $request->input('invoices', []);
 
-        // Merge files from FormData into invoices array
-        if ($request->has('invoices')) {
+        // Handle deduplicated files from frontend (new optimized format)
+        if ($request->has('unique_files')) {
+            $uniqueFiles = $request->file('unique_files', []);
+
+            // Map file references back to actual files for each invoice
+            foreach ($invoicesData as $index => &$invoiceData) {
+                $invoiceData['files'] = [];
+
+                // Check if this invoice has file references
+                $fileRefs = $request->input("invoices.{$index}.file_refs", []);
+
+                foreach ($fileRefs as $refIndex) {
+                    if (isset($uniqueFiles[$refIndex])) {
+                        $invoiceData['files'][] = $uniqueFiles[$refIndex];
+                    }
+                }
+            }
+            unset($invoiceData); // Break reference
+        }
+        // Legacy format: files sent per invoice (backward compatibility)
+        elseif ($request->has('invoices')) {
             foreach ($request->file('invoices', []) as $index => $fileData) {
                 if (isset($fileData['files'])) {
                     $invoicesData[$index]['files'] = $fileData['files'];
