@@ -7,11 +7,11 @@ import { toast } from 'sonner';
 export function useInvoiceFileMatching(bulkInvoices, updateBulkInvoice) {
     const [bulkFiles, setBulkFiles] = useState([]);
     const [fileMatching, setFileMatching] = useState([]);
-    const [showSingleFileDialog, setShowSingleFileDialog] = useState(false);
-    const [pendingSingleFile, setPendingSingleFile] = useState(null);
-    const [showPartialUploadDialog, setShowPartialUploadDialog] = useState(false);
-    const [partialUploadData, setPartialUploadData] = useState({
+    const [showUnifiedDialog, setShowUnifiedDialog] = useState(false);
+    const [unifiedDialogData, setUnifiedDialogData] = useState({
+        scenario: null, // 'single-file' | 'partial-upload'
         files: [],
+        filesCount: 0,
         matches: [],
         unmatchedInvoiceCount: 0
     });
@@ -53,8 +53,14 @@ export function useInvoiceFileMatching(bulkInvoices, updateBulkInvoice) {
 
         // Check if single file uploaded with multiple invoices
         if (validFiles.length === 1 && bulkInvoices.length > 1) {
-            setPendingSingleFile(validFiles[0]);
-            setShowSingleFileDialog(true);
+            setUnifiedDialogData({
+                scenario: 'single-file',
+                files: validFiles,
+                filesCount: 1,
+                matches: [],
+                unmatchedInvoiceCount: 0
+            });
+            setShowUnifiedDialog(true);
             e.target.value = '';
             return;
         }
@@ -76,14 +82,16 @@ export function useInvoiceFileMatching(bulkInvoices, updateBulkInvoice) {
             );
             const unmatchedInvoiceCount = bulkInvoices.length - matchedInvoiceIndices.size;
 
-            // Show dialog if there are unmatched invoices after auto-matching
+            // Show unified dialog if there are unmatched invoices after auto-matching
             if (unmatchedInvoiceCount > 0) {
-                setPartialUploadData({
+                setUnifiedDialogData({
+                    scenario: 'partial-upload',
                     files: validFiles,
+                    filesCount: validFiles.length,
                     matches: matches,
                     unmatchedInvoiceCount: unmatchedInvoiceCount
                 });
-                setShowPartialUploadDialog(true);
+                setShowUnifiedDialog(true);
                 e.target.value = '';
                 return;
             }
@@ -142,29 +150,37 @@ export function useInvoiceFileMatching(bulkInvoices, updateBulkInvoice) {
         ));
     }, [fileMatching, bulkInvoices, updateBulkInvoice]);
 
-    // Handle single file sharing confirmation
-    const handleShareSingleFile = useCallback(() => {
-        if (!pendingSingleFile) return;
+    // Unified dialog handlers
+    const handleUnifiedShareWithAll = useCallback(() => {
+        const { files } = unifiedDialogData;
+        if (!files || files.length === 0) return;
 
-        // Assign the same file to all invoices
+        // Assign all files to all invoices
         bulkInvoices.forEach((invoice, index) => {
             const existingFiles = invoice.files || [];
-            updateBulkInvoice(index, 'files', [...existingFiles, pendingSingleFile]);
+            const allFiles = [...existingFiles, ...files];
+            // Remove duplicates based on file name
+            const uniqueFiles = allFiles.filter((file, idx, self) =>
+                idx === self.findIndex((f) => f.name === file.name)
+            );
+            updateBulkInvoice(index, 'files', uniqueFiles);
         });
 
-        toast.success(`File "${pendingSingleFile.name}" has been assigned to all ${bulkInvoices.length} invoices.`);
-        setShowSingleFileDialog(false);
-        setPendingSingleFile(null);
-    }, [pendingSingleFile, bulkInvoices, updateBulkInvoice]);
+        toast.success(`${files.length} file(s) have been assigned to all ${bulkInvoices.length} invoices.`);
+        setShowUnifiedDialog(false);
+        setUnifiedDialogData({ scenario: null, files: [], filesCount: 0, matches: [], unmatchedInvoiceCount: 0 });
+    }, [unifiedDialogData, bulkInvoices, updateBulkInvoice]);
 
-    // Handle single file assignment to one invoice
-    const handleAssignSingleFileToOne = useCallback(() => {
-        if (!pendingSingleFile) return;
+    const handleUnifiedAssignToOne = useCallback(() => {
+        const { files } = unifiedDialogData;
+        if (!files || files.length === 0) return;
+
+        const pendingFile = files[0];
 
         // Add the file as a match for manual assignment
-        const match = matchFileToInvoice(pendingSingleFile.name, bulkInvoices);
+        const match = matchFileToInvoice(pendingFile.name, bulkInvoices);
         const newMatch = {
-            file: pendingSingleFile,
+            file: pendingFile,
             ...match,
         };
 
@@ -174,42 +190,22 @@ export function useInvoiceFileMatching(bulkInvoices, updateBulkInvoice) {
         if (match.matched && match.invoiceIndex !== null) {
             const invoice = bulkInvoices[match.invoiceIndex];
             const existingFiles = invoice.files || [];
-            updateBulkInvoice(match.invoiceIndex, 'files', [...existingFiles, pendingSingleFile]);
+            updateBulkInvoice(match.invoiceIndex, 'files', [...existingFiles, pendingFile]);
+            toast.success(`File "${pendingFile.name}" auto-matched to invoice "${match.invoiceNumber}"`);
         }
 
-        setShowSingleFileDialog(false);
-        setPendingSingleFile(null);
-    }, [pendingSingleFile, bulkInvoices, matchFileToInvoice, updateBulkInvoice]);
+        setShowUnifiedDialog(false);
+        setUnifiedDialogData({ scenario: null, files: [], filesCount: 0, matches: [], unmatchedInvoiceCount: 0 });
+    }, [unifiedDialogData, bulkInvoices, matchFileToInvoice, updateBulkInvoice]);
 
-    // Handle partial upload - Share all files with all invoices
-    const handleShareAllFilesWithAll = useCallback(() => {
-        if (!partialUploadData.files || partialUploadData.files.length === 0) return;
+    const handleUnifiedManualAssignment = useCallback(() => {
+        const { matches } = unifiedDialogData;
+        if (!matches || matches.length === 0) return;
 
-        // Assign all uploaded files to all invoices
-        bulkInvoices.forEach((invoice, index) => {
-            const existingFiles = invoice.files || [];
-            // Add all uploaded files to this invoice
-            const allFiles = [...existingFiles, ...partialUploadData.files];
-            // Remove duplicates based on file name
-            const uniqueFiles = allFiles.filter((file, idx, self) =>
-                idx === self.findIndex((f) => f.name === file.name)
-            );
-            updateBulkInvoice(index, 'files', uniqueFiles);
-        });
-
-        toast.success(`${partialUploadData.files.length} file(s) have been assigned to all ${bulkInvoices.length} invoices.`);
-        setShowPartialUploadDialog(false);
-        setPartialUploadData({ files: [], matches: [], unmatchedInvoiceCount: 0 });
-    }, [partialUploadData, bulkInvoices, updateBulkInvoice]);
-
-    // Handle partial upload - Continue with manual assignment
-    const handleContinueManualAssignment = useCallback(() => {
-        if (!partialUploadData.matches || partialUploadData.matches.length === 0) return;
-
-        setFileMatching(partialUploadData.matches);
+        setFileMatching(matches);
 
         // Auto-assign matched files to invoices
-        partialUploadData.matches.forEach((match) => {
+        matches.forEach((match) => {
             if (match.matched && match.invoiceIndex !== null) {
                 const invoice = bulkInvoices[match.invoiceIndex];
                 const existingFiles = invoice.files || [];
@@ -217,8 +213,8 @@ export function useInvoiceFileMatching(bulkInvoices, updateBulkInvoice) {
             }
         });
 
-        const matchedCount = partialUploadData.matches.filter(m => m.matched).length;
-        const unmatchedCount = partialUploadData.matches.length - matchedCount;
+        const matchedCount = matches.filter(m => m.matched).length;
+        const unmatchedCount = matches.length - matchedCount;
 
         if (matchedCount > 0) {
             toast.success(`${matchedCount} file(s) auto-matched. ${unmatchedCount > 0 ? `${unmatchedCount} file(s) need manual assignment.` : ''}`);
@@ -226,15 +222,14 @@ export function useInvoiceFileMatching(bulkInvoices, updateBulkInvoice) {
             toast.info(`${unmatchedCount} file(s) need manual assignment.`);
         }
 
-        setShowPartialUploadDialog(false);
-        setPartialUploadData({ files: [], matches: [], unmatchedInvoiceCount: 0 });
-    }, [partialUploadData, bulkInvoices, updateBulkInvoice]);
+        setShowUnifiedDialog(false);
+        setUnifiedDialogData({ scenario: null, files: [], filesCount: 0, matches: [], unmatchedInvoiceCount: 0 });
+    }, [unifiedDialogData, bulkInvoices, updateBulkInvoice]);
 
-    // Handle partial upload - Leave unmatched invoices without files
-    const handleLeaveUnmatched = useCallback(() => {
+    const handleUnifiedLeaveUnmatched = useCallback(() => {
         // Same as manual assignment - just proceed with auto-matching
-        handleContinueManualAssignment();
-    }, [handleContinueManualAssignment]);
+        handleUnifiedManualAssignment();
+    }, [handleUnifiedManualAssignment]);
 
     return {
         // State
@@ -242,21 +237,17 @@ export function useInvoiceFileMatching(bulkInvoices, updateBulkInvoice) {
         setBulkFiles,
         fileMatching,
         setFileMatching,
-        showSingleFileDialog,
-        setShowSingleFileDialog,
-        pendingSingleFile,
-        showPartialUploadDialog,
-        setShowPartialUploadDialog,
-        partialUploadData,
+        showUnifiedDialog,
+        setShowUnifiedDialog,
+        unifiedDialogData,
 
         // Handlers
         handleBulkFilesUpload,
         handleRemoveMatchedFile,
         handleReassignFile,
-        handleShareSingleFile,
-        handleAssignSingleFileToOne,
-        handleShareAllFilesWithAll,
-        handleContinueManualAssignment,
-        handleLeaveUnmatched,
+        handleUnifiedShareWithAll,
+        handleUnifiedAssignToOne,
+        handleUnifiedManualAssignment,
+        handleUnifiedLeaveUnmatched,
     };
 }

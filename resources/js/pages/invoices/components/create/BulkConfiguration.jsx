@@ -139,7 +139,7 @@ export default function BulkConfiguration({
                                                     rangeStart: e.target.value,
                                                 }))
                                             }
-                                            placeholder="2210"
+                                            placeholder="e.g. 001"
                                             className="mt-0.5 h-7 text-xs w-24"
                                         />
                                     </div>
@@ -159,7 +159,7 @@ export default function BulkConfiguration({
                                                     rangeEnd: e.target.value,
                                                 }))
                                             }
-                                            placeholder="2299"
+                                            placeholder="e.g. 050"
                                             className="mt-0.5 h-7 text-xs w-24"
                                         />
                                     </div>
@@ -355,8 +355,15 @@ export default function BulkConfiguration({
                         <Label className="text-sm font-medium text-slate-700">Configure Values</Label>
                         <div className="grid grid-cols-1 gap-2 space-y-1 lg:grid-cols-3">
                             {selectedFieldsCount === 0 ? (
-                                <div className="flex h-32 items-center justify-center rounded-lg border-2 border-dashed border-slate-200">
-                                    <p className="text-sm text-slate-500">Select fields to configure values</p>
+                                <div className="col-span-3 flex h-40 flex-col items-center justify-center rounded-lg border-2 border-dashed border-blue-200 bg-blue-50/30">
+                                    <Settings className="h-12 w-12 text-blue-400 mb-3" />
+                                    <p className="text-sm font-medium text-slate-700 mb-1">No shared fields selected</p>
+                                    <p className="text-xs text-slate-500 mb-3 text-center max-w-md">
+                                        Check fields on the left to share values across all invoices
+                                    </p>
+                                    <div className="rounded bg-white border border-blue-200 px-3 py-2 text-xs text-blue-700">
+                                        <strong>Tip:</strong> Start by selecting fields like Currency, SI Date, or Payment Terms
+                                    </div>
                                 </div>
                             ) : (
                                 Object.entries(bulkConfig.sharedFields).map(([fieldKey, isShared]) => {

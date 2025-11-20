@@ -3,10 +3,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select.js';
 import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/components/ui/table.js';
 import { cn } from '@/lib/utils.js';
-import { Check, Plus, Receipt, Settings, Upload, X, FileStack, AlertCircle, FileText } from 'lucide-react';
+import { Check, Plus, Receipt, Settings, Upload, X, FileStack, AlertCircle, FileText, MousePointerClick } from 'lucide-react';
 import BulkInvoiceRow from '@/pages/invoices/components/create/BulkInvoiceRow.jsx';
 import BulkFileUploadCard from '@/pages/invoices/components/create/BulkFileUploadCard.jsx';
 import { useMemo } from 'react';
+import { useDragAndDrop } from '@/pages/invoices/components/create/hooks/useDragAndDrop.js';
+import { toast } from 'sonner';
 
 export default function BulkMode({
     bulkInvoices,
@@ -33,6 +35,32 @@ export default function BulkMode({
     handleRemoveMatchedFile,
     handleReassignFile,
 }) {
+    // Handle drag and drop file upload
+    const handleFilesDropped = (files) => {
+        const validFiles = files.filter((file) => {
+            const maxSize = 10 * 1024 * 1024; // 10MB
+            return file.size <= maxSize;
+        });
+
+        if (validFiles.length !== files.length) {
+            const oversizedCount = files.length - validFiles.length;
+            toast.error(`${oversizedCount} file(s) were too large (max 10MB) and were not uploaded.`);
+        }
+
+        if (validFiles.length > 0) {
+            // Create a synthetic event to pass to the existing handler
+            const syntheticEvent = {
+                target: {
+                    files: validFiles,
+                    value: '',
+                },
+            };
+            handleBulkFilesUpload(syntheticEvent);
+        }
+    };
+
+    const { isDragging, dragHandlers } = useDragAndDrop(handleFilesDropped);
+
     // Memoize computed values
     const canDelete = useMemo(() => bulkInvoices.length > 1, [bulkInvoices.length]);
 
@@ -49,6 +77,11 @@ export default function BulkMode({
     const totalFilesCount = useMemo(
         () => bulkInvoices.reduce((acc, inv) => acc + (inv.files?.length || 0), 0),
         [bulkInvoices]
+    );
+
+    const hasIndividualFiles = useMemo(
+        () => totalFilesCount > 0,
+        [totalFilesCount]
     );
 
     const sharedFieldsList = useMemo(
@@ -223,12 +256,20 @@ export default function BulkMode({
                         Bulk File Upload
                     </CardTitle>
                     <CardDescription className="text-sm">
-                        Upload all invoice files at once. Files will be automatically matched to invoices based on filename.
+                        Drag & drop files here, or click to browse. Files will be automatically matched to invoices based on filename.
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    {/* Upload Area */}
-                    <div className="border-2 border-dashed border-blue-300 rounded-lg p-8 text-center bg-blue-50/30 hover:bg-blue-50/50 transition-colors">
+                    {/* Upload Area with Drag & Drop */}
+                    <div
+                        {...dragHandlers}
+                        className={cn(
+                            "border-2 border-dashed rounded-lg p-8 text-center transition-all duration-200",
+                            isDragging
+                                ? "border-blue-500 bg-blue-100/50 scale-[1.02] shadow-lg"
+                                : "border-blue-300 bg-blue-50/30 hover:bg-blue-50/50 hover:border-blue-400"
+                        )}
+                    >
                         <input
                             id="bulk-files-upload"
                             type="file"
@@ -237,22 +278,42 @@ export default function BulkMode({
                             accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
                             className="hidden"
                         />
-                        <label htmlFor="bulk-files-upload" className="cursor-pointer">
-                            <Upload className="mx-auto h-12 w-12 text-blue-500 mb-3" />
-                            <p className="text-base font-medium text-gray-700 mb-1">
-                                Click to upload invoice files
-                            </p>
-                            <p className="text-sm text-gray-500">
-                                PDF, DOC, Images • Max 10MB per file • Multiple files supported
-                            </p>
-                            <p className="text-xs text-blue-600 mt-2">
-                                Tip: Name files with SI numbers for automatic matching (e.g., "INV-001.pdf", "2025-001.pdf")
-                            </p>
+                        <label htmlFor="bulk-files-upload" className="cursor-pointer block">
+                            {isDragging ? (
+                                <>
+                                    <Upload className="mx-auto h-16 w-16 text-blue-600 mb-3 animate-bounce" />
+                                    <p className="text-lg font-semibold text-blue-700 mb-1">
+                                        Drop files here!
+                                    </p>
+                                    <p className="text-sm text-blue-600">
+                                        Release to upload
+                                    </p>
+                                </>
+                            ) : (
+                                <>
+                                    <div className="flex items-center justify-center gap-3 mb-3">
+                                        <Upload className="h-12 w-12 text-blue-500" />
+                                        <MousePointerClick className="h-8 w-8 text-gray-400" />
+                                    </div>
+                                    <p className="text-base font-medium text-gray-700 mb-1">
+                                        Drag & drop files here, or click to browse
+                                    </p>
+                                    <p className="text-sm text-gray-500">
+                                        PDF, DOC, Images • Max 10MB per file • Multiple files supported
+                                    </p>
+                                    <div className="mt-3 rounded bg-white/80 border border-blue-200 p-2 inline-block">
+                                        <p className="text-xs text-blue-700 font-medium flex items-center gap-1.5">
+                                            <AlertCircle className="h-3.5 w-3.5" />
+                                            Smart Tip: Name files with SI numbers for auto-matching (e.g., "INV-001.pdf", "2025-001.pdf")
+                                        </p>
+                                    </div>
+                                </>
+                            )}
                         </label>
                     </div>
 
-                    {/* File Matching Preview */}
-                    {fileMatching && fileMatching.length > 0 && (
+                    {/* File Matching Preview or Helpful Empty State */}
+                    {fileMatching && fileMatching.length > 0 ? (
                         <div className="space-y-3">
                             <div className="flex items-center justify-between">
                                 <h4 className="text-sm font-semibold text-gray-700">
@@ -347,6 +408,54 @@ export default function BulkMode({
                                     </div>
                                 </div>
                             )}
+                        </div>
+                    ) : (
+                        <div className="rounded-lg border-2 border-dashed border-slate-200 bg-slate-50/50 p-6">
+                            <div className="text-center">
+                                <FileStack className="h-10 w-10 text-slate-400 mx-auto mb-3" />
+                                {hasIndividualFiles ? (
+                                    <>
+                                        <h4 className="text-sm font-medium text-slate-700 mb-2">
+                                            Bulk upload available
+                                        </h4>
+                                        <p className="text-xs text-slate-500 mb-4 max-w-sm mx-auto">
+                                            You've already uploaded {totalFilesCount} file{totalFilesCount === 1 ? '' : 's'} individually.
+                                            Use bulk upload here to add more files and auto-match them by SI number.
+                                        </p>
+                                    </>
+                                ) : (
+                                    <>
+                                        <h4 className="text-sm font-medium text-slate-700 mb-2">No bulk files uploaded yet</h4>
+                                        <p className="text-xs text-slate-500 mb-4 max-w-sm mx-auto">
+                                            Drag files into the area above or click to browse. We'll automatically match files to invoices based on their SI numbers.
+                                        </p>
+                                    </>
+                                )}
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-lg mx-auto">
+                                    <div className="rounded bg-white border border-blue-200 p-3 text-left">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <Check className="h-4 w-4 text-green-600" />
+                                            <span className="text-xs font-semibold text-slate-700">Good naming:</span>
+                                        </div>
+                                        <div className="space-y-0.5">
+                                            <p className="text-xs text-slate-600 font-mono">INV-001.pdf</p>
+                                            <p className="text-xs text-slate-600 font-mono">2025-042.pdf</p>
+                                            <p className="text-xs text-slate-600 font-mono">SI_123.jpg</p>
+                                        </div>
+                                    </div>
+                                    <div className="rounded bg-white border border-orange-200 p-3 text-left">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <X className="h-4 w-4 text-orange-600" />
+                                            <span className="text-xs font-semibold text-slate-700">Won't match:</span>
+                                        </div>
+                                        <div className="space-y-0.5">
+                                            <p className="text-xs text-slate-600 font-mono">invoice.pdf</p>
+                                            <p className="text-xs text-slate-600 font-mono">document.jpg</p>
+                                            <p className="text-xs text-slate-600 font-mono">scan_001.pdf</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     )}
                 </CardContent>

@@ -2,11 +2,29 @@ import { Button } from '@/components/ui/button.js';
 import { cn } from '@/lib/utils.js';
 import { Upload, X } from 'lucide-react';
 import { memo } from 'react';
+import { useDragAndDrop } from '@/pages/invoices/components/create/hooks/useDragAndDrop.js';
 
 const BulkFileUploadCard = memo(
     ({ invoice, index, errors, onFileChange, onRemoveFile }) => {
+        const handleFilesDropped = (files) => {
+            // Create synthetic event for compatibility with existing handler
+            const syntheticEvent = {
+                target: { files, value: '' },
+            };
+            onFileChange(index, syntheticEvent);
+        };
+
+        const { isDragging, dragHandlers } = useDragAndDrop(handleFilesDropped);
+
         return (
-            <div className="rounded border bg-slate-50/30 p-3 transition-all hover:bg-slate-50/50">
+            <div
+                {...dragHandlers}
+                className={cn(
+                    "rounded border p-3 transition-all",
+                    isDragging
+                        ? "bg-blue-100 border-blue-400 border-2 shadow-md scale-[1.02]"
+                        : "bg-slate-50/30 hover:bg-slate-50/50"
+                )}>
                 {/* Header with invoice info and upload button */}
                 <div className="mb-3 flex items-center justify-between">
                     <div className="min-w-0 flex-1">
@@ -90,10 +108,24 @@ const BulkFileUploadCard = memo(
                             )}
                         </>
                     ) : (
-                        <div className="flex h-16 items-center justify-center rounded border-2 border-dashed border-slate-200 bg-white/50">
+                        <div className={cn(
+                            "flex h-16 items-center justify-center rounded border-2 border-dashed transition-all",
+                            isDragging
+                                ? "border-blue-400 bg-blue-50"
+                                : "border-slate-200 bg-white/50"
+                        )}>
                             <div className="text-center">
-                                <Upload className="mx-auto mb-1 h-4 w-4 text-slate-400" />
-                                <p className="text-xs text-slate-500">No files</p>
+                                {isDragging ? (
+                                    <>
+                                        <Upload className="mx-auto mb-1 h-5 w-5 text-blue-500 animate-bounce" />
+                                        <p className="text-xs font-medium text-blue-600">Drop here</p>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Upload className="mx-auto mb-1 h-4 w-4 text-slate-400" />
+                                        <p className="text-xs text-slate-500">Drag files or click Add</p>
+                                    </>
+                                )}
                             </div>
                         </div>
                     )}

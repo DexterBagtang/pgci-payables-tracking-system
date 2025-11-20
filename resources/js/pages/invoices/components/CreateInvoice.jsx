@@ -16,13 +16,13 @@ const SingleMode = lazy(() => import('@/pages/invoices/components/create/SingleM
 
 // Dialogs
 import ConfirmationDialog from '@/pages/invoices/components/create/dialogs/ConfirmationDialog.jsx';
-import SingleFileDialog from '@/pages/invoices/components/create/dialogs/SingleFileDialog.jsx';
-import PartialUploadDialog from '@/pages/invoices/components/create/dialogs/PartialUploadDialog.jsx';
+import UnifiedFileDialog from '@/pages/invoices/components/create/dialogs/UnifiedFileDialog.jsx';
 
 // UI Components
 import InvoiceSummaryCard from '@/pages/invoices/components/create/components/InvoiceSummaryCard.jsx';
 import BulkSummarySection from '@/pages/invoices/components/create/components/BulkSummarySection.jsx';
 import ErrorSummary from '@/pages/invoices/components/create/components/ErrorSummary.jsx';
+import EmptyInvoiceState from '@/pages/invoices/components/create/components/EmptyInvoiceState.jsx';
 
 // Custom Hooks
 import { useInvoiceFileMatching } from '@/pages/invoices/components/create/hooks/useInvoiceFileMatching.js';
@@ -82,20 +82,16 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
         bulkFiles,
         setBulkFiles,
         fileMatching,
-        showSingleFileDialog,
-        setShowSingleFileDialog,
-        pendingSingleFile,
-        showPartialUploadDialog,
-        setShowPartialUploadDialog,
-        partialUploadData,
+        showUnifiedDialog,
+        setShowUnifiedDialog,
+        unifiedDialogData,
         handleBulkFilesUpload,
         handleRemoveMatchedFile,
         handleReassignFile,
-        handleShareSingleFile,
-        handleAssignSingleFileToOne,
-        handleShareAllFilesWithAll,
-        handleContinueManualAssignment,
-        handleLeaveUnmatched,
+        handleUnifiedShareWithAll,
+        handleUnifiedAssignToOne,
+        handleUnifiedManualAssignment,
+        handleUnifiedLeaveUnmatched,
     } = useInvoiceFileMatching(bulkInvoices, updateBulkInvoice);
 
     // Memoized purchase order options
@@ -379,6 +375,11 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
                                 />
                             )}
 
+                            {/* Bulk Mode - Empty State (before generation) */}
+                            {isBulkMode && !bulkConfigured && (
+                                <EmptyInvoiceState />
+                            )}
+
                             {/* Bulk Mode - Invoice Details Table */}
                             {isBulkMode && bulkConfigured && (
                                 <Suspense fallback={<DialogLoadingFallback message="Loading bulk invoice form..." />}>
@@ -481,27 +482,19 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
                     onConfirm={handleSubmitConfirmed}
                 />
 
-                {/* Single File Sharing Verification Dialog */}
-                <SingleFileDialog
-                    open={showSingleFileDialog}
-                    onOpenChange={setShowSingleFileDialog}
-                    pendingFile={pendingSingleFile}
-                    invoiceCount={bulkInvoices.length}
-                    onShareWithAll={handleShareSingleFile}
-                    onAssignToOne={handleAssignSingleFileToOne}
-                />
-
-                {/* Partial Upload Dialog - Files < Invoices */}
-                <PartialUploadDialog
-                    open={showPartialUploadDialog}
-                    onOpenChange={setShowPartialUploadDialog}
-                    filesCount={partialUploadData.files.length}
+                {/* Unified Smart File Dialog */}
+                <UnifiedFileDialog
+                    open={showUnifiedDialog}
+                    onOpenChange={setShowUnifiedDialog}
+                    scenario={unifiedDialogData.scenario}
+                    filesCount={unifiedDialogData.filesCount}
                     invoicesCount={bulkInvoices.length}
-                    unmatchedInvoiceCount={partialUploadData.unmatchedInvoiceCount}
-                    files={partialUploadData.files}
-                    onShareAllWithAll={handleShareAllFilesWithAll}
-                    onContinueManualAssignment={handleContinueManualAssignment}
-                    onLeaveUnmatched={handleLeaveUnmatched}
+                    files={unifiedDialogData.files}
+                    unmatchedInvoiceCount={unifiedDialogData.unmatchedInvoiceCount}
+                    onShareWithAll={handleUnifiedShareWithAll}
+                    onAssignToOne={handleUnifiedAssignToOne}
+                    onContinueManualAssignment={handleUnifiedManualAssignment}
+                    onLeaveUnmatched={handleUnifiedLeaveUnmatched}
                 />
             </div>
         </div>
