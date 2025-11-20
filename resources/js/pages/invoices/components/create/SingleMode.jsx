@@ -258,7 +258,7 @@ export default function SingleMode({
                                 accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.txt"
                                 className="hidden"
                             />
-                            <p className="mt-1 text-xs text-slate-500">PDF, DOC, XLS, JPG, PNG (Max: 10MB per file)</p>
+                            <p className="mt-1 text-xs text-slate-500">PDF, DOC, XLS, JPG, PNG (Max: 20MB per file)</p>
                             {errors.files && <p className="mt-1 text-xs text-red-600">{errors.files}</p>}
                         </div>
 

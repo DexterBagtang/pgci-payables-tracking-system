@@ -152,12 +152,12 @@ const EditInvoice = ({ invoice, purchaseOrders }) => {
     const handleFileChange = useCallback((e) => {
         const files = Array.from(e.target.files);
         const validFiles = files.filter(file => {
-            const maxSize = 10 * 1024 * 1024; // 10MB
+            const maxSize = 20 * 1024 * 1024; // 20MB
             return file.size <= maxSize;
         });
 
         if (validFiles.length !== files.length) {
-            toast.error('Some files were too large (max 10MB per file) and were not selected.');
+            toast.error('Some files were too large (max 20MB per file) and were not selected.');
         }
 
         setSelectedFiles(prev => [...prev, ...validFiles]);
@@ -583,7 +583,7 @@ const EditInvoice = ({ invoice, purchaseOrders }) => {
                                                 accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.txt"
                                                 className="hidden"
                                             />
-                                            <p className="mt-1 text-xs text-slate-500">PDF, DOC, XLS, JPG, PNG (Max: 10MB per file)</p>
+                                            <p className="mt-1 text-xs text-slate-500">PDF, DOC, XLS, JPG, PNG (Max: 20MB per file)</p>
                                         </div>
 
                                         {selectedFiles.length > 0 && (

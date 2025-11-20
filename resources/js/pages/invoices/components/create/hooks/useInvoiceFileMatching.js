@@ -39,20 +39,27 @@ export function useInvoiceFileMatching(bulkInvoices, updateBulkInvoice) {
         return { matched: false, invoiceIndex: null, invoiceNumber: null };
     }, []);
 
-    // Handle bulk file upload
+    // Handle bulk file upload - STRICT TWO-MODE VALIDATION
     const handleBulkFilesUpload = useCallback((e) => {
         const files = Array.from(e.target.files);
         const validFiles = files.filter((file) => {
-            const maxSize = 10 * 1024 * 1024; // 10MB
+            const maxSize = 20 * 1024 * 1024; // 20MB
             return file.size <= maxSize;
         });
 
         if (validFiles.length !== files.length) {
-            toast.error('Some files were too large (max 10MB per file) and were not selected.');
+            toast.error('Some files were too large (max 20MB per file) and were not selected.');
         }
 
-        // Check if single file uploaded with multiple invoices
-        if (validFiles.length === 1 && bulkInvoices.length > 1) {
+        if (validFiles.length === 0) {
+            e.target.value = '';
+            return;
+        }
+
+        const invoiceCount = bulkInvoices.length;
+
+        // MODE 1: Single file for all invoices (shared file)
+        if (validFiles.length === 1) {
             setUnifiedDialogData({
                 scenario: 'single-file',
                 files: validFiles,
@@ -65,51 +72,73 @@ export function useInvoiceFileMatching(bulkInvoices, updateBulkInvoice) {
             return;
         }
 
-        // Match files to invoices
-        const matches = validFiles.map((file) => {
-            const match = matchFileToInvoice(file.name, bulkInvoices);
-            return {
+        // MODE 2: Exact match (files count == invoice count)
+        if (validFiles.length === invoiceCount) {
+            // Auto-match files to invoices in order
+            const matches = validFiles.map((file, index) => ({
                 file,
-                ...match,
-            };
-        });
+                matched: true,
+                invoiceIndex: index,
+                invoiceNumber: bulkInvoices[index].si_number || `Invoice ${index + 1}`,
+            }));
 
-        // Check if files < invoices (partial upload scenario)
-        if (validFiles.length < bulkInvoices.length && validFiles.length > 1) {
-            // Count how many invoices will remain unmatched
-            const matchedInvoiceIndices = new Set(
-                matches.filter(m => m.matched && m.invoiceIndex !== null).map(m => m.invoiceIndex)
-            );
-            const unmatchedInvoiceCount = bulkInvoices.length - matchedInvoiceIndices.size;
+            setFileMatching(matches);
 
-            // Show unified dialog if there are unmatched invoices after auto-matching
-            if (unmatchedInvoiceCount > 0) {
-                setUnifiedDialogData({
-                    scenario: 'partial-upload',
-                    files: validFiles,
-                    filesCount: validFiles.length,
-                    matches: matches,
-                    unmatchedInvoiceCount: unmatchedInvoiceCount
-                });
-                setShowUnifiedDialog(true);
-                e.target.value = '';
-                return;
-            }
+            // Auto-assign files to invoices
+            matches.forEach((match, index) => {
+                const invoice = bulkInvoices[index];
+                const existingFiles = invoice.files || [];
+                updateBulkInvoice(index, 'files', [...existingFiles, match.file]);
+            });
+
+            toast.success(`${validFiles.length} files matched to ${invoiceCount} invoices automatically!`);
+            e.target.value = '';
+            return;
         }
 
-        setFileMatching(matches);
+        // EXCESS FILES: Auto-trim and notify
+        if (validFiles.length > invoiceCount) {
+            const acceptedFiles = validFiles.slice(0, invoiceCount);
+            const trimmedFiles = validFiles.slice(invoiceCount);
 
-        // Auto-assign matched files to invoices
-        matches.forEach((match) => {
-            if (match.matched && match.invoiceIndex !== null) {
-                const invoice = bulkInvoices[match.invoiceIndex];
+            // Auto-match accepted files to invoices in order
+            const matches = acceptedFiles.map((file, index) => ({
+                file,
+                matched: true,
+                invoiceIndex: index,
+                invoiceNumber: bulkInvoices[index].si_number || `Invoice ${index + 1}`,
+            }));
+
+            setFileMatching(matches);
+
+            // Auto-assign files to invoices
+            matches.forEach((match, index) => {
+                const invoice = bulkInvoices[index];
                 const existingFiles = invoice.files || [];
-                updateBulkInvoice(match.invoiceIndex, 'files', [...existingFiles, match.file]);
-            }
-        });
+                updateBulkInvoice(index, 'files', [...existingFiles, match.file]);
+            });
+
+            // Show notification about trimmed files
+            toast.warning(
+                `Only ${invoiceCount} files were used. ${trimmedFiles.length} excess file(s) were discarded: ${trimmedFiles.map(f => f.name).join(', ')}`,
+                { duration: 6000 }
+            );
+            e.target.value = '';
+            return;
+        }
+
+        // INSUFFICIENT FILES: Reject all
+        if (validFiles.length > 1 && validFiles.length < invoiceCount) {
+            toast.error(
+                `Upload failed: You uploaded ${validFiles.length} files for ${invoiceCount} invoices. Please upload either exactly ${invoiceCount} files (one per invoice) or 1 file to share across all invoices.`,
+                { duration: 6000 }
+            );
+            e.target.value = '';
+            return;
+        }
 
         e.target.value = '';
-    }, [bulkInvoices, matchFileToInvoice, updateBulkInvoice]);
+    }, [bulkInvoices, updateBulkInvoice]);
 
     // Handle remove matched file
     const handleRemoveMatchedFile = useCallback((matchIndex) => {

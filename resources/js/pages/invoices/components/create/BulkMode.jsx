@@ -38,13 +38,13 @@ export default function BulkMode({
     // Handle drag and drop file upload
     const handleFilesDropped = (files) => {
         const validFiles = files.filter((file) => {
-            const maxSize = 10 * 1024 * 1024; // 10MB
+            const maxSize = 20 * 1024 * 1024; // 20MB
             return file.size <= maxSize;
         });
 
         if (validFiles.length !== files.length) {
             const oversizedCount = files.length - validFiles.length;
-            toast.error(`${oversizedCount} file(s) were too large (max 10MB) and were not uploaded.`);
+            toast.error(`${oversizedCount} file(s) were too large (max 20MB) and were not uploaded.`);
         }
 
         if (validFiles.length > 0) {
@@ -256,7 +256,7 @@ export default function BulkMode({
                         Bulk File Upload
                     </CardTitle>
                     <CardDescription className="text-sm">
-                        Drag & drop files here, or click to browse. Files will be automatically matched to invoices based on filename.
+                        Upload exactly {bulkInvoices.length} files (one per invoice) or 1 file to share across all invoices. Other quantities will be rejected or trimmed.
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -299,12 +299,12 @@ export default function BulkMode({
                                         Drag & drop files here, or click to browse
                                     </p>
                                     <p className="text-sm text-gray-500">
-                                        PDF, DOC, Images • Max 10MB per file • Multiple files supported
+                                        PDF, DOC, Images • Max 20MB per file • Multiple files supported
                                     </p>
                                     <div className="mt-3 rounded bg-white/80 border border-blue-200 p-2 inline-block">
                                         <p className="text-xs text-blue-700 font-medium flex items-center gap-1.5">
                                             <AlertCircle className="h-3.5 w-3.5" />
-                                            Smart Tip: Name files with SI numbers for auto-matching (e.g., "INV-001.pdf", "2025-001.pdf")
+                                            Two modes: Upload exactly {bulkInvoices.length} files for 1:1 matching, or 1 file to share across all
                                         </p>
                                     </div>
                                 </>
@@ -427,32 +427,26 @@ export default function BulkMode({
                                     <>
                                         <h4 className="text-sm font-medium text-slate-700 mb-2">No bulk files uploaded yet</h4>
                                         <p className="text-xs text-slate-500 mb-4 max-w-sm mx-auto">
-                                            Drag files into the area above or click to browse. We'll automatically match files to invoices based on their SI numbers.
+                                            Upload exactly {bulkInvoices.length} files to match them 1:1 with invoices, or upload 1 file to share across all.
                                         </p>
                                     </>
                                 )}
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-lg mx-auto">
-                                    <div className="rounded bg-white border border-blue-200 p-3 text-left">
-                                        <div className="flex items-center gap-2 mb-1">
+                                    <div className="rounded bg-white border border-green-200 p-3 text-left">
+                                        <div className="flex items-center gap-2 mb-2">
                                             <Check className="h-4 w-4 text-green-600" />
-                                            <span className="text-xs font-semibold text-slate-700">Good naming:</span>
+                                            <span className="text-xs font-semibold text-slate-700">1:1 Matching</span>
                                         </div>
-                                        <div className="space-y-0.5">
-                                            <p className="text-xs text-slate-600 font-mono">INV-001.pdf</p>
-                                            <p className="text-xs text-slate-600 font-mono">2025-042.pdf</p>
-                                            <p className="text-xs text-slate-600 font-mono">SI_123.jpg</p>
-                                        </div>
+                                        <p className="text-xs text-slate-600 mb-1">Upload {bulkInvoices.length} files:</p>
+                                        <p className="text-xs text-slate-500">Files will be matched to invoices in order (1st file → 1st invoice, etc.)</p>
                                     </div>
-                                    <div className="rounded bg-white border border-orange-200 p-3 text-left">
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <X className="h-4 w-4 text-orange-600" />
-                                            <span className="text-xs font-semibold text-slate-700">Won't match:</span>
+                                    <div className="rounded bg-white border border-blue-200 p-3 text-left">
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <FileStack className="h-4 w-4 text-blue-600" />
+                                            <span className="text-xs font-semibold text-slate-700">Shared File</span>
                                         </div>
-                                        <div className="space-y-0.5">
-                                            <p className="text-xs text-slate-600 font-mono">invoice.pdf</p>
-                                            <p className="text-xs text-slate-600 font-mono">document.jpg</p>
-                                            <p className="text-xs text-slate-600 font-mono">scan_001.pdf</p>
-                                        </div>
+                                        <p className="text-xs text-slate-600 mb-1">Upload 1 file:</p>
+                                        <p className="text-xs text-slate-500">Single file will be shared across all {bulkInvoices.length} invoices</p>
                                     </div>
                                 </div>
                             </div>

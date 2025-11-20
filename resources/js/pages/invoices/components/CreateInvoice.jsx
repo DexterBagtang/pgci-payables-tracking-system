@@ -37,6 +37,7 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
     const [showConfirmation, setShowConfirmation] = useState(false);
     const [isBulkMode, setBulkMode] = useState(false);
     const [processing, setProcessing] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState(0);
 
     // Single invoice data
     const [singleData, setSingleData] = useState({
@@ -174,12 +175,12 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
         (e) => {
             const files = Array.from(e.target.files);
             const validFiles = files.filter((file) => {
-                const maxSize = 10 * 1024 * 1024; // 10MB
+                const maxSize = 20 * 1024 * 1024; // 20MB
                 return file.size <= maxSize;
             });
 
             if (validFiles.length !== files.length) {
-                alert('Some files were too large (max 10MB per file) and were not selected.');
+                alert('Some files were too large (max 20MB per file) and were not selected.');
             }
 
             setSelectedFiles(validFiles);
@@ -219,12 +220,12 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
     const handleBulkInvoiceFileChange = useCallback((invoiceIndex, e) => {
         const files = Array.from(e.target.files);
         const validFiles = files.filter((file) => {
-            const maxSize = 10 * 1024 * 1024; // 10MB
+            const maxSize = 20 * 1024 * 1024; // 20MB
             return file.size <= maxSize;
         });
 
         if (validFiles.length !== files.length) {
-            alert('Some files were too large (max 10MB per file) and were not selected.');
+            alert('Some files were too large (max 20MB per file) and were not selected.');
         }
 
         updateBulkInvoice(invoiceIndex, 'files', validFiles);
@@ -254,50 +255,116 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
     const handleSubmitConfirmed = () => {
         setShowConfirmation(false);
         setProcessing(true);
+        setUploadProgress(0);
 
-        // Use individual invoice data as-is (shared values were pre-filled during generation)
+        // Prepare invoice data
         const invoicesWithSharedData = bulkInvoices.map((invoice) => {
-            // Only add purchase_order_id from shared config as it's always required
+            // Remove files from invoice object for JSON serialization
+            const { files, ...invoiceWithoutFiles } = invoice;
             return {
-                ...invoice,
+                ...invoiceWithoutFiles,
                 purchase_order_id: bulkConfig.sharedValues.purchase_order_id,
             };
         });
 
-        router.post(
-            '/invoices',
-            {
-                invoices: isBulkMode ? invoicesWithSharedData : [singleData],
-            },
-            {
-                onSuccess: () => {
-                    toast.success(`${isBulkMode ? bulkInvoices.length : '1'} invoice(s) created successfully!`);
-                    // Reset forms
-                    setSingleData({
-                        purchase_order_id: '',
-                        si_number: '',
-                        si_date: '',
-                        si_received_at: '',
-                        invoice_amount: '',
-                        currency: 'PHP',
-                        due_date: '',
-                        notes: '',
-                        submitted_at: '',
-                        submitted_to: '',
-                        files: [],
-                        terms_of_payment: '',
-                        other_payment_terms: '',
-                    });
-                    resetBulkConfig();
-                    setSelectedFiles([]);
-                    setProcessing(false);
-                },
-                onError: (errors) => {
-                    setErrors(errors);
-                    setProcessing(false);
-                },
+        const invoicesData = isBulkMode ? invoicesWithSharedData : [{ ...singleData, files: undefined }];
+
+        // Create FormData
+        const formData = new FormData();
+
+        // Append the invoice data as JSON (without files)
+        formData.append('_invoices_json', JSON.stringify(invoicesData));
+
+        // Append files with proper Laravel nested array structure
+        const sourceInvoices = isBulkMode ? bulkInvoices : [singleData];
+        sourceInvoices.forEach((invoice, index) => {
+            if (invoice.files && invoice.files.length > 0) {
+                invoice.files.forEach((file, fileIndex) => {
+                    formData.append(`invoices[${index}][files][${fileIndex}]`, file);
+                });
             }
-        );
+        });
+
+        // Use Inertia router for file uploads with progress tracking
+        router.post('/invoices', formData, {
+            // Track upload progress
+            onProgress: (progress) => {
+                if (progress.percentage) {
+                    setUploadProgress(Math.round(progress.percentage));
+                }
+            },
+
+            // Handle successful response
+            onSuccess: (page) => {
+                toast.success(`${isBulkMode ? bulkInvoices.length : '1'} invoice(s) created successfully!`);
+
+                // Reset forms
+                setSingleData({
+                    purchase_order_id: '',
+                    si_number: '',
+                    si_date: '',
+                    si_received_at: '',
+                    invoice_amount: '',
+                    currency: 'PHP',
+                    due_date: '',
+                    notes: '',
+                    submitted_at: '',
+                    submitted_to: '',
+                    files: [],
+                    terms_of_payment: '',
+                    other_payment_terms: '',
+                });
+                resetBulkConfig();
+                setSelectedFiles([]);
+                setErrors({});
+
+                // Inertia will handle the redirect automatically
+            },
+
+            // Handle validation errors (422)
+            onError: (errors) => {
+                console.error('Validation errors:', errors);
+
+                // Extract and format error messages
+                const errorMessages = Object.entries(errors)
+                    .map(([field, messages]) => {
+                        const fieldName = field.replace(/invoices\.\d+\./, '').replace(/_/g, ' ');
+                        const message = Array.isArray(messages) ? messages[0] : messages;
+                        return `${fieldName}: ${message}`;
+                    })
+                    .slice(0, 3); // Show first 3 errors
+
+                if (errorMessages.length > 0) {
+                    toast.error(
+                        <div>
+                            <p className="font-semibold">Validation failed:</p>
+                            <ul className="mt-1 list-disc pl-4 text-xs">
+                                {errorMessages.map((msg, i) => <li key={i}>{msg}</li>)}
+                            </ul>
+                            {Object.keys(errors).length > 3 && (
+                                <p className="mt-1 text-xs">+ {Object.keys(errors).length - 3} more errors</p>
+                            )}
+                        </div>,
+                        { duration: 8000 }
+                    );
+                }
+
+                // Set errors for inline display
+                setErrors(errors);
+            },
+
+            // Always reset loading state when finished
+            onFinish: () => {
+                setProcessing(false);
+                setUploadProgress(0);
+            },
+
+            // Preserve scroll position
+            preserveScroll: true,
+
+            // Force FormData to be used
+            forceFormData: true,
+        });
     };
 
     // Memoize bulk invoice summary calculations
@@ -482,7 +549,7 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
                     onConfirm={handleSubmitConfirmed}
                 />
 
-                {/* Unified Smart File Dialog */}
+                {/* Simplified File Dialog - Single File Only */}
                 <UnifiedFileDialog
                     open={showUnifiedDialog}
                     onOpenChange={setShowUnifiedDialog}
@@ -490,12 +557,74 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
                     filesCount={unifiedDialogData.filesCount}
                     invoicesCount={bulkInvoices.length}
                     files={unifiedDialogData.files}
-                    unmatchedInvoiceCount={unifiedDialogData.unmatchedInvoiceCount}
                     onShareWithAll={handleUnifiedShareWithAll}
                     onAssignToOne={handleUnifiedAssignToOne}
-                    onContinueManualAssignment={handleUnifiedManualAssignment}
-                    onLeaveUnmatched={handleUnifiedLeaveUnmatched}
                 />
+
+                {/* Loading Overlay with Progress */}
+                {processing && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+                        <div className="w-full max-w-md rounded-lg bg-white p-8 shadow-2xl">
+                            <div className="flex flex-col items-center gap-6">
+                                {uploadProgress < 100 ? (
+                                    <>
+                                        <div className="relative h-16 w-16">
+                                            <svg className="h-16 w-16 -rotate-90 transform">
+                                                <circle
+                                                    cx="32"
+                                                    cy="32"
+                                                    r="28"
+                                                    stroke="#e5e7eb"
+                                                    strokeWidth="8"
+                                                    fill="none"
+                                                />
+                                                <circle
+                                                    cx="32"
+                                                    cy="32"
+                                                    r="28"
+                                                    stroke="#2563eb"
+                                                    strokeWidth="8"
+                                                    fill="none"
+                                                    strokeDasharray={`${(uploadProgress / 100) * 176} 176`}
+                                                    className="transition-all duration-300"
+                                                />
+                                            </svg>
+                                            <div className="absolute inset-0 flex items-center justify-center">
+                                                <span className="text-sm font-bold text-blue-600">{uploadProgress}%</span>
+                                            </div>
+                                        </div>
+                                        <div className="w-full text-center">
+                                            <h3 className="text-lg font-semibold text-gray-900">Uploading Files...</h3>
+                                            <p className="text-sm text-gray-600">
+                                                {isBulkMode
+                                                    ? `Uploading ${bulkInvoices.length} invoice${bulkInvoices.length > 1 ? 's' : ''}...`
+                                                    : 'Uploading invoice...'
+                                                }
+                                            </p>
+                                            {/* Progress bar */}
+                                            <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-gray-200">
+                                                <div
+                                                    className="h-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all duration-300"
+                                                    style={{ width: `${uploadProgress}%` }}
+                                                ></div>
+                                            </div>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <>
+                                        <div className="h-16 w-16 animate-spin rounded-full border-4 border-gray-200 border-t-green-600"></div>
+                                        <div className="text-center">
+                                            <h3 className="text-lg font-semibold text-gray-900">Processing...</h3>
+                                            <p className="text-sm text-gray-600">
+                                                Creating invoices in database...
+                                            </p>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

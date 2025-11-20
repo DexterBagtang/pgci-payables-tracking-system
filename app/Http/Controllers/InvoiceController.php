@@ -166,7 +166,21 @@ class InvoiceController extends Controller
 
     public function store(Request $request)
     {
-        $validator = Validator::make($request->all(), [
+        // Handle both regular form submission and optimized FormData submission
+        $invoicesData = $request->has('_invoices_json')
+            ? json_decode($request->input('_invoices_json'), true)
+            : $request->input('invoices', []);
+
+        // Merge files from FormData into invoices array
+        if ($request->has('invoices')) {
+            foreach ($request->file('invoices', []) as $index => $fileData) {
+                if (isset($fileData['files'])) {
+                    $invoicesData[$index]['files'] = $fileData['files'];
+                }
+            }
+        }
+
+        $validator = Validator::make(['invoices' => $invoicesData], [
             'invoices' => 'required|array|min:1',
             'invoices.*.purchase_order_id' => 'required|exists:purchase_orders,id',
             'invoices.*.si_number' => 'required|string|max:255',
@@ -183,11 +197,11 @@ class InvoiceController extends Controller
             'invoices.*.submitted_at' => 'nullable|date',
             'invoices.*.submitted_to' => 'nullable|string|max:255',
             'invoices.*.files' => 'nullable|array',
-            'invoices.*.files.*' => 'file|max:10240|mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png',
+            'invoices.*.files.*' => 'file|max:20480|mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png',
         ]);
 
-        $validator->after(function ($validator) use ($request) {
-            $invoices = $request->input('invoices', []);
+        $validator->after(function ($validator) use ($invoicesData) {
+            $invoices = $invoicesData;
 
             foreach ($invoices as $index => $invoice) {
                 $exists = \App\Models\Invoice::where('purchase_order_id', $invoice['purchase_order_id'])
@@ -209,61 +223,177 @@ class InvoiceController extends Controller
 
         $validated = $validator->validated();
 
-        $createdInvoices = [];
+        // Start transaction
+        DB::beginTransaction();
 
-        foreach ($validated['invoices'] as $invoiceData) {
+        try {
+            $now = now();
+            $userId = auth()->id();
 
-            // Extract and remove files from validation
-            $files = $invoiceData['files'] ?? [];
-            unset($invoiceData['files']);
+            // Prepare bulk data arrays
+            $invoicesData = [];
+            $filesData = [];
+            $activityLogsData = [];
 
-            // Add computed fields
-            $invoiceData['net_amount'] = $invoiceData['invoice_amount'];
-            if ($invoiceData['due_date'] == null) {
-                $invoiceData['due_date'] = Carbon::parse($invoiceData['si_received_at'])->addDays(30);
-            }
-            // Create invoice
-            $invoice = Invoice::create([
-                ...$invoiceData,
-                'invoice_status' => 'pending',
-                'created_by' => auth()->id(),
-            ]);
+            // File deduplication map: hash => [file object, stored path]
+            $uniqueFiles = [];
+            $fileHashMap = [];
 
-            // Log activity using trait
-            $invoice->logCreation();
+            // First pass - Prepare invoice data and identify unique files
+            foreach ($validated['invoices'] as $index => $invoiceData) {
+                $files = $invoiceData['files'] ?? [];
+                unset($invoiceData['files']);
 
-            // Log to parent PurchaseOrder
-            $invoice->purchaseOrder->logRelationshipAdded('invoice', [
-                'si_number' => $invoice->si_number,
-                'invoice_amount' => $invoice->invoice_amount,
-                'net_amount' => $invoice->net_amount,
-            ]);
+                // Add computed fields
+                $invoiceData['net_amount'] = $invoiceData['invoice_amount'];
+                if ($invoiceData['due_date'] == null) {
+                    $invoiceData['due_date'] = Carbon::parse($invoiceData['si_received_at'])->addDays(30);
+                }
 
-            // Handle file uploads
-            if (!empty($files)) {
+                // Prepare invoice data for bulk insert
+                $invoicesData[] = [
+                    ...$invoiceData,
+                    'invoice_status' => 'pending',
+                    'created_by' => $userId,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ];
+
+                // Process files for deduplication
+                $processedFiles = [];
                 foreach ($files as $file) {
                     if ($file && $file->isValid()) {
-                        $filePath = $file->store('invoices/files', 'public');
+                        // Create a unique identifier based on file name, size, and content hash
+                        $fileHash = md5($file->getClientOriginalName() . $file->getSize() . file_get_contents($file->getRealPath()));
 
-                        $invoice->files()->create([
-                            'file_name' => $file->getClientOriginalName(),
-                            'file_path' => $filePath,
-                            'file_type' => $file->getClientMimeType(),
+                        if (!isset($uniqueFiles[$fileHash])) {
+                            // This is a new unique file
+                            $uniqueFiles[$fileHash] = [
+                                'file' => $file,
+                                'original_name' => $file->getClientOriginalName(),
+                                'mime_type' => $file->getClientMimeType(),
+                                'size' => $file->getSize(),
+                            ];
+                        }
+
+                        $processedFiles[] = ['hash' => $fileHash];
+                    }
+                }
+
+                // Store files for later processing (after we get invoice IDs)
+                $invoicesData[$index]['_files_to_upload'] = $processedFiles;
+            }
+
+            // Store unique files only once
+            foreach ($uniqueFiles as $hash => $fileData) {
+                $file = $fileData['file'];
+                $filePath = $file->store('invoices/files', 'public');
+                $fileHashMap[$hash] = [
+                    'file_path' => $filePath,
+                    'file_name' => $fileData['original_name'],
+                    'file_type' => $fileData['mime_type'],
+                    'file_size' => $fileData['size'],
+                ];
+            }
+
+            // Bulk insert invoices
+            DB::table('invoices')->insert(array_map(function($inv) {
+                unset($inv['_files_to_upload']);
+                return $inv;
+            }, $invoicesData));
+
+            // Get the inserted invoice IDs
+            $firstInvoice = DB::table('invoices')
+                ->where('created_by', $userId)
+                ->where('created_at', $now)
+                ->orderBy('id')
+                ->first();
+
+            if (!$firstInvoice) {
+                throw new \Exception('Failed to retrieve created invoices');
+            }
+
+            $startId = $firstInvoice->id;
+
+            // Second pass - Prepare file records and activity logs
+            foreach ($invoicesData as $index => $invoiceData) {
+                $invoiceId = $startId + $index;
+                $files = $invoiceData['_files_to_upload'] ?? [];
+
+                // Prepare activity log
+                $activityLogsData[] = [
+                    'loggable_type' => 'App\Models\Invoice',
+                    'loggable_id' => $invoiceId,
+                    'action' => 'created',
+                    'changes' => json_encode([
+                        'si_number' => $invoiceData['si_number'],
+                        'invoice_amount' => $invoiceData['invoice_amount'],
+                    ]),
+                    'user_id' => $userId,
+                    'ip_address' => request()->ip(),
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ];
+
+                // Create file records using deduplicated file paths
+                foreach ($files as $fileRef) {
+                    $hash = $fileRef['hash'];
+                    if (isset($fileHashMap[$hash])) {
+                        $fileInfo = $fileHashMap[$hash];
+
+                        // Prepare file record (reusing same file_path for duplicates)
+                        $filesData[] = [
+                            'fileable_type' => 'App\Models\Invoice',
+                            'fileable_id' => $invoiceId,
+                            'file_name' => $fileInfo['file_name'],
+                            'file_path' => $fileInfo['file_path'],
+                            'file_type' => $fileInfo['file_type'],
                             'file_category' => 'invoice',
                             'file_purpose' => 'documentation',
-                            'file_size' => $file->getSize(),
+                            'file_size' => $fileInfo['file_size'],
                             'disk' => 'public',
-                            'uploaded_by' => auth()->id(),
+                            'uploaded_by' => $userId,
                             'is_active' => true,
-                        ]);
+                            'created_at' => $now,
+                            'updated_at' => $now,
+                        ];
                     }
                 }
             }
 
-            $createdInvoices[] = $invoice;
-        }
+            // Bulk insert files (if any)
+            if (!empty($filesData)) {
+                foreach (array_chunk($filesData, 100) as $chunk) {
+                    DB::table('files')->insert($chunk);
+                }
+            }
 
-        return back()->with('success', count($createdInvoices) . ' invoice(s) created successfully!');
+            // Bulk insert activity logs
+            if (!empty($activityLogsData)) {
+                foreach (array_chunk($activityLogsData, 100) as $chunk) {
+                    DB::table('activity_logs')->insert($chunk);
+                }
+            }
+
+            DB::commit();
+
+            $count = count($invoicesData);
+
+            // Redirect to invoices index with success message
+            return redirect()->route('invoices.index')
+                ->with('success', "{$count} invoice(s) created successfully!");
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Bulk invoice creation failed: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            // Return back with error
+            return back()
+                ->withErrors(['error' => 'Failed to create invoices: ' . $e->getMessage()])
+                ->withInput();
+        }
     }
 
 
@@ -315,7 +445,7 @@ class InvoiceController extends Controller
             'notes' => 'nullable|string',
             'submitted_at' => 'nullable|date',
             'submitted_to' => 'nullable|string|max:255',
-            'files.*' => 'file|max:10240|mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png',
+            'files.*' => 'file|max:20480|mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png',
         ]);
 
         // Remove files array from validated data for mass assignment
@@ -340,10 +470,11 @@ class InvoiceController extends Controller
         // Handle new file uploads only (no deletion)
         if (!empty($fileData)) {
             foreach ($fileData as $file) {
+                $originalName = $file->getClientOriginalName();
                 $filePath = $file->store('invoices/files', 'public');
 
                 $invoice->files()->create([
-                    'file_name' => $file->getClientOriginalName(),
+                    'file_name' => $originalName,
                     'file_path' => $filePath,
                     'file_type' => $file->getClientMimeType(),
                     'file_category' => 'invoice',
