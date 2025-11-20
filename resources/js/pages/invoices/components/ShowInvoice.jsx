@@ -33,8 +33,7 @@ const ShowInvoice = ({ invoice }) => {
 
     const project = po?.project;
     const vendor = po?.vendor;
-    const po_files = po?.files;
-    const attachments = [...po_files, ...files];
+    const attachments = files;
     const { user } = usePage().props.auth;
 
     const [tab, setTab] = useRemember('details', 'invoice-detail-tab');
