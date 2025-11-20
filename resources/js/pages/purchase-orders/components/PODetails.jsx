@@ -38,7 +38,7 @@ const AttachmentViewer = lazy(()=> import('@/pages/invoices/components/Attachmen
 const Remarks = lazy(()=> import('@/components/custom/Remarks.jsx'));
 const ClosePurchaseOrderDialog = lazy(()=> import('@/pages/purchase-orders/components/ClosePurchaseOrderDialog.jsx'));
 
-export default function ShowPO({ purchaseOrder, vendors, projects , backUrl}) {
+export default function PODetails({ purchaseOrder, vendors, projects , backUrl}) {
     const [isEditing, setIsEditing] = useState(false);
     // const [tab, setTab] = useState('overview');
     const [tab, setTab] = useRemember('overview','po-detail-tab');
