@@ -4,18 +4,22 @@ import { CheckCircle2, TrendingUp } from 'lucide-react';
 
 /**
  * Review Progress Tracker Component
- * Shows progress for the current review session
+ * Shows progress for the current review session with infinite scroll support
  */
 export default function ReviewProgressTracker({
     totalInvoices,
     reviewedCount,
-    selectedCount
+    selectedCount,
+    loadedCount
 }) {
     const progressPercentage = totalInvoices > 0
         ? ((reviewedCount / totalInvoices) * 100).toFixed(0)
         : 0;
 
     const remainingCount = totalInvoices - reviewedCount;
+
+    // Show loaded vs total if using infinite scroll
+    const showLoadedCount = loadedCount && loadedCount < totalInvoices;
 
     return (
         <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200">
@@ -57,9 +61,21 @@ export default function ReviewProgressTracker({
                     </div>
                 </div>
 
+                {/* Loaded Count Indicator (for infinite scroll) */}
+                {showLoadedCount && (
+                    <div className="mt-1.5 pt-1.5 border-t border-blue-200">
+                        <div className="flex items-center justify-between text-[10px]">
+                            <span className="text-slate-600">Loaded:</span>
+                            <span className="font-bold text-blue-600">
+                                {loadedCount} / {totalInvoices}
+                            </span>
+                        </div>
+                    </div>
+                )}
+
                 {/* Selected Indicator */}
                 {selectedCount > 0 && (
-                    <div className="mt-1.5 pt-1.5 border-t border-blue-200">
+                    <div className={`${showLoadedCount ? 'mt-1' : 'mt-1.5 pt-1.5 border-t border-blue-200'}`}>
                         <div className="flex items-center justify-between text-[10px]">
                             <span className="text-slate-600">Selected:</span>
                             <span className="font-bold text-indigo-600">{selectedCount}</span>

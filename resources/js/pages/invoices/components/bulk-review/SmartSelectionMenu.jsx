@@ -15,12 +15,16 @@ import { ChevronDown, CheckSquare, Building2, FileCheck, XSquare } from 'lucide-
  */
 export default function SmartSelectionMenu({
     invoices,
+    accumulatedInvoices,
     onSelectInvoices,
     onClearSelection,
     hasSelection
 }) {
+    // Use accumulated invoices for selections (includes all loaded pages)
+    const invoiceList = accumulatedInvoices || invoices.data || [];
+
     const handleSelectAll = () => {
-        const allInvoiceData = invoices.data.map((invoice, index) => ({
+        const allInvoiceData = invoiceList.map((invoice, index) => ({
             id: invoice.id,
             amount: invoice.invoice_amount,
             index
@@ -29,7 +33,7 @@ export default function SmartSelectionMenu({
     };
 
     const handleSelectByStatus = (status) => {
-        const filtered = invoices.data
+        const filtered = invoiceList
             .map((invoice, index) => ({ invoice, index }))
             .filter(({ invoice }) => invoice.invoice_status === status)
             .map(({ invoice, index }) => ({
@@ -41,7 +45,7 @@ export default function SmartSelectionMenu({
     };
 
     const handleSelectReadyToApprove = () => {
-        const filtered = invoices.data
+        const filtered = invoiceList
             .map((invoice, index) => ({ invoice, index }))
             .filter(({ invoice }) =>
                 invoice.invoice_status === 'received' &&
@@ -57,7 +61,7 @@ export default function SmartSelectionMenu({
     };
 
     const handleSelectByVendor = (vendorId, vendorName) => {
-        const filtered = invoices.data
+        const filtered = invoiceList
             .map((invoice, index) => ({ invoice, index }))
             .filter(({ invoice }) => invoice.purchase_order?.vendor?.id === vendorId)
             .map(({ invoice, index }) => ({
@@ -68,10 +72,10 @@ export default function SmartSelectionMenu({
         onSelectInvoices(filtered);
     };
 
-    // Get unique vendors from current page
+    // Get unique vendors from all loaded invoices
     const uniqueVendors = Array.from(
         new Map(
-            invoices.data
+            invoiceList
                 .filter(inv => inv.purchase_order?.vendor)
                 .map(inv => [
                     inv.purchase_order.vendor.id,
@@ -101,9 +105,9 @@ export default function SmartSelectionMenu({
                 <DropdownMenuItem onClick={handleSelectAll} className="cursor-pointer">
                     <CheckSquare className="mr-2 h-4 w-4 text-blue-600" />
                     <div>
-                        <div className="font-semibold">Select All on Page</div>
+                        <div className="font-semibold">Select All Loaded</div>
                         <div className="text-xs text-slate-500">
-                            {invoices.data.length} invoices
+                            {invoiceList.length} invoices
                         </div>
                     </div>
                 </DropdownMenuItem>
@@ -144,7 +148,7 @@ export default function SmartSelectionMenu({
                     <>
                         <DropdownMenuSeparator />
                         <DropdownMenuLabel className="text-xs font-bold text-slate-600 uppercase">
-                            By Vendor (Current Page)
+                            By Vendor (All Loaded)
                         </DropdownMenuLabel>
 
                         {uniqueVendors.slice(0, 5).map(vendor => (

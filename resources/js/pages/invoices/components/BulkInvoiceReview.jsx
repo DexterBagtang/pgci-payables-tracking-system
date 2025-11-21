@@ -31,6 +31,8 @@ const BulkInvoiceReview = ({ invoices, filters, filterOptions }) => {
     const [selectedInvoices, setSelectedInvoices] = useState(new Set());
     const [selectedAmounts, setSelectedAmounts] = useState(new Map());
     const [currentInvoiceIndex, setCurrentInvoiceIndex] = useState(0);
+    const [currentInvoice, setCurrentInvoice] = useState(invoices.data[0] || null);
+    const [accumulatedInvoices, setAccumulatedInvoices] = useState(invoices.data || []);
     const [searchValue, setSearchValue] = useState(filters.search || '');
     const [vendorFilter, setVendorFilter] = useState(filters.vendor || 'all');
     const [purchaseOrderFilter, setPurchaseOrderFilter] = useState(filters.purchase_order || 'all');
@@ -142,9 +144,12 @@ const BulkInvoiceReview = ({ invoices, filters, filterOptions }) => {
 
     // Memoize handler to prevent creating new function on every render
     // React 18 automatically batches state updates for better performance
-    const handleSelectInvoice = useCallback((invoiceId, index) => {
+    const handleSelectInvoice = useCallback((invoiceId, index, invoiceObject) => {
         // Update current index immediately for instant UI feedback
         setCurrentInvoiceIndex(index);
+
+        // Store the full invoice object for details panel
+        setCurrentInvoice(invoiceObject);
 
         // Update selection state - React 18 batches these automatically
         setSelectedInvoices((prev) => {
@@ -162,12 +167,12 @@ const BulkInvoiceReview = ({ invoices, filters, filterOptions }) => {
             if (newAmounts.has(invoiceId)) {
                 newAmounts.delete(invoiceId);
             } else {
-                const invoice = invoices.data[index];
-                newAmounts.set(invoiceId, invoice.invoice_amount);
+                // Use the invoice amount from the invoice object
+                newAmounts.set(invoiceId, invoiceObject.invoice_amount);
             }
             return newAmounts;
         });
-    }, [invoices.data]);
+    }, []);
 
     // Smart selection handlers - memoized
     const handleSmartSelect = useCallback((invoiceDataArray) => {
@@ -196,9 +201,15 @@ const BulkInvoiceReview = ({ invoices, filters, filterOptions }) => {
     const handleNavigate = useCallback((direction) => {
         const newIndex = direction === 'prev'
             ? Math.max(0, currentInvoiceIndex - 1)
-            : Math.min(invoices.data.length - 1, currentInvoiceIndex + 1);
+            : Math.min(accumulatedInvoices.length - 1, currentInvoiceIndex + 1);
         setCurrentInvoiceIndex(newIndex);
-    }, [currentInvoiceIndex, invoices.data.length]);
+        setCurrentInvoice(accumulatedInvoices[newIndex]);
+    }, [currentInvoiceIndex, accumulatedInvoices]);
+
+    // Callback to receive accumulated invoices from BulkInvoiceList
+    const handleInvoicesUpdate = useCallback((updatedInvoices) => {
+        setAccumulatedInvoices(updatedInvoices);
+    }, []);
 
     // Validate selected invoices before approval
     const validateInvoicesForApproval = (invoiceIds) => {
@@ -333,7 +344,7 @@ const BulkInvoiceReview = ({ invoices, filters, filterOptions }) => {
         });
     };
 
-    const currentInvoice = invoices.data[currentInvoiceIndex];
+    // currentInvoice is now managed in state and updated when invoice is selected
 
     const getActionConfig = () => {
         switch (bulkAction) {
@@ -376,6 +387,7 @@ const BulkInvoiceReview = ({ invoices, filters, filterOptions }) => {
                         smartSelectionMenu={
                             <SmartSelectionMenu
                                 invoices={invoices}
+                                accumulatedInvoices={accumulatedInvoices}
                                 onSelectInvoices={handleSmartSelect}
                                 onClearSelection={handleClearSelection}
                                 hasSelection={selectedInvoices.size > 0}
@@ -430,6 +442,7 @@ const BulkInvoiceReview = ({ invoices, filters, filterOptions }) => {
                             totalInvoices={invoices.total}
                             reviewedCount={reviewedCount}
                             selectedCount={selectedInvoices.size}
+                            loadedCount={accumulatedInvoices.length}
                         />
 
                         {/* Invoice List - Takes remaining space and scrolls */}
@@ -446,6 +459,8 @@ const BulkInvoiceReview = ({ invoices, filters, filterOptions }) => {
                                 onQuickApprove={handleQuickApprove}
                                 onQuickReject={handleQuickReject}
                                 onQuickMarkReceived={handleQuickMarkReceived}
+                                filters={filters}
+                                onInvoicesUpdate={handleInvoicesUpdate}
                             />
                             </Suspense>
                         </div>

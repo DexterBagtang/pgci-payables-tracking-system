@@ -618,8 +618,8 @@ class InvoiceController extends Controller
             $query->orderBy('invoices.created_at', 'desc');
         }
 
-        $perPage = $request->get('per_page', 100);
-        $perPage = in_array($perPage, [10, 15, 25, 50, 100, 200, 500]) ? $perPage : 100;
+        $perPage = $request->get('per_page', 30);
+        $perPage = in_array($perPage, [10, 15, 25, 30, 50, 100, 200, 500]) ? $perPage : 30;
 
         $invoices = $query->paginate($perPage);
         $invoices->appends($request->query());
@@ -640,7 +640,7 @@ class InvoiceController extends Controller
                 'sort_direction' => $request->get('sort_direction', 'desc'),
                 'date_from' => $request->get('date_from'),
                 'date_to' => $request->get('date_to'),
-                'per_page' => $request->get('per_page', 100),
+                'per_page' => $request->get('per_page', 30),
             ],
             'filterOptions' => [
                 'vendors' => $vendors,
@@ -835,6 +835,89 @@ class InvoiceController extends Controller
             DB::rollBack();
             return redirect()->back()->with('error', 'Failed to reject invoices: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * API endpoint for infinite scroll pagination in bulk review
+     * Returns JSON instead of Inertia response to avoid version conflicts
+     */
+    public function bulkReviewApi(Request $request)
+    {
+        $query = Invoice::with([
+            'purchaseOrder' => function ($q) {
+                $q->with(['project', 'vendor']);
+            },
+            'files'
+        ])
+            ->select('invoices.*')
+            ->leftJoin('purchase_orders', 'purchase_orders.id', '=', 'invoices.purchase_order_id')
+            ->whereNotIn('invoices.invoice_status', ['approved', 'pending_disbursement', 'paid']);
+
+        // Search
+        if ($request->has('search') && !empty($request->search)) {
+            $query->where(function ($query) use ($request) {
+                $query->where('si_number', 'like', '%' . $request->search . '%')
+                    ->orWhereHas('purchaseOrder.project', function ($q) use ($request) {
+                        $q->where('project_title', 'like', '%' . $request->search . '%')
+                            ->orWhere('cer_number', 'like', '%' . $request->search . '%');
+                    })
+                    ->orWhereHas('purchaseOrder.vendor', function ($q) use ($request) {
+                        $q->where('name', 'like', '%' . $request->search . '%');
+                    })
+                    ->orWhereHas('purchaseOrder', function ($q) use ($request) {
+                        $q->where('po_number', 'like', '%' . $request->search . '%');
+                    });
+            });
+        }
+
+        // Vendor filter
+        if ($request->has('vendor') && $request->vendor !== 'all' && $request->vendor !== '0') {
+            $query->whereHas('purchaseOrder', function ($q) use ($request) {
+                $q->where('vendor_id', $request->vendor);
+            });
+        }
+
+        // Purchase Order filter
+        if ($request->has('purchase_order') && $request->purchase_order !== 'all' && $request->purchase_order !== '0') {
+            $query->where('purchase_order_id', $request->purchase_order);
+        }
+
+        // Status filter
+        if ($request->has('status') && $request->status !== 'all') {
+            $query->where('invoice_status', $request->status);
+        }
+
+        // Date range filter
+        if ($request->has('date_from') && !empty($request->date_from)) {
+            $query->where('si_date', '>=', $request->date_from);
+        }
+        if ($request->has('date_to') && !empty($request->date_to)) {
+            $query->where('si_date', '<=', $request->date_to);
+        }
+
+        // Sorting
+        $sortField = $request->get('sort_field', 'created_at');
+        $sortDirection = $request->get('sort_direction', 'desc');
+
+        $sortMapping = [
+            'si_number' => 'si_number',
+            'created_at' => 'invoices.created_at',
+        ];
+
+        if (array_key_exists($sortField, $sortMapping)) {
+            $query->orderBy($sortMapping[$sortField], $sortDirection);
+        } else {
+            $query->orderBy('invoices.created_at', 'desc');
+        }
+
+        $perPage = $request->get('per_page', 30);
+        $perPage = in_array($perPage, [10, 15, 25, 30, 50, 100, 200, 500]) ? $perPage : 30;
+
+        $invoices = $query->paginate($perPage);
+
+        return response()->json([
+            'invoices' => $invoices,
+        ]);
     }
 
     public function checkRequisition(Request $request)
