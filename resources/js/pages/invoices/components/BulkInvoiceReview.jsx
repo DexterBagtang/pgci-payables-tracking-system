@@ -10,6 +10,9 @@ import { useInvoiceFormatters } from '../hooks/useInvoiceFormatters';
 import InvoiceReviewHeader from './bulk-review/InvoiceReviewHeader';
 import InvoiceActiveFilters from './bulk-review/InvoiceActiveFilters';
 import InvoiceReviewFilters from './bulk-review/InvoiceReviewFilters';
+import InvoiceFilterPresets from './bulk-review/InvoiceFilterPresets';
+import ReviewProgressTracker from './bulk-review/ReviewProgressTracker';
+import SmartSelectionMenu from './bulk-review/SmartSelectionMenu';
 
 // Lazy load heavy components
 const BulkInvoiceList = lazy(() => import('@/pages/invoices/components/BulkInvoiceList.jsx'));
@@ -35,6 +38,8 @@ const BulkInvoiceReview = ({ invoices, filters, filterOptions }) => {
     const [showConfirmDialog, setShowConfirmDialog] = useState(false);
     const [bulkAction, setBulkAction] = useState(null);
     const [reviewNotes, setReviewNotes] = useState('');
+    const [reviewedCount, setReviewedCount] = useState(0);
+    const [validationIssues, setValidationIssues] = useState([]);
 
     // Custom hook for formatting utilities
     const { formatCurrency, formatDate, getStatusConfig } = useInvoiceFormatters();
@@ -124,6 +129,17 @@ const BulkInvoiceReview = ({ invoices, filters, filterOptions }) => {
         handleFilterChange({ vendor: 'all', purchase_order: 'all', status: 'all', search: '', page: 1 });
     };
 
+    const handleApplyPreset = (presetFilters) => {
+        // Update local state
+        setVendorFilter(presetFilters.vendor || 'all');
+        setPurchaseOrderFilter(presetFilters.purchase_order || 'all');
+        setStatusFilter(presetFilters.status || 'all');
+        setSearchValue('');
+
+        // Apply filters
+        handleFilterChange({ ...presetFilters, page: 1 });
+    };
+
     const handleSelectInvoice = (invoiceId, index) => {
         const newSelected = new Set(selectedInvoices);
         const newAmounts = new Map(selectedAmounts);
@@ -141,6 +157,30 @@ const BulkInvoiceReview = ({ invoices, filters, filterOptions }) => {
         setCurrentInvoiceIndex(index);
     };
 
+    // Smart selection handlers
+    const handleSmartSelect = (invoiceDataArray) => {
+        const newSelected = new Set();
+        const newAmounts = new Map();
+
+        invoiceDataArray.forEach(({ id, amount }) => {
+            newSelected.add(id);
+            newAmounts.set(id, amount);
+        });
+
+        setSelectedInvoices(newSelected);
+        setSelectedAmounts(newAmounts);
+
+        if (invoiceDataArray.length > 0) {
+            toast.success(`Selected ${invoiceDataArray.length} invoice(s)`);
+        }
+    };
+
+    const handleClearSelection = () => {
+        setSelectedInvoices(new Set());
+        setSelectedAmounts(new Map());
+        toast.info('Selection cleared');
+    };
+
     const handleNavigate = (direction) => {
         const newIndex = direction === 'prev'
             ? Math.max(0, currentInvoiceIndex - 1)
@@ -148,9 +188,110 @@ const BulkInvoiceReview = ({ invoices, filters, filterOptions }) => {
         setCurrentInvoiceIndex(newIndex);
     };
 
+    // Validate selected invoices before approval
+    const validateInvoicesForApproval = (invoiceIds) => {
+        const issues = [];
+
+        invoiceIds.forEach(id => {
+            const invoice = invoices.data.find(inv => inv.id === id);
+            if (!invoice) return;
+
+            // Check if files are received
+            if (!invoice.files_received_at) {
+                issues.push({
+                    id: invoice.id,
+                    si_number: invoice.si_number,
+                    reason: 'Physical files not yet received'
+                });
+            }
+
+            // Check if invoice has attached files
+            if (!invoice.files || invoice.files.length === 0) {
+                issues.push({
+                    id: invoice.id,
+                    si_number: invoice.si_number,
+                    reason: 'No supporting documents attached'
+                });
+            }
+
+            // Check if invoice is already in an approved state
+            if (['approved', 'pending_disbursement', 'paid'].includes(invoice.invoice_status)) {
+                issues.push({
+                    id: invoice.id,
+                    si_number: invoice.si_number,
+                    reason: `Already ${invoice.invoice_status}`
+                });
+            }
+        });
+
+        return issues;
+    };
+
     const handleBulkAction = (action) => {
         if (selectedInvoices.size === 0) return;
+
+        // Validate before approval
+        if (action === 'approve') {
+            const issues = validateInvoicesForApproval(Array.from(selectedInvoices));
+            setValidationIssues(issues);
+        } else {
+            setValidationIssues([]);
+        }
+
         setBulkAction(action);
+        setShowConfirmDialog(true);
+    };
+
+    // Quick action handlers for individual invoices
+    const handleQuickMarkReceived = (invoiceId) => {
+        router.post('/invoice/bulk-mark-received', {
+            invoice_ids: [invoiceId],
+            notes: 'Quick action: Marked as received',
+        }, {
+            onSuccess: () => {
+                toast.success('Invoice marked as received!');
+                setReviewedCount(prev => prev + 1);
+            },
+            onError: (errors) => {
+                const msg = Array.isArray(errors)
+                    ? errors[0]
+                    : Object.values(errors || {})[0] || 'An unexpected error occurred.';
+                toast.error(Array.isArray(msg) ? msg[0] : msg);
+            }
+        });
+    };
+
+    const handleQuickApprove = (invoiceId) => {
+        const invoice = invoices.data.find(inv => inv.id === invoiceId);
+
+        if (!invoice?.files_received_at) {
+            toast.error('Cannot approve: Physical files not yet received');
+            return;
+        }
+
+        router.post('/invoice/bulk-approve', {
+            invoice_ids: [invoiceId],
+            notes: 'Quick action: Approved',
+        }, {
+            onSuccess: () => {
+                toast.success('Invoice approved successfully!');
+                setReviewedCount(prev => prev + 1);
+            },
+            onError: (errors) => {
+                const msg = Array.isArray(errors)
+                    ? errors[0]
+                    : Object.values(errors || {})[0] || 'An unexpected error occurred.';
+                toast.error(Array.isArray(msg) ? msg[0] : msg);
+            }
+        });
+    };
+
+    const handleQuickReject = (invoiceId) => {
+        // For reject, we need a reason, so open the dialog with just this invoice
+        setSelectedInvoices(new Set([invoiceId]));
+        const invoice = invoices.data.find(inv => inv.id === invoiceId);
+        setSelectedAmounts(new Map([[invoiceId, invoice.invoice_amount]]));
+        setBulkAction('reject');
         setShowConfirmDialog(true);
     };
 
@@ -163,6 +304,7 @@ const BulkInvoiceReview = ({ invoices, filters, filterOptions }) => {
         }, {
             onSuccess: (e) => {
                 toast.success('Invoices marked as received successfully!');
+                setReviewedCount(prev => prev + invoiceIds.length);
                 setSelectedInvoices(new Set());
                 setSelectedAmounts(new Map());
                 setShowConfirmDialog(false);
@@ -206,10 +348,10 @@ const BulkInvoiceReview = ({ invoices, filters, filterOptions }) => {
     const actionConfig = getActionConfig();
 
     return (
-        <div className="h-screen flex flex-col bg-slate-50">
+        <div className="min-h-screen flex flex-col bg-slate-50">
             {/* Sticky Header Bar */}
-            <div className="bg-white border-b shadow-sm">
-                <div className="px-6 py-4">
+            <div className="bg-white border-b shadow-sm sticky top-0 z-10">
+                <div className="px-4 py-2">
                     {/* Header with Action Buttons */}
                     <InvoiceReviewHeader
                         selectedCount={selectedInvoices.size}
@@ -219,7 +361,23 @@ const BulkInvoiceReview = ({ invoices, filters, filterOptions }) => {
                         onMarkReceived={() => handleBulkAction('mark-received')}
                         onApprove={() => handleBulkAction('approve')}
                         onReject={() => handleBulkAction('reject')}
+                        smartSelectionMenu={
+                            <SmartSelectionMenu
+                                invoices={invoices}
+                                onSelectInvoices={handleSmartSelect}
+                                onClearSelection={handleClearSelection}
+                                hasSelection={selectedInvoices.size > 0}
+                            />
+                        }
                     />
+
+                    {/* Filter Presets */}
+                    <div className="mb-1.5">
+                        <InvoiceFilterPresets
+                            currentFilters={filters}
+                            onApplyPreset={handleApplyPreset}
+                        />
+                    </div>
 
                     {/* Active Filters */}
                     <InvoiceActiveFilters
@@ -251,11 +409,20 @@ const BulkInvoiceReview = ({ invoices, filters, filterOptions }) => {
             </div>
 
             {/* Main Content */}
-            <div className="flex-1 overflow-hidden">
-                <div className="h-full grid grid-cols-[380px_1fr] gap-4 p-4">
-                    {/* Invoice List */}
-                    <Suspense fallback={<DialogLoadingFallback message="Loading invoice list..." />}>
-                        <BulkInvoiceList
+            <div className="flex-1">
+                <div className="grid grid-cols-[1fr_2fr] gap-3 p-3">
+                    {/* Left Column - Progress Tracker + Invoice List (1/3 width) */}
+                    <div className="flex flex-col gap-2">
+                        {/* Progress Tracker */}
+                        <ReviewProgressTracker
+                            totalInvoices={invoices.total}
+                            reviewedCount={reviewedCount}
+                            selectedCount={selectedInvoices.size}
+                        />
+
+                        {/* Invoice List */}
+                        <Suspense fallback={<DialogLoadingFallback message="Loading invoice list..." />}>
+                            <BulkInvoiceList
                             invoices={invoices}
                             selectedInvoices={selectedInvoices}
                             currentInvoiceIndex={currentInvoiceIndex}
@@ -263,8 +430,12 @@ const BulkInvoiceReview = ({ invoices, filters, filterOptions }) => {
                             handleFilterChange={handleFilterChange}
                             getStatusConfig={getStatusConfig}
                             formatCurrency={formatCurrency}
+                            onQuickApprove={handleQuickApprove}
+                            onQuickReject={handleQuickReject}
+                            onQuickMarkReceived={handleQuickMarkReceived}
                         />
-                    </Suspense>
+                        </Suspense>
+                    </div>
 
                     {/* Detail Panel */}
                     <Suspense fallback={<DialogLoadingFallback message="Loading invoice details..." />}>
@@ -293,6 +464,7 @@ const BulkInvoiceReview = ({ invoices, filters, filterOptions }) => {
                     reviewNotes={reviewNotes}
                     setReviewNotes={setReviewNotes}
                     onConfirm={confirmBulkAction}
+                    validationIssues={validationIssues}
                 />
             </Suspense>
         </div>

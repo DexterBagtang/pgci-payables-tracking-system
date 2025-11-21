@@ -8,11 +8,12 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { CheckCircle2, XCircle, FileCheck, AlertTriangle } from 'lucide-react';
+import { CheckCircle2, XCircle, FileCheck, AlertTriangle, FileX } from 'lucide-react';
 
-export default function BulkInvoiceConfirmDialog({ open, onOpenChange, bulkAction, actionConfig, reviewNotes, setReviewNotes, onConfirm }) {
+export default function BulkInvoiceConfirmDialog({ open, onOpenChange, bulkAction, actionConfig, reviewNotes, setReviewNotes, onConfirm, validationIssues = [] }) {
     const isReject = bulkAction === 'reject';
     const isApprove = bulkAction === 'approve';
     const isMarkReceived = bulkAction === 'mark-received';
@@ -49,6 +50,40 @@ export default function BulkInvoiceConfirmDialog({ open, onOpenChange, bulkActio
                         {actionConfig.description}
                     </AlertDialogDescription>
                 </AlertDialogHeader>
+
+                {/* Validation Issues - Show for Approve action */}
+                {isApprove && validationIssues.length > 0 && (
+                    <div className="py-3">
+                        <Alert variant="destructive" className="border-2 border-amber-300 bg-amber-50">
+                            <AlertTriangle className="h-5 w-5 text-amber-600" />
+                            <AlertTitle className="text-amber-900 font-bold">
+                                Validation Warnings ({validationIssues.length})
+                            </AlertTitle>
+                            <AlertDescription className="text-amber-800 mt-2">
+                                <p className="text-sm mb-2">The following issues were found:</p>
+                                <ul className="space-y-1 text-xs max-h-32 overflow-y-auto">
+                                    {validationIssues.slice(0, 10).map((issue, index) => (
+                                        <li key={index} className="flex items-start gap-2">
+                                            <FileX className="h-3 w-3 mt-0.5 shrink-0" />
+                                            <span>
+                                                <span className="font-semibold">Invoice #{issue.si_number}:</span>{' '}
+                                                {issue.reason}
+                                            </span>
+                                        </li>
+                                    ))}
+                                    {validationIssues.length > 10 && (
+                                        <li className="text-amber-700 font-semibold pt-1">
+                                            ...and {validationIssues.length - 10} more issues
+                                        </li>
+                                    )}
+                                </ul>
+                                <p className="text-sm mt-3 font-semibold">
+                                    Proceed with approval anyway?
+                                </p>
+                            </AlertDescription>
+                        </Alert>
+                    </div>
+                )}
 
                 {/* Enhanced Note Input for Reject Action */}
                 {isReject && (

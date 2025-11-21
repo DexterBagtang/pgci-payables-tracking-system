@@ -13,24 +13,29 @@ export default function InvoiceReviewHeader({
     formatCurrency,
     onMarkReceived,
     onApprove,
-    onReject
+    onReject,
+    smartSelectionMenu
 }) {
     return (
-        <div className="flex items-center justify-between mb-4">
-            <div>
-                <h1 className="text-xl font-bold text-slate-900">Invoice Review</h1>
-                <p className="text-sm text-slate-500 mt-0.5">Review and process invoices efficiently</p>
+        <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-3">
+                <div>
+                    <h1 className="text-sm font-bold text-slate-900">Invoice Review</h1>
+                </div>
+
+                {/* Smart Selection Menu */}
+                {smartSelectionMenu}
             </div>
 
             {/* Action Buttons */}
             {selectedCount > 0 && (
-                <div className="flex items-center gap-3">
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-2">
-                        <div className="flex items-baseline gap-2">
-                            <span className="text-2xl font-bold text-blue-600">{selectedCount}</span>
-                            <span className="text-xs text-slate-600">selected</span>
-                            <span className="text-slate-300 mx-1">|</span>
-                            <span className="text-lg font-bold text-blue-600">
+                <div className="flex items-center gap-2">
+                    <div className="bg-blue-50 border border-blue-200 rounded px-2 py-1">
+                        <div className="flex items-baseline gap-1.5">
+                            <span className="text-sm font-bold text-blue-600">{selectedCount}</span>
+                            <span className="text-[10px] text-slate-600">sel</span>
+                            <span className="text-slate-300 mx-0.5">|</span>
+                            <span className="text-xs font-bold text-blue-600">
                                 {formatCurrency(selectedTotal, selectedCurrency)}
                             </span>
                         </div>
@@ -40,26 +45,26 @@ export default function InvoiceReviewHeader({
                         size="sm"
                         variant="outline"
                         onClick={onMarkReceived}
-                        className="h-9"
+                        className="h-6 px-2 text-[10px]"
                     >
-                        <FileCheck className="h-4 w-4 mr-2" />
-                        Mark Received
+                        <FileCheck className="h-3 w-3 mr-1" />
+                        Recv
                     </Button>
                     <Button
                         size="sm"
                         onClick={onApprove}
-                        className="h-9 bg-emerald-600 hover:bg-emerald-700"
+                        className="h-6 px-2 text-[10px] bg-emerald-600 hover:bg-emerald-700"
                     >
-                        <CheckCircle2 className="h-4 w-4 mr-2" />
+                        <CheckCircle2 className="h-3 w-3 mr-1" />
                         Approve
                     </Button>
                     <Button
                         size="sm"
                         variant="destructive"
                         onClick={onReject}
-                        className="h-9"
+                        className="h-6 px-2 text-[10px]"
                     >
-                        <XCircle className="h-4 w-4 mr-2" />
+                        <XCircle className="h-3 w-3 mr-1" />
                         Reject
                     </Button>
                 </div>
