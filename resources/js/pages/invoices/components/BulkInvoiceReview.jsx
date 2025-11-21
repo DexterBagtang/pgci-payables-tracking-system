@@ -360,9 +360,9 @@ const BulkInvoiceReview = ({ invoices, filters, filterOptions }) => {
     const actionConfig = getActionConfig();
 
     return (
-        <div className="min-h-screen flex flex-col bg-slate-50">
+        <div className="h-full flex flex-col bg-slate-50 overflow-hidden">
             {/* Sticky Header Bar */}
-            <div className="bg-white border-b shadow-sm sticky top-0 z-10">
+            <div className="bg-white border-b shadow-sm flex-shrink-0">
                 <div className="px-4 py-2">
                     {/* Header with Action Buttons */}
                     <InvoiceReviewHeader
@@ -383,13 +383,13 @@ const BulkInvoiceReview = ({ invoices, filters, filterOptions }) => {
                         }
                     />
 
-                    {/* Filter Presets */}
-                    <div className="mb-1.5">
-                        <InvoiceFilterPresets
-                            currentFilters={filters}
-                            onApplyPreset={handleApplyPreset}
-                        />
-                    </div>
+                    {/*/!* Filter Presets *!/*/}
+                    {/*<div className="mb-1.5">*/}
+                    {/*    <InvoiceFilterPresets*/}
+                    {/*        currentFilters={filters}*/}
+                    {/*        onApplyPreset={handleApplyPreset}*/}
+                    {/*    />*/}
+                    {/*</div>*/}
 
                     {/* Active Filters */}
                     <InvoiceActiveFilters
@@ -420,11 +420,11 @@ const BulkInvoiceReview = ({ invoices, filters, filterOptions }) => {
                 </div>
             </div>
 
-            {/* Main Content */}
-            <div className="flex-1">
-                <div className="grid grid-cols-[1fr_2fr] gap-3 p-3">
+            {/* Main Content - Fixed height grid with scrollable columns */}
+            <div className="flex-1 overflow-hidden min-h-0 max-h-full">
+                <div className="grid grid-cols-[1fr_2fr] gap-3 p-3 h-full max-h-full">
                     {/* Left Column - Progress Tracker + Invoice List (1/3 width) */}
-                    <div className="flex flex-col gap-2">
+                    <div className="flex flex-col gap-2 min-h-0 h-full max-h-full">
                         {/* Progress Tracker */}
                         <ReviewProgressTracker
                             totalInvoices={invoices.total}
@@ -432,37 +432,41 @@ const BulkInvoiceReview = ({ invoices, filters, filterOptions }) => {
                             selectedCount={selectedInvoices.size}
                         />
 
-                        {/* Invoice List */}
-                        <Suspense fallback={<DialogLoadingFallback message="Loading invoice list..." />}>
-                            <BulkInvoiceList
-                            invoices={invoices}
-                            selectedInvoices={selectedInvoices}
-                            currentInvoiceIndex={currentInvoiceIndex}
-                            handleSelectInvoice={handleSelectInvoice}
-                            handleFilterChange={handleFilterChange}
-                            getStatusConfig={getStatusConfig}
-                            formatCurrency={formatCurrency}
-                            onQuickApprove={handleQuickApprove}
-                            onQuickReject={handleQuickReject}
-                            onQuickMarkReceived={handleQuickMarkReceived}
-                        />
-                        </Suspense>
+                        {/* Invoice List - Takes remaining space and scrolls */}
+                        <div className="flex-1 min-h-0 overflow-hidden">
+                            <Suspense fallback={<DialogLoadingFallback message="Loading invoice list..." />}>
+                                <BulkInvoiceList
+                                invoices={invoices}
+                                selectedInvoices={selectedInvoices}
+                                currentInvoiceIndex={currentInvoiceIndex}
+                                handleSelectInvoice={handleSelectInvoice}
+                                handleFilterChange={handleFilterChange}
+                                getStatusConfig={getStatusConfig}
+                                formatCurrency={formatCurrency}
+                                onQuickApprove={handleQuickApprove}
+                                onQuickReject={handleQuickReject}
+                                onQuickMarkReceived={handleQuickMarkReceived}
+                            />
+                            </Suspense>
+                        </div>
                     </div>
 
-                    {/* Detail Panel */}
-                    <Suspense fallback={<DialogLoadingFallback message="Loading invoice details..." />}>
-                        <BulkInvoiceDetails
-                            currentInvoice={currentInvoice}
-                            currentInvoiceIndex={currentInvoiceIndex}
-                            invoices={invoices}
-                            handleNavigate={handleNavigate}
-                            getStatusConfig={getStatusConfig}
-                            formatCurrency={formatCurrency}
-                            formatDate={formatDate}
-                            reviewNotes={reviewNotes}
-                            setReviewNotes={setReviewNotes}
-                        />
-                    </Suspense>
+                    {/* Detail Panel - Also scrollable independently */}
+                    <div className="min-h-0">
+                        <Suspense fallback={<DialogLoadingFallback message="Loading invoice details..." />}>
+                            <BulkInvoiceDetails
+                                currentInvoice={currentInvoice}
+                                currentInvoiceIndex={currentInvoiceIndex}
+                                invoices={invoices}
+                                handleNavigate={handleNavigate}
+                                getStatusConfig={getStatusConfig}
+                                formatCurrency={formatCurrency}
+                                formatDate={formatDate}
+                                reviewNotes={reviewNotes}
+                                setReviewNotes={setReviewNotes}
+                            />
+                        </Suspense>
+                    </div>
                 </div>
             </div>
 

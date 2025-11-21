@@ -4,9 +4,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Building2, Inbox, DollarSign, Calendar, FileText, CheckCircle2, XCircle, Package } from 'lucide-react';
-import { memo, useCallback } from 'react';
+import { memo, useCallback, useState, useEffect } from 'react';
 
 /**
  * Memoized invoice row component to prevent unnecessary re-renders
@@ -23,12 +22,22 @@ const InvoiceRow = memo(function InvoiceRow({
     onQuickReject,
     onQuickMarkReceived,
 }) {
+    // Optimistic local state for instant UI feedback
+    const [isCheckedLocal, setIsCheckedLocal] = useState(isSelected);
+
+    // Sync with parent state
+    useEffect(() => {
+        setIsCheckedLocal(isSelected);
+    }, [isSelected]);
+
     // Memoize click handlers to prevent recreating functions on every render
     const handleClick = useCallback(() => {
+        setIsCheckedLocal(prev => !prev); // Instant visual feedback
         onSelect(invoice.id, index);
     }, [invoice.id, index, onSelect]);
 
     const handleCheckboxChange = useCallback(() => {
+        setIsCheckedLocal(prev => !prev); // Instant visual feedback
         onSelect(invoice.id, index);
     }, [invoice.id, index, onSelect]);
 
@@ -51,10 +60,10 @@ const InvoiceRow = memo(function InvoiceRow({
         <div className="px-1.5 py-1">
             <div
                 className={`
-                    group relative cursor-pointer rounded border transition-all duration-100
+                    group relative cursor-pointer rounded border transition-all duration-75
                     ${isCurrent
                         ? 'border-blue-500 bg-blue-50 shadow-sm'
-                        : isSelected
+                        : isCheckedLocal
                             ? 'border-blue-300 bg-blue-50/50'
                             : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
                     }
@@ -65,7 +74,7 @@ const InvoiceRow = memo(function InvoiceRow({
                     <div className="flex items-start gap-1.5">
                         {/* Checkbox */}
                         <Checkbox
-                            checked={isSelected}
+                            checked={isCheckedLocal}
                             onCheckedChange={handleCheckboxChange}
                             onClick={(e) => e.stopPropagation()}
                             className="mt-0.5 h-3 w-3 border data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
@@ -157,6 +166,16 @@ const InvoiceRow = memo(function InvoiceRow({
             </div>
         </div>
     );
+}, (prevProps, nextProps) => {
+    // Custom comparison: only re-render if these specific props change
+    return (
+        prevProps.invoice.id === nextProps.invoice.id &&
+        prevProps.isSelected === nextProps.isSelected &&
+        prevProps.isCurrent === nextProps.isCurrent &&
+        prevProps.invoice.invoice_status === nextProps.invoice.invoice_status &&
+        prevProps.invoice.files_received_at === nextProps.invoice.files_received_at
+        // Ignore function props since they're stable with useCallback
+    );
 });
 
 /**
@@ -177,77 +196,60 @@ export default function BulkInvoiceList({
 }) {
     const hasInvoices = invoices?.data?.length > 0;
 
-    // Wrap handlers in useCallback to maintain referential equality across renders
-    const handleSelect = useCallback((invoiceId, index) => {
-        handleSelectInvoice(invoiceId, index);
-    }, [handleSelectInvoice]);
-
-    const handleQuickApproveCallback = useCallback((invoiceId) => {
-        onQuickApprove(invoiceId);
-    }, [onQuickApprove]);
-
-    const handleQuickRejectCallback = useCallback((invoiceId) => {
-        onQuickReject(invoiceId);
-    }, [onQuickReject]);
-
-    const handleQuickMarkReceivedCallback = useCallback((invoiceId) => {
-        onQuickMarkReceived(invoiceId);
-    }, [onQuickMarkReceived]);
+    // No need to wrap - pass handlers directly since parent already uses useCallback
 
     return (
-        <div className="flex flex-col h-full">
-            <Card className="flex-1 flex flex-col shadow-sm border-slate-200">
-                <CardHeader className="border-b bg-white px-2 py-1.5 space-y-0">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1.5">
-                            <FileText className="h-3 w-3 text-blue-600" />
-                            <span className="font-semibold text-xs text-slate-900">Invoices</span>
-                        </div>
-                        <Badge variant="secondary" className="bg-blue-50 text-blue-700 font-semibold text-[10px] h-4 px-1.5">
-                            {invoices.data.length}
-                        </Badge>
+        <Card className="flex flex-col h-full shadow-sm border-slate-200">
+            <CardHeader className="border-b bg-white px-2 py-1.5 space-y-0 shrink-0">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                        <FileText className="h-3 w-3 text-blue-600" />
+                        <span className="font-semibold text-xs text-slate-900">Invoices</span>
                     </div>
-                </CardHeader>
+                    <Badge variant="secondary" className="bg-blue-50 text-blue-700 font-semibold text-[10px] h-4 px-1.5">
+                        {invoices.data.length}
+                    </Badge>
+                </div>
+            </CardHeader>
 
-                <CardContent className="flex-1 p-0 overflow-hidden flex flex-col">
-                    {hasInvoices ? (
-                        <>
-                            {/* Standard Scrolling List - Optimized with React.memo */}
-                            <ScrollArea className="flex-1">
-                                <div className="py-1">
-                                    {invoices.data.map((invoice, index) => (
-                                        <InvoiceRow
-                                            key={invoice.id}
-                                            invoice={invoice}
-                                            index={index}
-                                            isSelected={selectedInvoices.has(invoice.id)}
-                                            isCurrent={currentInvoiceIndex === index}
-                                            onSelect={handleSelect}
-                                            formatCurrency={formatCurrency}
-                                            onQuickApprove={handleQuickApproveCallback}
-                                            onQuickReject={handleQuickRejectCallback}
-                                            onQuickMarkReceived={handleQuickMarkReceivedCallback}
-                                        />
-                                    ))}
-                                </div>
-                            </ScrollArea>
-
-                            {/* Pagination */}
-                            <div className="border-t p-1.5">
-                                <PaginationServerSide items={invoices} onChange={handleFilterChange} />
+            {hasInvoices ? (
+                <>
+                    {/* Scrollable Invoice List - Using calc height */}
+                    <div className="flex-1 relative">
+                        <div className="absolute inset-0 overflow-y-auto overflow-x-hidden">
+                            <div className="px-1.5 py-1">
+                                {invoices.data.map((invoice, index) => (
+                                    <InvoiceRow
+                                        key={invoice.id}
+                                        invoice={invoice}
+                                        index={index}
+                                        isSelected={selectedInvoices.has(invoice.id)}
+                                        isCurrent={currentInvoiceIndex === index}
+                                        onSelect={handleSelectInvoice}
+                                        formatCurrency={formatCurrency}
+                                        onQuickApprove={onQuickApprove}
+                                        onQuickReject={onQuickReject}
+                                        onQuickMarkReceived={onQuickMarkReceived}
+                                    />
+                                ))}
                             </div>
-                        </>
-                    ) : (
-                        <div className="h-full flex flex-col items-center justify-center text-center p-8">
-                            <div className="rounded-full bg-slate-100 p-4 mb-3">
-                                <Inbox className="h-8 w-8 text-slate-400" />
-                            </div>
-                            <p className="text-sm font-semibold text-slate-700 mb-1">No invoices found</p>
-                            <p className="text-xs text-slate-500">Try adjusting your filters</p>
                         </div>
-                    )}
+                    </div>
+
+                    {/* Pagination - Fixed at bottom */}
+                    <div className="border-t p-1.5 shrink-0">
+                        <PaginationServerSide items={invoices} onChange={handleFilterChange} />
+                    </div>
+                </>
+            ) : (
+                <CardContent className="flex-1 flex flex-col items-center justify-center text-center p-8">
+                    <div className="rounded-full bg-slate-100 p-4 mb-3">
+                        <Inbox className="h-8 w-8 text-slate-400" />
+                    </div>
+                    <p className="text-sm font-semibold text-slate-700 mb-1">No invoices found</p>
+                    <p className="text-xs text-slate-500">Try adjusting your filters</p>
                 </CardContent>
-            </Card>
-        </div>
+            )}
+        </Card>
     );
 }
