@@ -11,10 +11,15 @@ import {
     FileText,
     Receipt,
 } from 'lucide-react';
+import { memo } from 'react';
 import StatusBadge from '@/components/custom/StatusBadge.jsx';
 import AttachmentViewer from './AttachmentViewer.jsx';
 
-export default function BulkInvoiceDetails({
+/**
+ * Memoized invoice details component to prevent unnecessary re-renders
+ * Only re-renders when the current invoice or its index changes
+ */
+const BulkInvoiceDetails = memo(function BulkInvoiceDetails({
     currentInvoice,
     currentInvoiceIndex,
     invoices,
@@ -200,4 +205,6 @@ export default function BulkInvoiceDetails({
             </div>
         </Card>
     );
-}
+});
+
+export default BulkInvoiceDetails;

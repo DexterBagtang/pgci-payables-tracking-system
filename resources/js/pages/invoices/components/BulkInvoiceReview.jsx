@@ -1,5 +1,5 @@
 import { router } from '@inertiajs/react';
-import { useState, useEffect, useMemo, lazy, Suspense } from 'react';
+import { useState, useEffect, useMemo, useCallback, lazy, Suspense } from 'react';
 import { toast } from 'sonner';
 import DialogLoadingFallback from '@/components/custom/DialogLoadingFallback';
 
@@ -140,25 +140,37 @@ const BulkInvoiceReview = ({ invoices, filters, filterOptions }) => {
         handleFilterChange({ ...presetFilters, page: 1 });
     };
 
-    const handleSelectInvoice = (invoiceId, index) => {
-        const newSelected = new Set(selectedInvoices);
-        const newAmounts = new Map(selectedAmounts);
-
-        if (newSelected.has(invoiceId)) {
-            newSelected.delete(invoiceId);
-            newAmounts.delete(invoiceId);
-        } else {
-            newSelected.add(invoiceId);
-            newAmounts.set(invoiceId, invoices.data[index].invoice_amount);
-        }
-
-        setSelectedInvoices(newSelected);
-        setSelectedAmounts(newAmounts);
+    // Memoize handler to prevent creating new function on every render
+    // React 18 automatically batches state updates for better performance
+    const handleSelectInvoice = useCallback((invoiceId, index) => {
+        // Update current index immediately for instant UI feedback
         setCurrentInvoiceIndex(index);
-    };
 
-    // Smart selection handlers
-    const handleSmartSelect = (invoiceDataArray) => {
+        // Update selection state - React 18 batches these automatically
+        setSelectedInvoices((prev) => {
+            const newSelected = new Set(prev);
+            if (newSelected.has(invoiceId)) {
+                newSelected.delete(invoiceId);
+            } else {
+                newSelected.add(invoiceId);
+            }
+            return newSelected;
+        });
+
+        setSelectedAmounts((prev) => {
+            const newAmounts = new Map(prev);
+            if (newAmounts.has(invoiceId)) {
+                newAmounts.delete(invoiceId);
+            } else {
+                const invoice = invoices.data[index];
+                newAmounts.set(invoiceId, invoice.invoice_amount);
+            }
+            return newAmounts;
+        });
+    }, [invoices.data]);
+
+    // Smart selection handlers - memoized
+    const handleSmartSelect = useCallback((invoiceDataArray) => {
         const newSelected = new Set();
         const newAmounts = new Map();
 
@@ -173,20 +185,20 @@ const BulkInvoiceReview = ({ invoices, filters, filterOptions }) => {
         if (invoiceDataArray.length > 0) {
             toast.success(`Selected ${invoiceDataArray.length} invoice(s)`);
         }
-    };
+    }, []);
 
-    const handleClearSelection = () => {
+    const handleClearSelection = useCallback(() => {
         setSelectedInvoices(new Set());
         setSelectedAmounts(new Map());
         toast.info('Selection cleared');
-    };
+    }, []);
 
-    const handleNavigate = (direction) => {
+    const handleNavigate = useCallback((direction) => {
         const newIndex = direction === 'prev'
             ? Math.max(0, currentInvoiceIndex - 1)
             : Math.min(invoices.data.length - 1, currentInvoiceIndex + 1);
         setCurrentInvoiceIndex(newIndex);
-    };
+    }, [currentInvoiceIndex, invoices.data.length]);
 
     // Validate selected invoices before approval
     const validateInvoicesForApproval = (invoiceIds) => {
@@ -227,7 +239,7 @@ const BulkInvoiceReview = ({ invoices, filters, filterOptions }) => {
         return issues;
     };
 
-    const handleBulkAction = (action) => {
+    const handleBulkAction = useCallback((action) => {
         if (selectedInvoices.size === 0) return;
 
         // Validate before approval
@@ -240,10 +252,10 @@ const BulkInvoiceReview = ({ invoices, filters, filterOptions }) => {
 
         setBulkAction(action);
         setShowConfirmDialog(true);
-    };
+    }, [selectedInvoices, invoices.data]);
 
-    // Quick action handlers for individual invoices
-    const handleQuickMarkReceived = (invoiceId) => {
+    // Quick action handlers for individual invoices - memoized
+    const handleQuickMarkReceived = useCallback((invoiceId) => {
         router.post('/invoice/bulk-mark-received', {
             invoice_ids: [invoiceId],
             notes: 'Quick action: Marked as received',
@@ -259,9 +271,9 @@ const BulkInvoiceReview = ({ invoices, filters, filterOptions }) => {
                 toast.error(Array.isArray(msg) ? msg[0] : msg);
             }
         });
-    };
+    }, []);
 
-    const handleQuickApprove = (invoiceId) => {
+    const handleQuickApprove = useCallback((invoiceId) => {
         const invoice = invoices.data.find(inv => inv.id === invoiceId);
 
         if (!invoice?.files_received_at) {
@@ -284,16 +296,16 @@ const BulkInvoiceReview = ({ invoices, filters, filterOptions }) => {
                 toast.error(Array.isArray(msg) ? msg[0] : msg);
             }
         });
-    };
+    }, [invoices.data]);
 
-    const handleQuickReject = (invoiceId) => {
+    const handleQuickReject = useCallback((invoiceId) => {
         // For reject, we need a reason, so open the dialog with just this invoice
         setSelectedInvoices(new Set([invoiceId]));
         const invoice = invoices.data.find(inv => inv.id === invoiceId);
         setSelectedAmounts(new Map([[invoiceId, invoice.invoice_amount]]));
         setBulkAction('reject');
         setShowConfirmDialog(true);
-    };
+    }, [invoices.data]);
 
     const confirmBulkAction = () => {
         const invoiceIds = Array.from(selectedInvoices);
