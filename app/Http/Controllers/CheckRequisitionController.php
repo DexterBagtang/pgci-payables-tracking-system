@@ -426,6 +426,43 @@ class CheckRequisitionController extends Controller
     }
 
     /**
+     * API endpoint for check requisition creation with pagination
+     */
+    public function createApi(Request $request)
+    {
+        $query = Invoice::with(['purchaseOrder.vendor', 'purchaseOrder.project'])
+            ->where('invoice_status', 'approved');
+
+        // Filter by vendor
+        if ($request->filled('vendor') && $request->vendor !== 'all') {
+            $query->whereHas('purchaseOrder', function ($q) use ($request) {
+                $q->where('vendor_id', $request->vendor);
+            });
+        }
+
+        // Search
+        if ($request->filled('search')) {
+            $query->where(function ($q) use ($request) {
+                $q->where('si_number', 'like', '%' . $request->search . '%')
+                    ->orWhereHas('purchaseOrder', function ($vq) use ($request) {
+                        $vq->whereHas('vendor', function ($vr) use ($request) {
+                            $vr->where('name', 'like', '%' . $request->search . '%');
+                        });
+                    });
+            });
+        }
+
+        $perPage = $request->get('per_page', 30);
+        $perPage = in_array($perPage, [10, 15, 25, 30, 50, 100]) ? $perPage : 30;
+
+        $invoices = $query->latest()->paginate($perPage);
+
+        return response()->json([
+            'invoices' => $invoices,
+        ]);
+    }
+
+    /**
      * Show the review page for a check requisition
      */
     public function review(CheckRequisition $checkRequisition)

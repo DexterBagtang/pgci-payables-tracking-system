@@ -11,8 +11,6 @@ import InvoiceReviewHeader from './bulk-review/InvoiceReviewHeader';
 import InvoiceActiveFilters from './bulk-review/InvoiceActiveFilters';
 import InvoiceReviewFilters from './bulk-review/InvoiceReviewFilters';
 import InvoiceFilterPresets from './bulk-review/InvoiceFilterPresets';
-import ReviewProgressTracker from './bulk-review/ReviewProgressTracker';
-import SmartSelectionMenu from './bulk-review/SmartSelectionMenu';
 
 // Lazy load heavy components
 const BulkInvoiceList = lazy(() => import('@/pages/invoices/components/BulkInvoiceList.jsx'));
@@ -197,6 +195,20 @@ const BulkInvoiceReview = ({ invoices, filters, filterOptions }) => {
         setSelectedAmounts(new Map());
         toast.info('Selection cleared');
     }, []);
+
+    const handleSelectAll = useCallback(() => {
+        const newSelectedInvoices = new Set();
+        const newSelectedAmounts = new Map();
+
+        accumulatedInvoices.forEach((invoice) => {
+            newSelectedInvoices.add(invoice.id);
+            newSelectedAmounts.set(invoice.id, invoice.invoice_amount);
+        });
+
+        setSelectedInvoices(newSelectedInvoices);
+        setSelectedAmounts(newSelectedAmounts);
+        toast.success(`Selected all ${accumulatedInvoices.length} loaded invoices`);
+    }, [accumulatedInvoices]);
 
     const handleNavigate = useCallback((direction) => {
         const newIndex = direction === 'prev'
@@ -384,15 +396,12 @@ const BulkInvoiceReview = ({ invoices, filters, filterOptions }) => {
                         onMarkReceived={() => handleBulkAction('mark-received')}
                         onApprove={() => handleBulkAction('approve')}
                         onReject={() => handleBulkAction('reject')}
-                        smartSelectionMenu={
-                            <SmartSelectionMenu
-                                invoices={invoices}
-                                accumulatedInvoices={accumulatedInvoices}
-                                onSelectInvoices={handleSmartSelect}
-                                onClearSelection={handleClearSelection}
-                                hasSelection={selectedInvoices.size > 0}
-                            />
-                        }
+                        onSelectAll={handleSelectAll}
+                        onClearSelection={handleClearSelection}
+                        totalInvoices={invoices.total}
+                        reviewedCount={reviewedCount}
+                        loadedCount={accumulatedInvoices.length}
+                        hasSelection={selectedInvoices.size > 0}
                     />
 
                     {/*/!* Filter Presets *!/*/}
@@ -435,20 +444,10 @@ const BulkInvoiceReview = ({ invoices, filters, filterOptions }) => {
             {/* Main Content - Fixed height grid with scrollable columns */}
             <div className="flex-1 overflow-hidden min-h-0 max-h-full">
                 <div className="grid grid-cols-[1fr_2fr] gap-3 p-3 h-full max-h-full">
-                    {/* Left Column - Progress Tracker + Invoice List (1/3 width) */}
-                    <div className="flex flex-col gap-2 min-h-0 h-full max-h-full">
-                        {/* Progress Tracker */}
-                        <ReviewProgressTracker
-                            totalInvoices={invoices.total}
-                            reviewedCount={reviewedCount}
-                            selectedCount={selectedInvoices.size}
-                            loadedCount={accumulatedInvoices.length}
-                        />
-
-                        {/* Invoice List - Takes remaining space and scrolls */}
-                        <div className="flex-1 min-h-0 overflow-hidden">
-                            <Suspense fallback={<DialogLoadingFallback message="Loading invoice list..." />}>
-                                <BulkInvoiceList
+                    {/* Left Column - Invoice List (Full Height) */}
+                    <div className="min-h-0 h-full max-h-full">
+                        <Suspense fallback={<DialogLoadingFallback message="Loading invoice list..." />}>
+                            <BulkInvoiceList
                                 invoices={invoices}
                                 selectedInvoices={selectedInvoices}
                                 currentInvoiceIndex={currentInvoiceIndex}
@@ -462,8 +461,7 @@ const BulkInvoiceReview = ({ invoices, filters, filterOptions }) => {
                                 filters={filters}
                                 onInvoicesUpdate={handleInvoicesUpdate}
                             />
-                            </Suspense>
-                        </div>
+                        </Suspense>
                     </div>
 
                     {/* Detail Panel - Also scrollable independently */}

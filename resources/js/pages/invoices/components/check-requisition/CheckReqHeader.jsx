@@ -1,40 +1,34 @@
 import { Button } from '@/components/ui/button';
-import { FileCheck, CheckCircle2, XCircle, FileText, TrendingUp, CheckSquare, Square } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Save, FileText, CheckSquare, Square } from 'lucide-react';
 
-/**
- * Bulk Invoice Review Header Component
- * Displays title, stats, and bulk action buttons with elegant inline design
- */
-export default function InvoiceReviewHeader({
+export default function CheckReqHeader({
     selectedCount,
     selectedTotal,
-    selectedCurrency,
-    formatCurrency,
-    onMarkReceived,
-    onApprove,
-    onReject,
-    onSelectAll,
-    onClearSelection,
     totalInvoices,
-    reviewedCount,
     loadedCount,
+    formatCurrency,
+    onSubmit,
+    onClearSelection,
+    onSelectAll,
+    processing,
     hasSelection
 }) {
-    const isLoadingMore = loadedCount && loadedCount < totalInvoices;
-    const progressPercentage = totalInvoices > 0 ? Math.round((reviewedCount / totalInvoices) * 100) : 0;
+    const selectionPercentage = totalInvoices > 0 ? Math.round((selectedCount / totalInvoices) * 100) : 0;
+    const isLoadingMore = loadedCount < totalInvoices;
 
     return (
         <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-3">
-                <h1 className="text-sm font-semibold text-slate-800">
-                    Invoice Review
-                </h1>
+                <h3 className="text-sm font-semibold text-slate-800">
+                    Check Requisition Form
+                </h3>
 
                 <div className="h-4 w-px bg-slate-200" />
 
                 {/* Elegant Stats Display */}
                 <div className="flex items-center gap-3">
-                    {/* Total/Loaded Count */}
+                    {/* Total Count */}
                     <div className="flex items-center gap-1.5">
                         <FileText className="h-3.5 w-3.5 text-slate-400" />
                         <span className="text-xs text-slate-600 font-medium">
@@ -51,33 +45,17 @@ export default function InvoiceReviewHeader({
                         </span>
                     </div>
 
-                    {/* Review Progress */}
-                    {reviewedCount > 0 && (
-                        <>
-                            <div className="h-4 w-px bg-slate-200" />
-                            <div className="flex items-center gap-1.5">
-                                <TrendingUp className="h-3.5 w-3.5 text-emerald-500" />
-                                <span className="text-xs text-slate-600 font-medium">
-                                    <span className="text-emerald-700 font-semibold">{reviewedCount}</span>
-                                    <span className="text-slate-400 ml-1">reviewed</span>
-                                    <span className="text-slate-400 mx-1">•</span>
-                                    <span className="text-emerald-600 font-semibold">{progressPercentage}%</span>
-                                </span>
-                            </div>
-                        </>
-                    )}
-
                     {/* Selected Count */}
                     {selectedCount > 0 && (
                         <>
                             <div className="h-4 w-px bg-slate-200" />
                             <div className="flex items-center gap-1.5 px-2 py-0.5 bg-blue-50 rounded-md border border-blue-100">
-                                <CheckCircle2 className="h-3.5 w-3.5 text-blue-600" />
+                                <CheckSquare className="h-3.5 w-3.5 text-blue-600" />
                                 <span className="text-xs font-semibold text-blue-700">
                                     {selectedCount} selected
                                 </span>
                                 <span className="text-xs text-blue-600 font-medium">
-                                    {formatCurrency(selectedTotal, selectedCurrency)}
+                                    {formatCurrency(selectedTotal)}
                                 </span>
                             </div>
                         </>
@@ -110,37 +88,28 @@ export default function InvoiceReviewHeader({
                 )}
             </div>
 
-            {/* Action Buttons */}
-            {selectedCount > 0 && (
-                <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2">
+                {selectedCount > 0 && (
                     <Button
                         size="sm"
-                        variant="outline"
-                        onClick={onMarkReceived}
-                        className="h-7 px-2 text-xs"
+                        onClick={onSubmit}
+                        disabled={processing}
+                        className="h-7 text-xs bg-blue-600 hover:bg-blue-700"
                     >
-                        <FileCheck className="h-3 w-3 mr-1" />
-                        Mark Received
+                        {processing ? (
+                            <>
+                                <div className="h-3 w-3 mr-1 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                                Submitting...
+                            </>
+                        ) : (
+                            <>
+                                <Save className="h-3 w-3 mr-1" />
+                                Submit ({selectedCount})
+                            </>
+                        )}
                     </Button>
-                    <Button
-                        size="sm"
-                        onClick={onApprove}
-                        className="h-7 px-2 text-xs bg-emerald-600 hover:bg-emerald-700"
-                    >
-                        <CheckCircle2 className="h-3 w-3 mr-1" />
-                        Approve
-                    </Button>
-                    <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={onReject}
-                        className="h-7 px-2 text-xs"
-                    >
-                        <XCircle className="h-3 w-3 mr-1" />
-                        Reject
-                    </Button>
-                </div>
-            )}
+                )}
+            </div>
         </div>
     );
 }
