@@ -1,6 +1,9 @@
-import { DatePicker } from '@/components/custom/DatePicker.jsx';
-import { numberToWords } from '@/components/custom/helpers.jsx';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { router, useForm } from '@inertiajs/react';
+import { useState, useEffect, useMemo, useRef, useCallback, lazy, Suspense } from 'react';
+import { toast } from 'sonner';
+import DialogLoadingFallback from '@/components/custom/DialogLoadingFallback';
+import { formatCurrency, numberToWords } from '@/components/custom/helpers.jsx';
+import { route } from 'ziggy-js';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -10,44 +13,48 @@ import {
     AlertDialogFooter,
     AlertDialogHeader,
     AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import { Link, useForm } from '@inertiajs/react';
-import { ArrowLeft, Check, CheckSquare, FileText, Info, Save, Search, Square, X } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
-import { toast } from 'sonner';
-import BackButton from '@/components/custom/BackButton.jsx';
+} from "@/components/ui/alert-dialog";
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Info } from 'lucide-react';
 
+// Import presentational components from create form
+import CheckReqHeader from '@/pages/invoices/components/check-requisition/CheckReqHeader';
+import CheckReqActiveFilters from '@/pages/invoices/components/check-requisition/CheckReqActiveFilters';
+import CheckReqFilters from '@/pages/invoices/components/check-requisition/CheckReqFilters';
+import CheckReqFormDetails from '@/pages/invoices/components/check-requisition/CheckReqFormDetails';
+
+// Lazy load heavy components
+const CheckRequisitionInvoiceList = lazy(() => import('@/pages/invoices/components/CheckRequisitionInvoiceList.jsx'));
+
+/**
+ * Edit Check Requisition Component
+ * Aligned with create form design patterns
+ */
 const EditCheckRequisition = ({ checkRequisition, currentInvoices, availableInvoices, filters, filterOptions }) => {
+    // Initialize with current invoice IDs
     const [selectedInvoices, setSelectedInvoices] = useState(new Set(currentInvoices?.map((inv) => inv.id) || []));
-    const [searchValue, setSearchValue] = useState(filters?.search || '');
-    const [vendorFilter, setVendorFilter] = useState(filters?.vendor || 'all');
-    const [amountFilter, setAmountFilter] = useState('all');
-    const [showConfirmDialog, setShowConfirmDialog] = useState(false);
-
-    // Combine current and available invoices
-    const allInvoices = useMemo(() => {
-        const current = currentInvoices || [];
-        const available = availableInvoices?.data || [];
-
-        // Create a map to avoid duplicates
+    const [selectedAmounts, setSelectedAmounts] = useState(() => {
+        const initialAmounts = new Map();
+        currentInvoices?.forEach(inv => {
+            initialAmounts.set(inv.id, inv.invoice_amount || inv.net_amount);
+        });
+        return initialAmounts;
+    });
+    const [currentInvoiceIndex, setCurrentInvoiceIndex] = useState(0);
+    const [currentInvoice, setCurrentInvoice] = useState(null);
+    const [accumulatedInvoices, setAccumulatedInvoices] = useState(() => {
+        // Combine current and available invoices, avoiding duplicates
         const invoiceMap = new Map();
-
-        [...current, ...available].forEach((inv) => {
+        [...(currentInvoices || []), ...(availableInvoices?.data || [])].forEach((inv) => {
             if (!invoiceMap.has(inv.id)) {
                 invoiceMap.set(inv.id, inv);
             }
         });
-
         return Array.from(invoiceMap.values());
-    }, [currentInvoices, availableInvoices]);
+    });
+    const [searchValue, setSearchValue] = useState(filters?.search || '');
+    const [vendorFilter, setVendorFilter] = useState(filters?.vendor || 'all');
+    const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
     const { data, setData, put, processing, errors, reset } = useForm({
         request_date: checkRequisition.request_date,
@@ -66,28 +73,26 @@ const EditCheckRequisition = ({ checkRequisition, currentInvoices, availableInvo
         invoice_ids: currentInvoices?.map((inv) => inv.id) || [],
     });
 
-    const formatCurrency = (amount) =>
-        new Intl.NumberFormat('en-PH', {
-            style: 'currency',
-            currency: 'PHP',
-        }).format(amount);
+    const prevSelectionRef = useRef(new Set(selectedInvoices));
+    const originalInvoiceIds = useMemo(() => new Set(currentInvoices?.map(inv => inv.id) || []), [currentInvoices]);
 
+    // Calculate total amount from selected invoices
     const selectedTotal = useMemo(() => {
-        return Array.from(selectedInvoices).reduce((sum, invId) => {
-            const invoice = allInvoices.find((inv) => inv.id === invId);
-            return sum + Number(invoice?.invoice_amount || invoice?.net_amount || 0);
+        return Array.from(selectedAmounts.values()).reduce((sum, amount) => {
+            return sum + parseFloat(amount || 0);
         }, 0);
-    }, [selectedInvoices, allInvoices]);
+    }, [selectedAmounts]);
 
+    // Get full invoice objects for selected IDs
     const selectedInvoicesList = useMemo(() => {
-        return allInvoices.filter((inv) => selectedInvoices.has(inv.id));
-    }, [selectedInvoices, allInvoices]);
+        return accumulatedInvoices.filter((inv) => selectedInvoices.has(inv.id)) || [];
+    }, [selectedInvoices, accumulatedInvoices]);
 
     // Format SI numbers with range support
     const formatSINumbers = (invoicesList) => {
-        if (invoicesList.length === 0) return '';
+        if (invoicesList.length === 0) return "";
         if (invoicesList.length <= 5) {
-            return invoicesList.map((i) => i.si_number).join(', ');
+            return invoicesList.map((i) => i.si_number).join(", ");
         }
 
         const siNumbers = invoicesList.map((i) => i.si_number).sort();
@@ -96,135 +101,130 @@ const EditCheckRequisition = ({ checkRequisition, currentInvoices, availableInvo
         return `${first} - ${last} (${siNumbers.length} invoices)`;
     };
 
-    // Filter invoices by amount
-    const filteredInvoices = useMemo(() => {
-        let filtered = allInvoices;
+    // Debounce search to avoid excessive API calls
+    useEffect(() => {
+        let isMounted = true;
+        const timer = setTimeout(() => {
+            if (isMounted && searchValue !== filters.search) {
+                handleFilterChange({ search: searchValue, page: 1 });
+            }
+        }, 500);
 
-        if (amountFilter !== 'all') {
-            filtered = filtered.filter((inv) => {
-                const amount = inv.invoice_amount || inv.net_amount || 0;
-                switch (amountFilter) {
-                    case 'under50k':
-                        return amount < 50000;
-                    case '50k-100k':
-                        return amount >= 50000 && amount < 100000;
-                    case '100k-500k':
-                        return amount >= 100000 && amount < 500000;
-                    case 'over500k':
-                        return amount >= 500000;
-                    default:
-                        return true;
-                }
-            });
-        }
+        return () => {
+            isMounted = false;
+            clearTimeout(timer);
+        };
+    }, [searchValue]);
 
-        // Apply search filter
-        if (searchValue) {
-            filtered = filtered.filter((inv) => inv.si_number.toLowerCase().includes(searchValue.toLowerCase()));
-        }
+    const handleFilterChange = (newFilters) => {
+        const updatedFilters = {
+            ...filters,
+            ...newFilters,
+        };
 
-        return filtered;
-    }, [allInvoices, amountFilter, searchValue]);
-
-    // Statistics
-    const statistics = useMemo(() => {
-        const total = filteredInvoices.reduce((sum, inv) => sum + Number(inv.invoice_amount || inv.net_amount || 0), 0);
-        const avg = filteredInvoices.length > 0 ? total / filteredInvoices.length : 0;
-
-        return { total, avg, count: filteredInvoices.length };
-    }, [filteredInvoices]);
-
-    // populate form when selecting invoices
-    // useEffect(() => {
-    //     if (selectedInvoices.size > 0) {
-    //         const selectedInvs = allInvoices.filter((inv) => selectedInvoices.has(inv.id));
-    //         const firstInvoice = selectedInvs[0];
-    //
-    //         const uniqueVendors = new Set(selectedInvs.map((inv) => inv.purchase_order?.vendor?.name || inv.vendor?.name).filter(Boolean));
-    //
-    //         const payeeName =
-    //             uniqueVendors.size === 1 ? firstInvoice?.purchase_order?.vendor?.name || firstInvoice?.vendor?.name || '' : 'Multiple Vendors';
-    //
-    //         const siNumbersFormatted = formatSINumbers(selectedInvs);
-    //
-    //         setData({
-    //             ...data,
-    //             php_amount: selectedTotal,
-    //             amount_in_words: numberToWords(selectedTotal),
-    //             payee_name: payeeName,
-    //             po_number: firstInvoice?.purchase_order?.po_number || '',
-    //             cer_number: firstInvoice?.purchase_order?.project?.cer_number || '',
-    //             si_number: siNumbersFormatted,
-    //             purpose: `Payment for Invoice(s) ${siNumbersFormatted}`,
-    //             invoice_ids: Array.from(selectedInvoices),
-    //         });
-    //     }
-    // }, [selectedInvoices, selectedTotal]);
-
-    const handleInvoiceToggle = (invoiceId) => {
-        setSelectedInvoices((prev) => {
-            const newSet = new Set(prev);
-            newSet.has(invoiceId) ? newSet.delete(invoiceId) : newSet.add(invoiceId);
-            return newSet;
+        Object.keys(updatedFilters).forEach((key) => {
+            if (!updatedFilters[key] || updatedFilters[key] === 'all') {
+                delete updatedFilters[key];
+            }
         });
-    };
 
-    // Select/Deselect all invoices
-    const handleSelectAll = () => {
-        if (selectedInvoices.size === filteredInvoices.length) {
-            setSelectedInvoices(new Set());
-        } else {
-            setSelectedInvoices(new Set(filteredInvoices.map((inv) => inv.id)));
-        }
-    };
-
-    // Validate and show confirmation dialog
-    const handleSubmit = () => {
-        if (selectedInvoices.size === 0) {
-            toast.error('Please select at least one invoice');
-            return;
-        }
-
-        if (!hasChanges) {
-            toast.info('No changes detected');
-            return;
-        }
-
-        // Show confirmation dialog
-        setShowConfirmDialog(true);
-    };
-
-    // Submit after confirmation
-    const confirmSubmit = () => {
-        setShowConfirmDialog(false);
-
-        put(`/check-requisitions/${checkRequisition.id}`, {
+        router.get(`/check-requisitions/${checkRequisition.id}/edit`, updatedFilters, {
+            preserveState: true,
             preserveScroll: true,
             onSuccess: () => {
-                toast.success('Check requisition updated successfully!');
-            },
-            onError: (errors) => {
-                const errorMessages = Object.values(errors);
-                if (errorMessages.length > 0) {
-                    errorMessages.forEach(error => toast.error(error));
-                } else {
-                    toast.error('Update failed');
-                }
+                // Maintain selection after filter change
+                setSelectedInvoices((prev) => {
+                    const newSet = new Set(prev);
+                    const newAmounts = new Map(selectedAmounts);
+                    availableInvoices?.data?.forEach(inv => {
+                        if (!newSet.has(inv.id)) return;
+                        if (!availableInvoices.data.find(i => i.id === inv.id)) {
+                            newSet.delete(inv.id);
+                            newAmounts.delete(inv.id);
+                        }
+                    });
+                    setSelectedAmounts(newAmounts);
+                    return newSet;
+                });
             },
         });
     };
 
-    const allSelected = filteredInvoices.length > 0 && selectedInvoices.size === filteredInvoices.length;
+    const handleVendorChange = (value) => {
+        setVendorFilter(value);
+        handleFilterChange({ vendor: value, page: 1 });
+    };
 
-    // Track changes
+    const handleSearchChange = (value) => {
+        setSearchValue(value);
+    };
+
+    const handleClearFilters = () => {
+        setVendorFilter('all');
+        setSearchValue('');
+        handleFilterChange({ vendor: 'all', search: '', page: 1 });
+    };
+
+    const handleSelectInvoice = useCallback((invoiceId, index, invoiceObject) => {
+        setCurrentInvoiceIndex(index);
+        setCurrentInvoice(invoiceObject);
+
+        setSelectedInvoices((prev) => {
+            const newSelected = new Set(prev);
+            if (newSelected.has(invoiceId)) {
+                newSelected.delete(invoiceId);
+            } else {
+                newSelected.add(invoiceId);
+            }
+            return newSelected;
+        });
+
+        setSelectedAmounts((prev) => {
+            const newAmounts = new Map(prev);
+            if (newAmounts.has(invoiceId)) {
+                newAmounts.delete(invoiceId);
+            } else {
+                newAmounts.set(invoiceId, invoiceObject.invoice_amount || invoiceObject.net_amount);
+            }
+            return newAmounts;
+        });
+    }, []);
+
+    const handleClearSelection = useCallback(() => {
+        setSelectedInvoices(new Set());
+        setSelectedAmounts(new Map());
+        toast.info('Selection cleared');
+    }, []);
+
+    const handleSelectAll = useCallback(() => {
+        const newSelectedInvoices = new Set();
+        const newSelectedAmounts = new Map();
+
+        accumulatedInvoices.forEach((invoice) => {
+            newSelectedInvoices.add(invoice.id);
+            newSelectedAmounts.set(invoice.id, invoice.invoice_amount || invoice.net_amount);
+        });
+
+        setSelectedInvoices(newSelectedInvoices);
+        setSelectedAmounts(newSelectedAmounts);
+        toast.success(`Selected all ${accumulatedInvoices.length} loaded invoices`);
+    }, [accumulatedInvoices]);
+
+    // Callback to receive accumulated invoices from CheckRequisitionInvoiceList
+    const handleInvoicesUpdate = useCallback((updatedInvoices) => {
+        setAccumulatedInvoices(updatedInvoices);
+    }, []);
+
+    // Track if there are changes
     const hasChanges = useMemo(() => {
-        const originalIds = new Set(currentInvoices?.map((inv) => inv.id) || []);
-        const currentIds = selectedInvoices;
+        if (originalInvoiceIds.size !== selectedInvoices.size) return true;
 
-        if (originalIds.size !== currentIds.size) return true;
+        for (let id of originalInvoiceIds) {
+            if (!selectedInvoices.has(id)) return true;
+        }
 
-        for (let id of originalIds) {
-            if (!currentIds.has(id)) return true;
+        for (let id of selectedInvoices) {
+            if (!originalInvoiceIds.has(id)) return true;
         }
 
         return (
@@ -235,320 +235,159 @@ const EditCheckRequisition = ({ checkRequisition, currentInvoices, availableInvo
             data.account_charge !== checkRequisition.account_charge ||
             data.service_line_dist !== checkRequisition.service_line_dist
         );
-    }, [data, selectedInvoices, currentInvoices, checkRequisition]);
+    }, [data, selectedInvoices, originalInvoiceIds, checkRequisition]);
+
+    // Update form data when selection changes
+    useEffect(() => {
+        if (selectedInvoices.size === 0) return;
+
+        const selectionChanged =
+            prevSelectionRef.current.size !== selectedInvoices.size ||
+            ![...selectedInvoices].every(id => prevSelectionRef.current.has(id));
+
+        if (!selectionChanged) return;
+
+        prevSelectionRef.current = new Set(selectedInvoices);
+
+        // Update invoice_ids in form data
+        setData('invoice_ids', Array.from(selectedInvoices));
+        setData('php_amount', selectedTotal);
+        setData('amount_in_words', numberToWords(selectedTotal) || '');
+
+        const selectedInvs = accumulatedInvoices.filter((inv) =>
+            selectedInvoices.has(inv.id)
+        ) || [];
+
+        const siNumbersFormatted = formatSINumbers(selectedInvs);
+        setData('si_number', siNumbersFormatted);
+    }, [selectedInvoices, accumulatedInvoices, selectedTotal]);
+
+    const handleSubmit = useCallback(() => {
+        if (selectedInvoices.size === 0) {
+            toast.error("Please select at least one invoice");
+            return;
+        }
+
+        if (!hasChanges) {
+            toast.info("No changes detected");
+            return;
+        }
+
+        setShowConfirmDialog(true);
+    }, [selectedInvoices, hasChanges]);
+
+    const confirmSubmit = useCallback(() => {
+        setShowConfirmDialog(false);
+
+        put(`/check-requisitions/${checkRequisition.id}`, {
+            preserveScroll: true,
+            onSuccess: () => {
+                toast.success("Check requisition updated successfully!");
+            },
+            onError: (errors) => {
+                const errorMessages = Object.values(errors);
+                if (errorMessages.length > 0) {
+                    errorMessages.forEach(error => toast.error(error));
+                } else {
+                    toast.error("Update failed");
+                }
+            },
+        });
+    }, [put, checkRequisition.id]);
+
+    // Convert availableInvoices to match the structure expected by CheckRequisitionInvoiceList
+    const invoicesPagination = useMemo(() => ({
+        data: availableInvoices?.data || [],
+        total: availableInvoices?.total || 0,
+        current_page: availableInvoices?.current_page || 1,
+        last_page: availableInvoices?.last_page || 1,
+        per_page: availableInvoices?.per_page || 50,
+        from: availableInvoices?.from || 0,
+        to: availableInvoices?.to || 0,
+    }), [availableInvoices]);
 
     return (
-        <div className="min-h-screen bg-white">
-            <div className="mx-auto max-w-7xl px-4 py-6">
-                {/* Header */}
-                <div className="mb-4 flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                        <BackButton />
-                        <div>
-                            <h1 className="text-xl font-semibold text-slate-800">Edit Check Requisition</h1>
-                            <p className="text-xs text-slate-500">
-                                {checkRequisition.requisition_number} •{hasChanges && <span className="ml-1 text-amber-600">Unsaved changes</span>}
-                            </p>
-                        </div>
+        <div className="h-full flex flex-col bg-slate-50 overflow-hidden">
+            {/* Sticky Header Bar */}
+            <div className="bg-white border-b shadow-sm flex-shrink-0">
+                <div className="px-4 py-2">
+                    {/* Edit Info Alert */}
+                    <Alert className="mb-3 border-blue-200 bg-blue-50">
+                        <Info className="h-4 w-4 text-blue-600" />
+                        <AlertDescription className="text-xs text-blue-800">
+                            Editing <strong>{checkRequisition.requisition_number}</strong>
+                            {currentInvoices?.length > 0 && <span className="ml-1">• Currently has {currentInvoices.length} invoice(s) attached</span>}
+                            {hasChanges && <span className="ml-1 text-amber-600">• Unsaved changes</span>}
+                        </AlertDescription>
+                    </Alert>
+
+                    {/* Header with Action Buttons */}
+                    <CheckReqHeader
+                        selectedCount={selectedInvoices.size}
+                        selectedTotal={selectedTotal}
+                        totalInvoices={invoicesPagination.total}
+                        loadedCount={accumulatedInvoices.length}
+                        formatCurrency={formatCurrency}
+                        onSubmit={handleSubmit}
+                        onClearSelection={handleClearSelection}
+                        onSelectAll={handleSelectAll}
+                        processing={processing}
+                        hasSelection={selectedInvoices.size > 0}
+                        isEdit={true}
+                        hasChanges={hasChanges}
+                        checkRequisitionNumber={checkRequisition.requisition_number}
+                    />
+
+                    {/* Active Filters */}
+                    <CheckReqActiveFilters
+                        vendorFilter={vendorFilter}
+                        searchValue={searchValue}
+                        filterOptions={filterOptions}
+                        onRemoveVendor={() => handleVendorChange('all')}
+                        onRemoveSearch={() => setSearchValue('')}
+                        onClearAll={handleClearFilters}
+                    />
+
+                    {/* Filters Row */}
+                    <CheckReqFilters
+                        vendorFilter={vendorFilter}
+                        searchValue={searchValue}
+                        filterOptions={filterOptions}
+                        onVendorChange={handleVendorChange}
+                        onSearchChange={handleSearchChange}
+                    />
+                </div>
+            </div>
+
+            {/* Main Content - Fixed height grid with scrollable columns */}
+            <div className="flex-1 overflow-hidden min-h-0 max-h-full">
+                <div className="grid grid-cols-[1fr_2fr] gap-3 p-3 h-full max-h-full">
+                    {/* Left Column - Invoice List (Full Height) */}
+                    <div className="min-h-0 h-full max-h-full">
+                        <Suspense fallback={<DialogLoadingFallback message="Loading invoice list..." />}>
+                            <CheckRequisitionInvoiceList
+                                invoices={invoicesPagination}
+                                selectedInvoices={selectedInvoices}
+                                currentInvoiceIndex={currentInvoiceIndex}
+                                handleSelectInvoice={handleSelectInvoice}
+                                formatCurrency={formatCurrency}
+                                filters={filters}
+                                onInvoicesUpdate={handleInvoicesUpdate}
+                                originalInvoiceIds={originalInvoiceIds}
+                                isEdit={true}
+                                apiEndpoint={route('check-requisitions.edit-api', checkRequisition.id)}
+                            />
+                        </Suspense>
                     </div>
-                    {selectedInvoices.size > 0 && (
-                        <div className="flex items-center gap-2">
-                            <Badge variant="outline" className="border-blue-200 bg-blue-50 text-xs font-medium text-blue-700">
-                                {selectedInvoices.size} Selected • {formatCurrency(selectedTotal)}
-                            </Badge>
-                            <Button variant="ghost" size="sm" onClick={() => setSelectedInvoices(new Set())} className="text-xs">
-                                <X className="mr-1 h-3 w-3" /> Clear
-                            </Button>
-                        </div>
-                    )}
-                </div>
 
-                {/* Info Alert */}
-                <Alert className="mb-4 border-blue-200 bg-blue-50">
-                    <Info className="h-4 w-4 text-blue-600" />
-                    <AlertDescription className="text-xs text-blue-800">
-                        You are editing an existing check requisition. Changes will be saved when you click "Update Requisition".
-                        {currentInvoices?.length > 0 && <span className="ml-1">Currently has {currentInvoices.length} invoice(s) attached.</span>}
-                    </AlertDescription>
-                </Alert>
-
-                {/* Statistics Bar */}
-                <div className="mb-4 grid grid-cols-4 gap-3">
-                    <Card className="border-slate-200">
-                        <CardContent className="p-3">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-xs text-slate-500">Available Invoices</p>
-                                    <p className="text-sm font-semibold text-slate-800">{statistics.count}</p>
-                                </div>
-                                <FileText className="h-8 w-8 text-slate-300" />
-                            </div>
-                        </CardContent>
-                    </Card>
-                    <Card className="border-slate-200">
-                        <CardContent className="p-3">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-xs text-slate-500">Total Available</p>
-                                    <p className="text-sm font-semibold text-slate-800">{formatCurrency(statistics.total)}</p>
-                                </div>
-                                <FileText className="h-8 w-8 text-slate-300" />
-                            </div>
-                        </CardContent>
-                    </Card>
-                    <Card className="border-slate-200">
-                        <CardContent className="p-3">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-xs text-slate-500">Selected Count</p>
-                                    <p className="text-sm font-semibold text-blue-600">{selectedInvoices.size}</p>
-                                </div>
-                                <CheckSquare className="h-8 w-8 text-blue-300" />
-                            </div>
-                        </CardContent>
-                    </Card>
-                    <Card className="border-slate-200">
-                        <CardContent className="p-3">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-xs text-slate-500">Selected Total</p>
-                                    <p className="text-sm font-semibold text-blue-600">{formatCurrency(selectedTotal)}</p>
-                                </div>
-                                <CheckSquare className="h-8 w-8 text-blue-300" />
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
-
-                {/* Filters */}
-                <div className="mb-5 flex flex-wrap items-center gap-2">
-                    <Select value={amountFilter} onValueChange={setAmountFilter}>
-                        <SelectTrigger className="h-8 w-48 border-slate-200 text-xs">
-                            <SelectValue placeholder="Filter by Amount" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">All Amounts</SelectItem>
-                            <SelectItem value="under50k">Under ₱50,000</SelectItem>
-                            <SelectItem value="50k-100k">₱50,000 - ₱100,000</SelectItem>
-                            <SelectItem value="100k-500k">₱100,000 - ₱500,000</SelectItem>
-                            <SelectItem value="over500k">Over ₱500,000</SelectItem>
-                        </SelectContent>
-                    </Select>
-
-                    <div className="relative max-w-xs flex-1">
-                        <Search className="absolute top-2.5 left-2 h-3.5 w-3.5 text-slate-400" />
-                        <Input
-                            type="search"
-                            placeholder="Search invoices..."
-                            value={searchValue}
-                            onChange={(e) => setSearchValue(e.target.value)}
-                            className="h-8 pl-8 text-xs"
+                    {/* Right Column - Form Details */}
+                    <div className="min-h-0 h-full">
+                        <CheckReqFormDetails
+                            data={data}
+                            setData={setData}
+                            errors={errors}
                         />
                     </div>
-
-                    <Button variant="outline" size="sm" onClick={handleSelectAll} className="ml-auto h-8 text-xs">
-                        {allSelected ? (
-                            <>
-                                <Square className="mr-1 h-3 w-3" /> Deselect All
-                            </>
-                        ) : (
-                            <>
-                                <CheckSquare className="mr-1 h-3 w-3" /> Select All
-                            </>
-                        )}
-                    </Button>
-                </div>
-
-                {/* Grid */}
-                <div className="grid gap-5 lg:grid-cols-[340px_1fr]">
-                    {/* Left: Invoice list */}
-                    <Card className="border-slate-100 shadow-none">
-                        <CardHeader className="border-b border-slate-100 pb-2">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <h3 className="text-sm font-medium text-slate-700">Available Invoices</h3>
-                                    <p className="text-xs text-slate-400">{filteredInvoices.length || 0} record(s)</p>
-                                </div>
-                                <Badge variant="outline" className="text-xs">
-                                    {selectedInvoices.size}/{filteredInvoices.length}
-                                </Badge>
-                            </div>
-                        </CardHeader>
-                        <CardContent className="p-0">
-                            <ScrollArea className="h-[calc(100vh-400px)]">
-                                {filteredInvoices.length === 0 ? (
-                                    <div className="py-10 text-center text-sm text-slate-500">
-                                        <FileText className="mx-auto mb-2 h-10 w-10 text-slate-300" />
-                                        No invoices found
-                                    </div>
-                                ) : (
-                                    <div className="divide-y divide-slate-100">
-                                        {filteredInvoices.map((inv) => {
-                                            const isSelected = selectedInvoices.has(inv.id);
-                                            const isOriginal = currentInvoices?.some((ci) => ci.id === inv.id);
-                                            return (
-                                                <div
-                                                    key={inv.id}
-                                                    onClick={() => handleInvoiceToggle(inv.id)}
-                                                    className={`cursor-pointer p-3 transition-all ${
-                                                        isSelected ? 'border-l-2 border-blue-500 bg-blue-50' : 'hover:bg-slate-50'
-                                                    }`}
-                                                >
-                                                    <div className="flex items-start justify-between">
-                                                        <div className="flex-1">
-                                                            <div className="flex items-center gap-2">
-                                                                <p className="text-sm font-medium text-slate-800">SI# {inv.si_number}</p>
-                                                                {isOriginal && (
-                                                                    <Badge variant="outline" className="border-green-300 bg-green-50 text-xs">
-                                                                        Current
-                                                                    </Badge>
-                                                                )}
-                                                            </div>
-                                                            <p className="truncate text-xs text-slate-500">
-                                                                {inv.purchase_order?.vendor?.name || inv.vendor?.name}
-                                                            </p>
-                                                            <div className="mt-1 flex items-center justify-between">
-                                                                <p className="text-xs font-medium text-slate-700">
-                                                                    {formatCurrency(inv.invoice_amount || inv.net_amount || 0)}
-                                                                </p>
-                                                            </div>
-                                                        </div>
-                                                        {isSelected && <Check className="ml-2 h-4 w-4 flex-shrink-0 text-blue-600" />}
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                )}
-                            </ScrollArea>
-                        </CardContent>
-                    </Card>
-
-                    {/* Right: Form */}
-                    <Card className="border-slate-100 shadow-none">
-                        <CardHeader className="border-b border-slate-100 pb-2">
-                            <h2 className="text-sm font-semibold text-slate-700">Requisition Details</h2>
-                        </CardHeader>
-                        <CardContent className="pt-3">
-                            <div className="space-y-3">
-                                <div className="grid grid-cols-2 gap-3">
-                                    <DatePicker label="Request Date" value={data.request_date} onChange={(value) => setData('request_date', value)} />
-                                    <div>
-                                        <Label className="text-xs">PHP Amount</Label>
-                                        <Input readOnly value={formatCurrency(data.php_amount)} className="bg-slate-50 text-sm font-semibold" />
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <Label className="text-xs">Payee Name</Label>
-                                    <Input value={data.payee_name} onChange={(e) => setData('payee_name', e.target.value)} className="text-sm" />
-                                    {errors.payee_name && <p className="mt-1 text-xs text-red-600">{errors.payee_name}</p>}
-                                </div>
-
-                                <div>
-                                    <Label className="text-xs">Purpose</Label>
-                                    <Textarea
-                                        rows={8}
-                                        value={data.purpose}
-                                        onChange={(e) => setData('purpose', e.target.value)}
-                                        className="text-sm"
-                                    />
-                                    {errors.purpose && <p className="mt-1 text-xs text-red-600">{errors.purpose}</p>}
-                                </div>
-
-                                <div className="grid grid-cols-3 gap-3">
-                                    {['po_number', 'cer_number', 'si_number'].map((field) => (
-                                        <div key={field}>
-                                            <Label className="text-xs capitalize">{field.replace('_', ' ')}</Label>
-                                            <Input value={data[field]} onChange={(e) => setData(field, e.target.value)} className="text-sm" />
-                                            {errors[field] && <p className="mt-1 text-xs text-red-600">{errors[field]}</p>}
-                                        </div>
-                                    ))}
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-3">
-                                    <div>
-                                        <Label className="text-xs">Account Charge</Label>
-                                        <Input
-                                            value={data.account_charge}
-                                            onChange={(e) => setData('account_charge', e.target.value)}
-                                            className="text-sm"
-                                        />
-                                    </div>
-                                    <div>
-                                        <Label className="text-xs">Service Line Distribution</Label>
-                                        <Input
-                                            value={data.service_line_dist}
-                                            onChange={(e) => setData('service_line_dist', e.target.value)}
-                                            className="text-sm"
-                                        />
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <Label className="text-xs">Amount in Words</Label>
-                                    <Input readOnly value={data.amount_in_words} className="bg-slate-50 text-sm" />
-                                </div>
-
-                                <div className="grid grid-cols-3 gap-3">
-                                    {['requested_by', 'reviewed_by', 'approved_by'].map((f) => (
-                                        <div key={f}>
-                                            <Label className="text-xs capitalize">{f.replace('_', ' ')}</Label>
-                                            <Input value={data[f]} onChange={(e) => setData(f, e.target.value)} className="text-sm" />
-                                        </div>
-                                    ))}
-                                </div>
-
-                                <div className="flex gap-2">
-                                    <Button
-                                        onClick={handleSubmit}
-                                        disabled={selectedInvoices.size === 0 || processing || !hasChanges}
-                                        className="h-9 flex-1 bg-blue-600 text-sm hover:bg-blue-700 disabled:opacity-50"
-                                    >
-                                        {processing ? (
-                                            <>
-                                                <svg
-                                                    className="mr-2 h-4 w-4 animate-spin"
-                                                    xmlns="http://www.w3.org/2000/svg"
-                                                    fill="none"
-                                                    viewBox="0 0 24 24"
-                                                >
-                                                    <circle
-                                                        className="opacity-25"
-                                                        cx="12"
-                                                        cy="12"
-                                                        r="10"
-                                                        stroke="currentColor"
-                                                        strokeWidth="4"
-                                                    ></circle>
-                                                    <path
-                                                        className="opacity-75"
-                                                        fill="currentColor"
-                                                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                                                    ></path>
-                                                </svg>
-                                                Updating...
-                                            </>
-                                        ) : (
-                                            <>
-                                                <Save className="mr-2 h-4 w-4" />
-                                                Update Requisition
-                                            </>
-                                        )}
-                                    </Button>
-                                    <Link href={`/check-requisitions/${checkRequisition.id}`}>
-                                        <Button variant="outline" className="h-9 text-sm" disabled={processing}>
-                                            Cancel
-                                        </Button>
-                                    </Link>
-                                </div>
-
-                                {!hasChanges && selectedInvoices.size > 0 && (
-                                    <p className="text-center text-xs text-slate-500">No changes detected</p>
-                                )}
-                            </div>
-                        </CardContent>
-                    </Card>
                 </div>
             </div>
 
@@ -590,7 +429,7 @@ const EditCheckRequisition = ({ checkRequisition, currentInvoices, availableInvo
                             disabled={processing}
                             className="bg-blue-600 hover:bg-blue-700"
                         >
-                            {processing ? 'Updating...' : 'Confirm & Update'}
+                            {processing ? "Updating..." : "Confirm & Update"}
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>

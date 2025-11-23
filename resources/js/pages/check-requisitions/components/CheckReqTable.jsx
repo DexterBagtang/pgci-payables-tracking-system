@@ -52,7 +52,7 @@ import { getStatusBadge } from '@/components/custom/helpers.jsx';
 import StatusBadge from '@/components/custom/StatusBadge.jsx';
 import PaginationServerSide from '@/components/custom/Pagination.jsx';
 
-export default function CheckReqTable({ checkRequisitions, filters, filterOptions }) {
+export default function CheckReqTable({ checkRequisitions, filters, filterOptions, statistics }) {
     const { data } = checkRequisitions;
     const [localFilters, setLocalFilters] = useState({
         search: filters.search || '',
@@ -64,19 +64,6 @@ export default function CheckReqTable({ checkRequisitions, filters, filterOption
     const [activeTab, setActiveTab] = useState(filters.status || 'all');
 
     const isInitialMount = useRef(true);
-
-    // Calculate summary statistics
-    const calculateSummary = () => {
-        return {
-            total: data.length,
-            totalAmount: data.reduce((sum, req) => sum + parseFloat(req.php_amount || 0), 0),
-            pending: data.filter((req) => req.requisition_status === 'pending_approval').length,
-            approved: data.filter((req) => req.requisition_status === 'approved').length,
-            rejected: data.filter((req) => req.requisition_status === 'rejected').length,
-        };
-    };
-
-    const summary = calculateSummary();
 
     const handleFilterChange = (key, value) => {
         const newFilters = { ...localFilters, [key]: value };
@@ -185,51 +172,84 @@ export default function CheckReqTable({ checkRequisitions, filters, filterOption
         <div className="py-6">
             <div className="mx-auto sm:px-6 lg:px-8">
                 {/* Summary Cards - SAP Dashboard Style */}
-                <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+                    {/* Total Requisitions */}
                     <Card className="border-l-4 border-l-blue-500">
                         <CardContent className="p-4">
                             <div className="flex items-center justify-between">
                                 <div>
                                     <p className="text-xs font-medium text-gray-500">Total Requisitions</p>
-                                    <p className="text-2xl font-bold">{summary.total}</p>
+                                    <p className="text-2xl font-bold">{statistics?.total || 0}</p>
                                 </div>
                                 <FileText className="h-8 w-8 text-blue-500" />
                             </div>
                         </CardContent>
                     </Card>
 
+                    {/* Total Value */}
                     <Card className="border-l-4 border-l-green-500">
                         <CardContent className="p-4">
                             <div className="flex items-center justify-between">
                                 <div>
                                     <p className="text-xs font-medium text-gray-500">Total Value</p>
-                                    <p className="text-lg font-bold">{formatCurrency(summary.totalAmount)}</p>
+                                    <p className="text-lg font-bold">{formatCurrency(statistics?.total_value || 0)}</p>
                                 </div>
                                 <TrendingUp className="h-8 w-8 text-green-500" />
                             </div>
                         </CardContent>
                     </Card>
 
+                    {/* Pending */}
                     <Card className="border-l-4 border-l-yellow-500">
                         <CardContent className="p-4">
                             <div className="flex items-center justify-between">
                                 <div>
                                     <p className="text-xs font-medium text-gray-500">Pending</p>
-                                    <p className="text-2xl font-bold">{summary.pending}</p>
+                                    <p className="text-2xl font-bold">{statistics?.pending || 0}</p>
+                                    <p className="text-xs text-gray-500 mt-0.5">{formatCurrency(statistics?.pending_value || 0)}</p>
                                 </div>
                                 <Clock className="h-8 w-8 text-yellow-500" />
                             </div>
                         </CardContent>
                     </Card>
 
-                    <Card className="border-l-4 border-l-green-500">
+                    {/* Approved */}
+                    <Card className="border-l-4 border-l-emerald-500">
                         <CardContent className="p-4">
                             <div className="flex items-center justify-between">
                                 <div>
                                     <p className="text-xs font-medium text-gray-500">Approved</p>
-                                    <p className="text-2xl font-bold">{summary.approved}</p>
+                                    <p className="text-2xl font-bold">{statistics?.approved || 0}</p>
+                                    <p className="text-xs text-gray-500 mt-0.5">{formatCurrency(statistics?.approved_value || 0)}</p>
                                 </div>
-                                <CheckCircle2 className="h-8 w-8 text-green-500" />
+                                <CheckCircle2 className="h-8 w-8 text-emerald-500" />
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    {/* Rejected */}
+                    <Card className="border-l-4 border-l-red-500">
+                        <CardContent className="p-4">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-xs font-medium text-gray-500">Rejected</p>
+                                    <p className="text-2xl font-bold">{statistics?.rejected || 0}</p>
+                                </div>
+                                <XCircle className="h-8 w-8 text-red-500" />
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    {/* Available Invoices */}
+                    <Card className="border-l-4 border-l-purple-500">
+                        <CardContent className="p-4">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-xs font-medium text-gray-500">Available Invoices</p>
+                                    <p className="text-2xl font-bold">{statistics?.available_invoices || 0}</p>
+                                    <p className="text-xs text-gray-500 mt-0.5">{formatCurrency(statistics?.available_invoices_value || 0)}</p>
+                                </div>
+                                <FileText className="h-8 w-8 text-purple-500" />
                             </div>
                         </CardContent>
                     </Card>

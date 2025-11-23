@@ -103,7 +103,7 @@ Approved By: ${checkRequisition.approved_by || 'Pending'}
                 <div className="flex flex-shrink-0 flex-wrap gap-2">
                     <BackButton />
 
-                    {checkRequisition.requisition_status === 'generated' && (
+                    {checkRequisition.requisition_status === 'pending_approval' && (
                         <Button variant="outline" size="sm" onClick={onReview}>
                             <SearchCheck className="mr-2 h-4 w-4" />
                             Review

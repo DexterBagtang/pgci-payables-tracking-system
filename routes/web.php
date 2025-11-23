@@ -47,6 +47,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // API endpoint for check requisition creation with pagination
     Route::get('/api/check-requisitions/create', [CheckRequisitionController::class, 'createApi'])
         ->name('check-requisitions.create-api');
+    // API endpoint for check requisition editing with pagination
+    Route::get('/api/check-requisitions/{checkRequisition}/edit', [CheckRequisitionController::class, 'editApi'])
+        ->name('check-requisitions.edit-api');
     // Review and approval routes
     Route::get('/check-requisitions/{checkRequisition}/review', [CheckRequisitionController::class, 'review'])
         ->name('check-requisitions.review');

@@ -70,6 +70,22 @@ class CheckRequisitionController extends Controller
             ->orderBy('po_number', 'desc')
             ->get();
 
+        // Calculate summary statistics (server-side for accuracy)
+        $statusCounts = CheckRequisition::selectRaw("
+            COUNT(*) as total,
+            COUNT(CASE WHEN requisition_status = 'pending_approval' THEN 1 END) as pending,
+            COUNT(CASE WHEN requisition_status = 'approved' THEN 1 END) as approved,
+            COUNT(CASE WHEN requisition_status = 'rejected' THEN 1 END) as rejected,
+            SUM(CASE WHEN requisition_status = 'pending_approval' THEN php_amount ELSE 0 END) as pending_value,
+            SUM(CASE WHEN requisition_status = 'approved' THEN php_amount ELSE 0 END) as approved_value,
+            SUM(php_amount) as total_value
+        ")->first();
+
+        // Count available invoices for check requisitions
+        $availableInvoices = Invoice::where('invoice_status', 'approved')->count();
+        $availableInvoicesValue = Invoice::where('invoice_status', 'approved')
+            ->sum('net_amount');
+
         return inertia('check-requisitions/index', [
             'checkRequisitions' => $checkRequisitions,
             'filters' => [
@@ -81,6 +97,17 @@ class CheckRequisitionController extends Controller
             ],
             'filterOptions' => [
                 'purchaseOrders' => $purchaseOrders,
+            ],
+            'statistics' => [
+                'total' => $statusCounts->total,
+                'pending' => $statusCounts->pending,
+                'approved' => $statusCounts->approved,
+                'rejected' => $statusCounts->rejected,
+                'total_value' => $statusCounts->total_value,
+                'pending_value' => $statusCounts->pending_value,
+                'approved_value' => $statusCounts->approved_value,
+                'available_invoices' => $availableInvoices,
+                'available_invoices_value' => $availableInvoicesValue,
             ],
         ]);
     }
@@ -294,10 +321,15 @@ class CheckRequisitionController extends Controller
             ->get();
 
         // Get available approved invoices that can be added
+        // Include both approved invoices AND current invoices (which may have status pending_disbursement)
+        $currentInvoiceIds = $currentInvoices->pluck('id')->toArray();
+
         $availableInvoices = Invoice::query()
             ->with(['purchaseOrder.vendor', 'purchaseOrder.project'])
-            ->where('invoice_status', 'approved')
-            ->orWhereIn('id', $currentInvoices->pluck('id')) // Include current invoices
+            ->where(function($query) use ($currentInvoiceIds) {
+                $query->where('invoice_status', 'approved')
+                      ->orWhereIn('id', $currentInvoiceIds);
+            })
             ->latest()
             ->paginate(50);
 
@@ -432,6 +464,50 @@ class CheckRequisitionController extends Controller
     {
         $query = Invoice::with(['purchaseOrder.vendor', 'purchaseOrder.project'])
             ->where('invoice_status', 'approved');
+
+        // Filter by vendor
+        if ($request->filled('vendor') && $request->vendor !== 'all') {
+            $query->whereHas('purchaseOrder', function ($q) use ($request) {
+                $q->where('vendor_id', $request->vendor);
+            });
+        }
+
+        // Search
+        if ($request->filled('search')) {
+            $query->where(function ($q) use ($request) {
+                $q->where('si_number', 'like', '%' . $request->search . '%')
+                    ->orWhereHas('purchaseOrder', function ($vq) use ($request) {
+                        $vq->whereHas('vendor', function ($vr) use ($request) {
+                            $vr->where('name', 'like', '%' . $request->search . '%');
+                        });
+                    });
+            });
+        }
+
+        $perPage = $request->get('per_page', 30);
+        $perPage = in_array($perPage, [10, 15, 25, 30, 50, 100]) ? $perPage : 30;
+
+        $invoices = $query->latest()->paginate($perPage);
+
+        return response()->json([
+            'invoices' => $invoices,
+        ]);
+    }
+
+    /**
+     * API endpoint for check requisition editing with pagination
+     * Includes current invoices even if they have pending_disbursement status
+     */
+    public function editApi(Request $request, CheckRequisition $checkRequisition)
+    {
+        // Get current invoice IDs
+        $currentInvoiceIds = $checkRequisition->invoices()->pluck('invoices.id')->toArray();
+
+        $query = Invoice::with(['purchaseOrder.vendor', 'purchaseOrder.project'])
+            ->where(function($q) use ($currentInvoiceIds) {
+                $q->where('invoice_status', 'approved')
+                  ->orWhereIn('id', $currentInvoiceIds);
+            });
 
         // Filter by vendor
         if ($request->filled('vendor') && $request->vendor !== 'all') {

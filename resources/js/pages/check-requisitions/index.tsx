@@ -14,14 +14,15 @@ interface PageProps {
     checkRequisitions: unknown[];
     filters: unknown[];
     filterOptions: unknown[];
+    statistics: unknown;
 }
 
-export default function ReviewInvoicesPage({ checkRequisitions, filters, filterOptions }: PageProps) {
+export default function ReviewInvoicesPage({ checkRequisitions, filters, filterOptions, statistics }: PageProps) {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Check Requisitions" />
             <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
-                <CheckReqTable checkRequisitions={checkRequisitions} filters={filters} filterOptions={filterOptions} />
+                <CheckReqTable checkRequisitions={checkRequisitions} filters={filters} filterOptions={filterOptions} statistics={statistics} />
             </div>
         </AppLayout>
     );

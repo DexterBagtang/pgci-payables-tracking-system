@@ -13,6 +13,7 @@ const InvoiceRow = memo(function InvoiceRow({
     index,
     isSelected,
     isCurrent,
+    isOriginal,
     onSelect,
     formatCurrency,
 }) {
@@ -69,6 +70,11 @@ const InvoiceRow = memo(function InvoiceRow({
                             <span className="inline-flex items-center text-[9px] h-4 px-1.5 font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 rounded">
                                 Approved
                             </span>
+                            {isOriginal && (
+                                <span className="inline-flex items-center text-[9px] h-4 px-1.5 font-semibold bg-blue-100 text-blue-700 border border-blue-300 rounded">
+                                    Current
+                                </span>
+                            )}
                         </div>
 
                         <div className="flex items-center gap-1 shrink-0 ml-2">
@@ -122,7 +128,8 @@ const InvoiceRow = memo(function InvoiceRow({
     return (
         prevProps.invoice.id === nextProps.invoice.id &&
         prevProps.isSelected === nextProps.isSelected &&
-        prevProps.isCurrent === nextProps.isCurrent
+        prevProps.isCurrent === nextProps.isCurrent &&
+        prevProps.isOriginal === nextProps.isOriginal
     );
 });
 
@@ -137,6 +144,9 @@ export default function CheckRequisitionInvoiceList({
     formatCurrency,
     filters,
     onInvoicesUpdate,
+    originalInvoiceIds = new Set(),
+    isEdit = false,
+    apiEndpoint = null,
 }) {
     const [accumulatedInvoices, setAccumulatedInvoices] = useState(invoices.data || []);
     const [currentPage, setCurrentPage] = useState(invoices.current_page || 1);
@@ -144,21 +154,58 @@ export default function CheckRequisitionInvoiceList({
     const [isLoadingMore, setIsLoadingMore] = useState(false);
     const [loadError, setLoadError] = useState(null);
 
+    // Store original invoices to always include them in edit mode
+    const originalInvoicesRef = useRef(new Map());
+
     const sentinelRef = useRef(null);
     const scrollContainerRef = useRef(null);
+
+    // Store original invoices on first render in edit mode
+    useEffect(() => {
+        if (isEdit && originalInvoiceIds.size > 0 && originalInvoicesRef.current.size === 0) {
+            const initialInvoices = invoices.data || [];
+            initialInvoices.forEach(invoice => {
+                if (originalInvoiceIds.has(invoice.id)) {
+                    originalInvoicesRef.current.set(invoice.id, invoice);
+                }
+            });
+        }
+    }, [isEdit, originalInvoiceIds, invoices.data]);
 
     // Reset accumulated data when initial invoices change (filter change)
     useEffect(() => {
         const newInvoices = invoices.data || [];
-        setAccumulatedInvoices(newInvoices);
+
+        // In edit mode, always include original invoices even if they don't match filters
+        let combinedInvoices = newInvoices;
+        if (isEdit && originalInvoicesRef.current.size > 0) {
+            // Create a map to avoid duplicates
+            const invoiceMap = new Map();
+
+            // Add original invoices first (they'll appear at the top)
+            Array.from(originalInvoicesRef.current.values()).forEach(inv => {
+                invoiceMap.set(inv.id, inv);
+            });
+
+            // Add new invoices (won't duplicate originals)
+            newInvoices.forEach(inv => {
+                if (!invoiceMap.has(inv.id)) {
+                    invoiceMap.set(inv.id, inv);
+                }
+            });
+
+            combinedInvoices = Array.from(invoiceMap.values());
+        }
+
+        setAccumulatedInvoices(combinedInvoices);
         setCurrentPage(invoices.current_page || 1);
         setHasMore(invoices.current_page < invoices.last_page);
         setLoadError(null);
 
         if (onInvoicesUpdate) {
-            onInvoicesUpdate(newInvoices);
+            onInvoicesUpdate(combinedInvoices);
         }
-    }, [invoices.data, invoices.current_page, invoices.last_page, onInvoicesUpdate]);
+    }, [invoices.data, invoices.current_page, invoices.last_page, onInvoicesUpdate, isEdit]);
 
     // Load more invoices
     const loadMore = useCallback(async () => {
@@ -169,7 +216,8 @@ export default function CheckRequisitionInvoiceList({
 
         try {
             const nextPage = currentPage + 1;
-            const response = await axios.get(route('check-requisitions.create-api'), {
+            const endpoint = apiEndpoint || route('check-requisitions.create-api');
+            const response = await axios.get(endpoint, {
                 params: {
                     ...filters,
                     page: nextPage,
@@ -193,7 +241,7 @@ export default function CheckRequisitionInvoiceList({
         } finally {
             setIsLoadingMore(false);
         }
-    }, [currentPage, filters, hasMore, isLoadingMore, accumulatedInvoices, onInvoicesUpdate]);
+    }, [currentPage, filters, hasMore, isLoadingMore, accumulatedInvoices, onInvoicesUpdate, apiEndpoint]);
 
     // Intersection Observer for infinite scroll
     useEffect(() => {
@@ -253,6 +301,7 @@ export default function CheckRequisitionInvoiceList({
                                         index={index}
                                         isSelected={selectedInvoices.has(invoice.id)}
                                         isCurrent={currentInvoiceIndex === index}
+                                        isOriginal={isEdit && originalInvoiceIds.has(invoice.id)}
                                         onSelect={handleSelectInvoice}
                                         formatCurrency={formatCurrency}
                                     />
