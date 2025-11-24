@@ -54,6 +54,7 @@ const EditCheckRequisition = ({ checkRequisition, currentInvoices, availableInvo
     });
     const [searchValue, setSearchValue] = useState(filters?.search || '');
     const [vendorFilter, setVendorFilter] = useState(filters?.vendor || 'all');
+    const [purchaseOrderFilter, setPurchaseOrderFilter] = useState(filters?.purchase_order || 'all');
     const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
     const { data, setData, put, processing, errors, reset } = useForm({
@@ -116,6 +117,16 @@ const EditCheckRequisition = ({ checkRequisition, currentInvoices, availableInvo
         };
     }, [searchValue]);
 
+    // Sync filter states with URL parameters on mount or filter changes
+    useEffect(() => {
+        if (filters.vendor && filters.vendor !== vendorFilter) {
+            setVendorFilter(filters.vendor);
+        }
+        if (filters.purchase_order && filters.purchase_order !== purchaseOrderFilter) {
+            setPurchaseOrderFilter(filters.purchase_order);
+        }
+    }, [filters]);
+
     const handleFilterChange = (newFilters) => {
         const updatedFilters = {
             ...filters,
@@ -155,14 +166,20 @@ const EditCheckRequisition = ({ checkRequisition, currentInvoices, availableInvo
         handleFilterChange({ vendor: value, page: 1 });
     };
 
+    const handlePurchaseOrderChange = (value) => {
+        setPurchaseOrderFilter(value);
+        handleFilterChange({ purchase_order: value, page: 1 });
+    };
+
     const handleSearchChange = (value) => {
         setSearchValue(value);
     };
 
     const handleClearFilters = () => {
         setVendorFilter('all');
+        setPurchaseOrderFilter('all');
         setSearchValue('');
-        handleFilterChange({ vendor: 'all', search: '', page: 1 });
+        handleFilterChange({ vendor: 'all', purchase_order: 'all', search: '', page: 1 });
     };
 
     const handleSelectInvoice = useCallback((invoiceId, index, invoiceObject) => {
@@ -341,19 +358,26 @@ const EditCheckRequisition = ({ checkRequisition, currentInvoices, availableInvo
                     {/* Active Filters */}
                     <CheckReqActiveFilters
                         vendorFilter={vendorFilter}
+                        purchaseOrderFilter={purchaseOrderFilter}
                         searchValue={searchValue}
                         filterOptions={filterOptions}
                         onRemoveVendor={() => handleVendorChange('all')}
-                        onRemoveSearch={() => setSearchValue('')}
+                        onRemovePurchaseOrder={() => handlePurchaseOrderChange('all')}
+                        onRemoveSearch={() => {
+                            setSearchValue('');
+                            handleFilterChange({ search: '', page: 1 });
+                        }}
                         onClearAll={handleClearFilters}
                     />
 
                     {/* Filters Row */}
                     <CheckReqFilters
                         vendorFilter={vendorFilter}
+                        purchaseOrderFilter={purchaseOrderFilter}
                         searchValue={searchValue}
                         filterOptions={filterOptions}
                         onVendorChange={handleVendorChange}
+                        onPurchaseOrderChange={handlePurchaseOrderChange}
                         onSearchChange={handleSearchChange}
                     />
                 </div>

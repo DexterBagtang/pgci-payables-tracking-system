@@ -51,6 +51,7 @@ erDiagram
         int project_id FK
         int vendor_id FK
         numeric po_amount
+        enum currency "PHP, USD"
         enum po_status "draft, open, closed, cancelled"
         varchar payment_term
         date po_date
@@ -59,6 +60,9 @@ erDiagram
         int created_by FK
         int finalized_by FK
         datetime finalized_at
+        int closed_by FK
+        datetime closed_at
+        text closure_remarks
         datetime created_at
         datetime updated_at
     }
@@ -81,9 +85,9 @@ erDiagram
         varchar si_number
         date si_date
         date si_received_at
-        date received_date
         enum payment_type "cash, check, bank_transfer, credit_card, other"
         numeric invoice_amount
+        enum currency "PHP, USD"
         numeric tax_amount
         numeric discount_amount
         numeric net_amount
@@ -95,7 +99,7 @@ erDiagram
         date files_received_at
         date submitted_at
         varchar submitted_to
-        int reviewed_by
+        int reviewed_by FK
         datetime reviewed_at
         int created_by FK
         datetime created_at
@@ -123,11 +127,6 @@ erDiagram
         datetime approved_at
         int processed_by FK
         datetime processed_at
-        varchar check_number "NEW: Actual check number issued"
-        date check_printing_date "NEW: When check was printed"
-        date check_release_date "NEW: When check released to vendor"
-        varchar released_to "NEW: Name of person who received check"
-        text release_notes "NEW: Notes about check release"
         datetime created_at
         datetime updated_at
     }
@@ -140,46 +139,30 @@ erDiagram
         datetime updated_at
     }
 
-    payments {
+    disbursements {
         int id PK
-        int check_requisition_id FK
-        varchar payment_reference_number UK
-        varchar check_number
-        numeric payment_amount
-        date check_printing_date
-        date check_release_date
-        enum payment_method "check, bank_transfer, cash"
-        enum payment_status "pending, printed, released, cleared, cancelled"
-        varchar released_to
-        text release_notes
-        int processed_by FK
-        int released_by FK
+        varchar check_voucher_number UK
+        date date_check_scheduled
+        date date_check_released_to_vendor "Stops aging calculation"
+        date date_check_printing
+        text remarks
+        int created_by FK
         datetime created_at
         datetime updated_at
     }
 
-    aging_reports {
-        int id PK "NEW TABLE"
-        int invoice_id FK
-        date report_date
-        integer days_outstanding
-        enum aging_bracket "current, 1-30_days, 31-60_days, 61-90_days, over_90_days"
-        boolean is_overdue
-        date due_date
-        date expected_payment_date
-        numeric amount_due
-        numeric amount_paid
-        numeric balance
-        text aging_notes
-        int generated_by FK
+    check_requisition_disbursement {
+        int id PK
+        int check_requisition_id FK
+        int disbursement_id FK
         datetime created_at
         datetime updated_at
     }
 
     remarks {
         int id PK
-        varchar remarkable_type
-        int remarkable_id
+        varchar remarkable_type "Polymorphic type"
+        int remarkable_id "Polymorphic ID"
         text remark_text
         int created_by FK
         datetime created_at
@@ -188,8 +171,8 @@ erDiagram
 
     files {
         int id PK
-        varchar fileable_type
-        int fileable_id
+        varchar fileable_type "Polymorphic type"
+        int fileable_id "Polymorphic ID"
         varchar file_name
         varchar file_path
         varchar file_type
@@ -199,7 +182,7 @@ erDiagram
         varchar disk "local, s3, etc."
         text description
         boolean is_active
-        int version "NEW: File version number for tracking revisions"
+        int version "File version number for tracking revisions"
         int uploaded_by FK
         datetime created_at
         datetime updated_at
@@ -207,8 +190,8 @@ erDiagram
 
     activity_logs {
         int id PK
-        varchar loggable_type
-        int loggable_id
+        varchar loggable_type "Polymorphic type"
+        int loggable_id "Polymorphic ID"
         varchar action "created, updated, deleted, approved, etc."
         json changes "before/after values"
         int user_id FK
@@ -235,13 +218,12 @@ erDiagram
     users ||--o{ projects : "created_by"
     users ||--o{ purchase_orders : "created_by"
     users ||--o{ purchase_orders : "finalized_by"
+    users ||--o{ purchase_orders : "closed_by"
     users ||--o{ invoices : "created_by"
     users ||--o{ invoices : "reviewed_by"
     users ||--o{ check_requisitions : "generated_by"
     users ||--o{ check_requisitions : "processed_by"
-    users ||--o{ payments : "processed_by"
-    users ||--o{ payments : "released_by"
-    users ||--o{ aging_reports : "generated_by"
+    users ||--o{ disbursements : "created_by"
     users ||--o{ remarks : "created_by"
     users ||--o{ files : "uploaded_by"
     users ||--o{ activity_logs : "user_id"
@@ -255,11 +237,9 @@ erDiagram
 %% Junction Table Relationships
     check_requisitions ||--o{ check_requisition_invoices : "links_to"
     invoices ||--o{ check_requisition_invoices : "linked_by"
-
-%% NEW: Payment Relationships
-    check_requisitions ||--o{ payments : "has"
-    invoices ||--o{ payments : "has"
-    invoices ||--o{ aging_reports : "has"
+    
+    check_requisitions ||--o{ check_requisition_disbursement : "links_to"
+    disbursements ||--o{ check_requisition_disbursement : "linked_by"
 
 %% Polymorphic Relationships - remarks
     remarks }o--o{ vendors : "remarkable"
@@ -267,7 +247,7 @@ erDiagram
     remarks }o--o{ purchase_orders : "remarkable"
     remarks }o--o{ invoices : "remarkable"
     remarks }o--o{ check_requisitions : "remarkable"
-    remarks }o--o{ payments : "remarkable"
+    remarks }o--o{ disbursements : "remarkable"
 
 %% Polymorphic Relationships - files
     files }o--o{ users : "fileable"
@@ -276,7 +256,7 @@ erDiagram
     files }o--o{ purchase_orders : "fileable"
     files }o--o{ invoices : "fileable"
     files }o--o{ check_requisitions : "fileable"
-    files }o--o{ payments : "fileable"
+    files }o--o{ disbursements : "fileable"
 
 %% Polymorphic Relationships - activity_logs
     activity_logs }o--o{ users : "loggable"
@@ -285,4 +265,4 @@ erDiagram
     activity_logs }o--o{ purchase_orders : "loggable"
     activity_logs }o--o{ invoices : "loggable"
     activity_logs }o--o{ check_requisitions : "loggable"
-    activity_logs }o--o{ payments : "loggable"
+    activity_logs }o--o{ disbursements : "loggable"

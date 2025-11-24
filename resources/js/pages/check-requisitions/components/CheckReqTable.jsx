@@ -574,6 +574,7 @@ export default function CheckReqTable({ checkRequisitions, filters, filterOption
 
                         {/* Pagination */}
                         <PaginationServerSide items={checkRequisitions} onChange={handlePageChange} />
+
                     </CardContent>
                 </Card>
             </div>

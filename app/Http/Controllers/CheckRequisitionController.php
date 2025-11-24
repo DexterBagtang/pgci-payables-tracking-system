@@ -347,17 +347,27 @@ class CheckRequisitionController extends Controller
             ->latest()
             ->paginate(50);
 
-        // Get filter options
-        $vendors = Vendor::orderBy('name')->get(['id', 'name']);
+        // Get filter options - align with create method
+        $filterOptions = [
+            'vendors' => Vendor::where('is_active', true)
+                ->orderBy('name')
+                ->get(['id', 'name']),
+            'purchaseOrders' => PurchaseOrder::select('id', 'po_number', 'vendor_id')
+                ->with('vendor:id,name')
+                ->whereHas('invoices', function($q) use ($currentInvoiceIds) {
+                    $q->where('invoice_status', 'approved')
+                      ->orWhereIn('invoices.id', $currentInvoiceIds);
+                })
+                ->orderBy('po_number', 'desc')
+                ->get()
+        ];
 
         return inertia('check-requisitions/edit', [
             'checkRequisition' => $checkRequisition,
             'currentInvoices' => $currentInvoices,
             'availableInvoices' => $availableInvoices,
-            'filters' => request()->only(['search', 'vendor']),
-            'filterOptions' => [
-                'vendors' => $vendors,
-            ],
+            'filters' => request()->only(['search', 'vendor', 'purchase_order']),
+            'filterOptions' => $filterOptions,
         ]);
     }
 
