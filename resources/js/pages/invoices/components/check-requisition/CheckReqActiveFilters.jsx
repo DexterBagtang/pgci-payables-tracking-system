@@ -1,14 +1,16 @@
-import { Filter, X, Building2, Search as SearchIcon } from 'lucide-react';
+import { Filter, X, Building2, Search as SearchIcon, FileText } from 'lucide-react';
 
 export default function CheckReqActiveFilters({
     vendorFilter,
+    purchaseOrderFilter,
     searchValue,
     filterOptions,
     onRemoveVendor,
+    onRemovePurchaseOrder,
     onRemoveSearch,
     onClearAll,
 }) {
-    const hasActiveFilters = vendorFilter !== 'all' || searchValue;
+    const hasActiveFilters = vendorFilter !== 'all' || purchaseOrderFilter !== 'all' || searchValue;
 
     if (!hasActiveFilters) return null;
 
@@ -28,6 +30,22 @@ export default function CheckReqActiveFilters({
                     <button
                         onClick={onRemoveVendor}
                         className="ml-0.5 rounded-sm hover:bg-blue-200 p-0.5 transition-colors"
+                        type="button"
+                    >
+                        <X className="h-3 w-3" />
+                    </button>
+                </span>
+            )}
+
+            {purchaseOrderFilter !== 'all' && (
+                <span className="inline-flex items-center gap-1.5 h-6 pl-2 pr-1 py-1 bg-green-50 text-green-700 border border-green-200 rounded-md hover:bg-green-100 transition-colors">
+                    <FileText className="h-3 w-3" />
+                    <span className="text-xs">
+                        {filterOptions?.purchaseOrders?.find(po => po.id.toString() === purchaseOrderFilter)?.po_number || 'PO'}
+                    </span>
+                    <button
+                        onClick={onRemovePurchaseOrder}
+                        className="ml-0.5 rounded-sm hover:bg-green-200 p-0.5 transition-colors"
                         type="button"
                     >
                         <X className="h-3 w-3" />

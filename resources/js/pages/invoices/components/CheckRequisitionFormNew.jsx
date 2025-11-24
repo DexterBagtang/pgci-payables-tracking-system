@@ -33,8 +33,10 @@ const CheckRequisitionFormNew = ({ invoices, filters, filterOptions }) => {
     const [currentInvoiceIndex, setCurrentInvoiceIndex] = useState(0);
     const [currentInvoice, setCurrentInvoice] = useState(invoices.data[0] || null);
     const [accumulatedInvoices, setAccumulatedInvoices] = useState(invoices.data || []);
+    const [totalInvoicesCount, setTotalInvoicesCount] = useState(invoices.total || 0);
     const [searchValue, setSearchValue] = useState(filters.search || '');
     const [vendorFilter, setVendorFilter] = useState(filters.vendor || 'all');
+    const [purchaseOrderFilter, setPurchaseOrderFilter] = useState(filters.purchase_order || 'all');
     const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
     const { data, setData, post, processing, errors, reset } = useForm({
@@ -112,7 +114,12 @@ const CheckRequisitionFormNew = ({ invoices, filters, filterOptions }) => {
         router.get('/check-requisitions/create', updatedFilters, {
             preserveState: true,
             preserveScroll: true,
-            onSuccess: () => {
+            onSuccess: (page) => {
+                // Update total count when filters change
+                if (page.props.invoices?.total !== undefined) {
+                    setTotalInvoicesCount(page.props.invoices.total);
+                }
+                
                 setSelectedInvoices((prev) => {
                     const newSet = new Set(prev);
                     const newAmounts = new Map(selectedAmounts);
@@ -135,14 +142,20 @@ const CheckRequisitionFormNew = ({ invoices, filters, filterOptions }) => {
         handleFilterChange({ vendor: value, page: 1 });
     };
 
+    const handlePurchaseOrderChange = (value) => {
+        setPurchaseOrderFilter(value);
+        handleFilterChange({ purchase_order: value, page: 1 });
+    };
+
     const handleSearchChange = (value) => {
         setSearchValue(value);
     };
 
     const handleClearFilters = () => {
         setVendorFilter('all');
+        setPurchaseOrderFilter('all');
         setSearchValue('');
-        handleFilterChange({ vendor: 'all', search: '', page: 1 });
+        handleFilterChange({ vendor: 'all', purchase_order: 'all', search: '', page: 1 });
     };
 
     const handleSelectInvoice = useCallback((invoiceId, index, invoiceObject) => {
@@ -190,10 +203,22 @@ const CheckRequisitionFormNew = ({ invoices, filters, filterOptions }) => {
         toast.success(`Selected all ${accumulatedInvoices.length} loaded invoices`);
     }, [accumulatedInvoices]);
 
-    // Callback to receive accumulated invoices from CheckRequisitionInvoiceList
-    const handleInvoicesUpdate = useCallback((updatedInvoices) => {
-        setAccumulatedInvoices(updatedInvoices);
-    }, []);
+    // Callback to receive accumulated invoices and total count from CheckRequisitionInvoiceList
+    const handleInvoicesUpdate = useCallback((updatedInvoices, totalCount) => {
+        setAccumulatedInvoices(prevInvoices => {
+            // Only update if the count or content actually changed
+            if (prevInvoices.length !== updatedInvoices.length || 
+                !updatedInvoices.every((inv, idx) => prevInvoices[idx]?.id === inv.id)) {
+                return updatedInvoices;
+            }
+            return prevInvoices;
+        });
+        
+        // Update total count if provided
+        if (totalCount !== undefined) {
+            setTotalInvoicesCount(totalCount);
+        }
+    }, [])
 
     // Populate form fields when invoice selection changes
     useEffect(() => {
@@ -275,7 +300,7 @@ const CheckRequisitionFormNew = ({ invoices, filters, filterOptions }) => {
                     <CheckReqHeader
                         selectedCount={selectedInvoices.size}
                         selectedTotal={selectedTotal}
-                        totalInvoices={invoices.total}
+                        totalInvoices={totalInvoicesCount}
                         loadedCount={accumulatedInvoices.length}
                         formatCurrency={formatCurrency}
                         onSubmit={handleSubmit}
@@ -288,9 +313,11 @@ const CheckRequisitionFormNew = ({ invoices, filters, filterOptions }) => {
                     {/* Active Filters */}
                     <CheckReqActiveFilters
                         vendorFilter={vendorFilter}
+                        purchaseOrderFilter={purchaseOrderFilter}
                         searchValue={searchValue}
                         filterOptions={filterOptions}
                         onRemoveVendor={() => handleVendorChange('all')}
+                        onRemovePurchaseOrder={() => handlePurchaseOrderChange('all')}
                         onRemoveSearch={() => setSearchValue('')}
                         onClearAll={handleClearFilters}
                     />
@@ -298,9 +325,11 @@ const CheckRequisitionFormNew = ({ invoices, filters, filterOptions }) => {
                     {/* Filters Row */}
                     <CheckReqFilters
                         vendorFilter={vendorFilter}
+                        purchaseOrderFilter={purchaseOrderFilter}
                         searchValue={searchValue}
                         filterOptions={filterOptions}
                         onVendorChange={handleVendorChange}
+                        onPurchaseOrderChange={handlePurchaseOrderChange}
                         onSearchChange={handleSearchChange}
                     />
                 </div>

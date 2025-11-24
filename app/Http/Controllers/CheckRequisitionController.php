@@ -118,10 +118,15 @@ class CheckRequisitionController extends Controller
             ->where('invoice_status', 'approved');
 
         // Filter by vendor
-        if ($request->filled('vendor')) {
+        if ($request->filled('vendor') && $request->vendor !== 'all') {
             $query->whereHas('purchaseOrder', function ($q) use ($request) {
                 $q->where('vendor_id', $request->vendor);
             });
+        }
+
+        // Filter by purchase order
+        if ($request->filled('purchase_order') && $request->purchase_order !== 'all') {
+            $query->where('purchase_order_id', $request->purchase_order);
         }
 
         // Search
@@ -129,24 +134,33 @@ class CheckRequisitionController extends Controller
             $query->where(function ($q) use ($request) {
                 $q->where('si_number', 'like', '%' . $request->search . '%')
                     ->orWhereHas('purchaseOrder', function ($vq) use ($request) {
-                        $vq->whereHas('vendor', function ($vr) use ($request) {
-                            $vr->where('name', 'like', '%' . $request->search . '%');
-                        });
+                        $vq->where('po_number', 'like', '%' . $request->search . '%')
+                            ->orWhereHas('vendor', function ($vr) use ($request) {
+                                $vr->where('name', 'like', '%' . $request->search . '%');
+                            });
                     });
             });
         }
 
-        $invoices = $query->latest()->paginate(20);
+        // Use consistent per_page with API endpoint (30 instead of 20)
+        $invoices = $query->latest()->paginate(30);
 
         $filterOptions = [
             'vendors' => \App\Models\Vendor::where('is_active', true)
                 ->orderBy('name')
-                ->get(['id', 'name'])
+                ->get(['id', 'name']),
+            'purchaseOrders' => PurchaseOrder::select('id', 'po_number', 'vendor_id')
+                ->with('vendor:id,name')
+                ->whereHas('invoices', function($q) {
+                    $q->where('invoice_status', 'approved');
+                })
+                ->orderBy('po_number', 'desc')
+                ->get()
         ];
 
         return inertia('invoices/check-requisition', [
             'invoices' => $invoices,
-            'filters' => $request->only(['search', 'vendor']),
+            'filters' => $request->only(['search', 'vendor', 'purchase_order']),
             'filterOptions' => $filterOptions
         ]);
     }
@@ -472,14 +486,20 @@ class CheckRequisitionController extends Controller
             });
         }
 
+        // Filter by purchase order
+        if ($request->filled('purchase_order') && $request->purchase_order !== 'all') {
+            $query->where('purchase_order_id', $request->purchase_order);
+        }
+
         // Search
         if ($request->filled('search')) {
             $query->where(function ($q) use ($request) {
                 $q->where('si_number', 'like', '%' . $request->search . '%')
                     ->orWhereHas('purchaseOrder', function ($vq) use ($request) {
-                        $vq->whereHas('vendor', function ($vr) use ($request) {
-                            $vr->where('name', 'like', '%' . $request->search . '%');
-                        });
+                        $vq->where('po_number', 'like', '%' . $request->search . '%')
+                            ->orWhereHas('vendor', function ($vr) use ($request) {
+                                $vr->where('name', 'like', '%' . $request->search . '%');
+                            });
                     });
             });
         }
@@ -488,9 +508,23 @@ class CheckRequisitionController extends Controller
         $perPage = in_array($perPage, [10, 15, 25, 30, 50, 100]) ? $perPage : 30;
 
         $invoices = $query->latest()->paginate($perPage);
+        
+        // Debug: Log actual count vs pagination total to help identify discrepancies
+        \Log::info('Check Requisition API Debug', [
+            'pagination_total' => $invoices->total(),
+            'current_page' => $invoices->currentPage(),
+            'per_page' => $invoices->perPage(),
+            'last_page' => $invoices->lastPage(),
+            'count_on_current_page' => $invoices->count(),
+            'actual_query_count' => $query->count(), // This might differ from total()
+        ]);
 
         return response()->json([
             'invoices' => $invoices,
+            'debug' => [
+                'actual_count' => $invoices->count(),
+                'pagination_total' => $invoices->total(),
+            ]
         ]);
     }
 
@@ -516,14 +550,20 @@ class CheckRequisitionController extends Controller
             });
         }
 
+        // Filter by purchase order
+        if ($request->filled('purchase_order') && $request->purchase_order !== 'all') {
+            $query->where('purchase_order_id', $request->purchase_order);
+        }
+
         // Search
         if ($request->filled('search')) {
             $query->where(function ($q) use ($request) {
                 $q->where('si_number', 'like', '%' . $request->search . '%')
                     ->orWhereHas('purchaseOrder', function ($vq) use ($request) {
-                        $vq->whereHas('vendor', function ($vr) use ($request) {
-                            $vr->where('name', 'like', '%' . $request->search . '%');
-                        });
+                        $vq->where('po_number', 'like', '%' . $request->search . '%')
+                            ->orWhereHas('vendor', function ($vr) use ($request) {
+                                $vr->where('name', 'like', '%' . $request->search . '%');
+                            });
                     });
             });
         }
