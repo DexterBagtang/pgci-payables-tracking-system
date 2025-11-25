@@ -54,6 +54,7 @@ import BackButton from '@/components/custom/BackButton.jsx';
 import { DatePicker } from '@/components/custom/DatePicker.jsx';
 import { RequiredLabel } from '@/components/custom/RequiredLabel.jsx';
 import { PaymentTermsSelect } from '@/components/custom/PaymentTermsSelect.jsx';
+import { CurrencyToggle } from '@/components/custom/CurrencyToggle.jsx';
 
 const EditInvoice = ({ invoice, purchaseOrders }) => {
     const [poComboboxOpen, setPoComboboxOpen] = useState(false);
@@ -359,25 +360,14 @@ const EditInvoice = ({ invoice, purchaseOrders }) => {
                                         />
 
                                         <div>
-                                            <Label className="text-sm font-medium">Currency</Label>
-                                            <Select
-                                                value={data.currency || 'PHP'}
-                                                onValueChange={(value) => setData('currency', value)}
-                                            >
-                                                <SelectTrigger className="mt-1">
-                                                    <SelectValue placeholder="Select currency" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="PHP">PHP (₱)</SelectItem>
-                                                    <SelectItem value="USD">USD ($)</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                            {errors.currency && <p className="mt-1 text-xs text-red-600">{errors.currency}</p>}
-                                        </div>
-
-                                        <div>
-                                            <Label className="text-sm font-medium">Invoice Amount<RequiredLabel /></Label>
-                                            <div className="mt-1 space-y-2">
+                                            <div className="flex items-center justify-between mb-1">
+                                                <Label className="text-sm font-medium">Invoice Amount<RequiredLabel /></Label>
+                                                <CurrencyToggle
+                                                    value={data.currency || 'PHP'}
+                                                    onChange={(value) => setData('currency', value)}
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
                                                 <div className="relative">
                                                     <span className="absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground">
                                                         {data.currency === 'USD' ? '$' : '₱'}

@@ -13,8 +13,9 @@ import POFormActions from '@/pages/purchase-orders/components/shared/POFormActio
  * @param {Array} props.projects - List of project options
  * @param {string} props.project_id - Optional initial project ID
  * @param {Function} props.onSuccess - Optional callback after successful creation
+ * @param {boolean} props.isDialog - Whether component is used in a dialog
  */
-export default function CreatePOForm({ vendors, projects, project_id, onSuccess = null }) {
+export default function CreatePOForm({ vendors, projects, project_id, onSuccess = null, isDialog = false }) {
     const {
         data,
         setData,
@@ -53,7 +54,7 @@ export default function CreatePOForm({ vendors, projects, project_id, onSuccess 
                 processing={processing}
                 mode="create"
                 isDraft={isDraft}
-                isDialog={false}
+                isDialog={isDialog}
             />
         </form>
     );

@@ -58,7 +58,7 @@ export default function CheckReqFormDetails({ data, setData, errors }) {
                             rows={2}
                             value={data.purpose}
                             onChange={(e) => setData("purpose", e.target.value)}
-                            className="text-xs resize-none"
+                            className="text-xs resize-y"
                         />
                         {errors?.purpose && (
                             <p className="text-xs text-red-600 mt-0.5">{errors.purpose}</p>

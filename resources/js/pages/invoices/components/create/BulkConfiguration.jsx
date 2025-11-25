@@ -14,6 +14,7 @@ import { CalendarIcon, PlayCircle, Zap, Hash } from 'lucide-react';
 import { DatePicker } from '@/components/custom/DatePicker.jsx';
 import { PaymentTermsSelect } from '@/components/custom/PaymentTermsSelect.jsx';
 import { RequiredLabel } from '@/components/custom/RequiredLabel.jsx';
+import { CurrencyToggle } from '@/components/custom/CurrencyToggle.jsx';
 import { useEffect } from 'react';
 
 export default function BulkConfiguration({
@@ -376,26 +377,20 @@ export default function BulkConfiguration({
                                         return (
                                             <div key={fieldKey} className="">
                                                 <Label className="text-xs">Currency<RequiredLabel/></Label>
-                                                <Select
-                                                    value={bulkConfig.sharedValues[fieldKey] || 'PHP'}
-                                                    onValueChange={(value) =>
-                                                        setBulkConfig((prev) => ({
-                                                            ...prev,
-                                                            sharedValues: {
-                                                                ...prev.sharedValues,
-                                                                [fieldKey]: value,
-                                                            },
-                                                        }))
-                                                    }
-                                                >
-                                                    <SelectTrigger className="h-8 mt-1 text-xs">
-                                                        <SelectValue placeholder="Select currency" />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectItem value="PHP">PHP (₱)</SelectItem>
-                                                        <SelectItem value="USD">USD ($)</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
+                                                <div className="mt-1">
+                                                    <CurrencyToggle
+                                                        value={bulkConfig.sharedValues[fieldKey] || 'PHP'}
+                                                        onChange={(value) =>
+                                                            setBulkConfig((prev) => ({
+                                                                ...prev,
+                                                                sharedValues: {
+                                                                    ...prev.sharedValues,
+                                                                    [fieldKey]: value,
+                                                                },
+                                                            }))
+                                                        }
+                                                    />
+                                                </div>
                                                 {errors[fieldKey] && <p className="mt-1 text-xs text-red-600">{errors[fieldKey]}</p>}
                                             </div>
                                         );

@@ -15,6 +15,7 @@ export default function AddProjectDialog({ open, onOpenChange, project = null })
         total_project_cost: '',
         total_contract_cost: '',
     });
+    const [contractCostManuallyEdited, setContractCostManuallyEdited] = useState(false);
 
     const initialValues = {
         project_title: project?.project_title || '',
@@ -37,10 +38,24 @@ export default function AddProjectDialog({ open, onOpenChange, project = null })
                 total_project_cost: formatNumberWithCommas(project.total_project_cost),
                 total_contract_cost: formatNumberWithCommas(project.total_contract_cost)
             });
+            setContractCostManuallyEdited(false);
         } else {
             setDisplayCosts({ total_project_cost: '', total_contract_cost: '' });
+            setContractCostManuallyEdited(false);
         }
     }, [project]);
+
+    // Auto-populate Total Contract Cost from Total Project Cost
+    useEffect(() => {
+        // Only auto-populate if the user hasn't manually edited the contract cost
+        if (!contractCostManuallyEdited && data.total_project_cost) {
+            setDisplayCosts((prev) => ({
+                ...prev,
+                total_contract_cost: displayCosts.total_project_cost
+            }));
+            setData('total_contract_cost', data.total_project_cost);
+        }
+    }, [data.total_project_cost, displayCosts.total_project_cost, contractCostManuallyEdited]);
 
     // Client-side validation function
     // const validateForm = () => {
@@ -203,6 +218,7 @@ export default function AddProjectDialog({ open, onOpenChange, project = null })
             onSuccess: () => {
                 reset();
                 setDisplayCosts({ total_project_cost: '', total_contract_cost: '' });
+                setContractCostManuallyEdited(false);
                 onOpenChange(false);
                 project = null
                 toast.success(successMessage, { position: 'top-center' });
@@ -243,6 +259,7 @@ export default function AddProjectDialog({ open, onOpenChange, project = null })
                 reset();
                 setDisplayCosts({ total_project_cost: '', total_contract_cost: '' });
             }
+            setContractCostManuallyEdited(false);
             clearErrors();
         }
     };
@@ -376,6 +393,9 @@ export default function AddProjectDialog({ open, onOpenChange, project = null })
                                     // Store the raw numeric value for form submission
                                     const numericValue = parseFormattedNumber(formattedValue);
                                     setData('total_contract_cost', numericValue);
+
+                                    // Mark as manually edited to prevent auto-population
+                                    setContractCostManuallyEdited(true);
 
                                     // Clear error when user starts typing
                                     if (errors.total_contract_cost) clearErrors('total_contract_cost');

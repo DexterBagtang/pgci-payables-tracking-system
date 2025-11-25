@@ -1,5 +1,6 @@
 import { Button } from '@/components/ui/button';
-import { FileCheck, CheckCircle2, XCircle, FileText, TrendingUp, CheckSquare, Square } from 'lucide-react';
+import { FileCheck, CheckCircle2, XCircle, FileText, TrendingUp } from 'lucide-react';
+import { GmailStyleSelectAll } from '@/components/custom/GmailStyleSelectAll.jsx';
 
 /**
  * Bulk Invoice Review Header Component
@@ -13,11 +14,13 @@ export default function InvoiceReviewHeader({
     onMarkReceived,
     onApprove,
     onReject,
+    onSelectVisible,
     onSelectAll,
     onClearSelection,
     totalInvoices,
     reviewedCount,
     loadedCount,
+    visibleCount,
     hasSelection
 }) {
     const isLoadingMore = loadedCount && loadedCount < totalInvoices;
@@ -84,28 +87,20 @@ export default function InvoiceReviewHeader({
                     )}
                 </div>
 
-                {/* Select All Button */}
+                {/* Gmail-style Select All */}
                 {loadedCount > 0 && (
                     <>
                         <div className="h-4 w-px bg-slate-200" />
-                        <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={hasSelection ? onClearSelection : onSelectAll}
-                            className="h-6 px-2 text-xs text-slate-600 hover:text-slate-900 hover:bg-slate-100"
-                        >
-                            {hasSelection ? (
-                                <>
-                                    <Square className="h-3.5 w-3.5 mr-1" />
-                                    Clear All
-                                </>
-                            ) : (
-                                <>
-                                    <CheckSquare className="h-3.5 w-3.5 mr-1" />
-                                    Select All ({loadedCount})
-                                </>
-                            )}
-                        </Button>
+                        <GmailStyleSelectAll
+                            selectedCount={selectedCount}
+                            visibleCount={visibleCount || loadedCount}
+                            totalLoadedCount={loadedCount}
+                            totalCount={totalInvoices}
+                            onSelectVisible={onSelectVisible}
+                            onSelectAllLoaded={onSelectAll}
+                            onClearSelection={onClearSelection}
+                            itemLabel="invoices"
+                        />
                     </>
                 )}
             </div>

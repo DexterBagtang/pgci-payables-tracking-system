@@ -45,6 +45,8 @@ export default function AddPurchaseOrderDialog({ open, onOpenChange, vendors, pr
                         <CreatePOForm
                             vendors={vendors}
                             projects={projects}
+                            isDialog={true}
+                            onSuccess={() => onOpenChange(false)}
                         />
                     </div>
                 </div>

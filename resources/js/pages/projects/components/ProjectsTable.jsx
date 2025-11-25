@@ -411,20 +411,20 @@ function ProjectRow({ project, onEdit }) {
             onClick={() => router.get('/projects/' + project.id)}
         >
             {/* Project Details */}
-            <TableCell className="py-4 pl-4 pr-3 max-w-[500px]">
+            <TableCell className="py-2 pl-3 pr-2 max-w-[500px]">
                 <div className="flex items-start">
-                    <div className="h-10 w-10 flex-shrink-0 rounded-lg bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900 dark:to-blue-800 flex items-center justify-center mr-3">
-                        <Building className="h-5 w-5 text-blue-700 dark:text-blue-300" />
+                    <div className="h-8 w-8 flex-shrink-0 rounded-lg bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900 dark:to-blue-800 flex items-center justify-center mr-2">
+                        <Building className="h-4 w-4 text-blue-700 dark:text-blue-300" />
                     </div>
                     <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                            <div className="font-semibold text-gray-900 dark:text-gray-100 truncate" title={project.project_title}>
+                        <div className="flex items-center gap-1.5">
+                            <div className="font-semibold text-sm text-gray-900 dark:text-gray-100 truncate" title={project.project_title}>
                                 {project.project_title}
                             </div>
                             {project.project_status && (
                                 <Badge
                                     variant="outline"
-                                    className={`text-xs px-2 py-0 ${
+                                    className={`text-[10px] px-1.5 py-0 leading-tight ${
                                         project.project_status === 'active' ? 'bg-green-50 text-green-700 border-green-200' :
                                         project.project_status === 'on_hold' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
                                         project.project_status === 'completed' ? 'bg-blue-50 text-blue-700 border-blue-200' :
@@ -435,8 +435,8 @@ function ProjectRow({ project, onEdit }) {
                                 </Badge>
                             )}
                         </div>
-                        <div className="flex items-center text-sm text-muted-foreground mt-1">
-                            <FileText className="h-3.5 w-3.5 mr-1.5" />
+                        <div className="flex items-center text-xs text-muted-foreground mt-0.5">
+                            <FileText className="h-3 w-3 mr-1" />
                             CER: {project.cer_number}
                         </div>
                     </div>
@@ -444,27 +444,24 @@ function ProjectRow({ project, onEdit }) {
             </TableCell>
 
             {/* Financial Details */}
-            <TableCell className="px-3 py-4">
-                <div className="space-y-1">
-                    <div className="flex items-center text-sm">
-                        <Banknote className="h-3.5 w-3.5 mr-1.5 text-green-600" />
-                        <span className="font-medium">Total Cost:</span>
-                        <span className="ml-1">{formatCurrency(project.total_project_cost)}</span>
-                    </div>
-
+            <TableCell className="px-2 py-2">
+                <div className="flex items-center text-xs">
+                    <Banknote className="h-3 w-3 mr-1 text-green-600" />
+                    <span className="font-medium">Total:</span>
+                    <span className="ml-1">{formatCurrency(project.total_project_cost)}</span>
                 </div>
             </TableCell>
 
             {/* Project Type */}
-            <TableCell className="px-3 py-4">
-                <div className="space-y-2">
+            <TableCell className="px-2 py-2">
+                <div className="space-y-1">
                     <Badge
                         variant="secondary"
-                        className={`rounded-md border ${getTypeColor(project.project_type)} px-2 py-0.5 text-xs font-medium`}
+                        className={`rounded-md border ${getTypeColor(project.project_type)} px-1.5 py-0 text-[10px] font-medium leading-tight`}
                     >
                         {project.project_type === 'sm_project' ? 'SM Project' : 'PhilCom Project'}
                     </Badge>
-                    <div className="text-xs text-muted-foreground">
+                    <div className="text-[11px] text-muted-foreground">
                         {project.project_type === 'sm_project'
                             ? 'SMPO#: ' +  project.smpo_number
                             : 'Category: '+ project.philcom_category?.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())
@@ -474,16 +471,16 @@ function ProjectRow({ project, onEdit }) {
             </TableCell>
 
             {/* Date Created */}
-            <TableCell className="px-3 py-4 text-xs text-muted-foreground">
+            <TableCell className="px-2 py-2 text-[11px] text-muted-foreground">
                 <div className="flex items-center">
-                    <Calendar className="h-3.5 w-3.5 mr-1.5 opacity-70" />
+                    <Calendar className="h-3 w-3 mr-1 opacity-70" />
                     {formatDate(project.created_at)}
                 </div>
             </TableCell>
 
             {/* Actions */}
-            <TableCell className="px-3 py-4">
-                <div className="flex items-center gap-2">
+            <TableCell className="px-2 py-2">
+                <div className="flex items-center gap-1">
                     <Button
                         onClick={(e) => {
                             e.stopPropagation();
@@ -491,10 +488,10 @@ function ProjectRow({ project, onEdit }) {
                         }}
                         variant="ghost"
                         size="sm"
-                        className="rounded-full h-8 w-8 p-0"
+                        className="rounded-full h-7 w-7 p-0"
                         aria-label={`View ${project.project_title}`}
                     >
-                        <Eye className="h-4 w-4" />
+                        <Eye className="h-3.5 w-3.5" />
                     </Button>
                     <Button
                         onClick={(e) => {
@@ -503,10 +500,10 @@ function ProjectRow({ project, onEdit }) {
                         }}
                         variant="ghost"
                         size="sm"
-                        className="rounded-full h-8 w-8 p-0"
+                        className="rounded-full h-7 w-7 p-0"
                         aria-label={`Edit ${project.project_title}`}
                     >
-                        <Edit className="h-4 w-4" />
+                        <Edit className="h-3.5 w-3.5" />
                     </Button>
                 </div>
             </TableCell>

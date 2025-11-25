@@ -11,6 +11,7 @@ import { FileText, AlertCircle } from 'lucide-react';
 import PoDateSelection from '@/pages/purchase-orders/components/create/PoDateSelection.jsx';
 import ProjectSelection from '@/pages/purchase-orders/components/create/ProjectSelection.jsx';
 import VendorSelection from '@/pages/purchase-orders/components/create/VendorSelection.jsx';
+import { CurrencyToggle } from '@/components/custom/CurrencyToggle.jsx';
 
 /**
  * PODetailsCard Component
@@ -113,36 +114,17 @@ export default function PODetailsCard({
                             )}
                         </div>
 
-                        {/* Currency */}
-                        <div className="space-y-2">
-                            <Label htmlFor="currency" className={errors?.currency ? 'text-red-600' : ''}>
-                                Currency
-                            </Label>
-                            <Select
-                                value={data.currency || 'PHP'}
-                                onValueChange={(value) => setData('currency', value)}
-                            >
-                                <SelectTrigger className={getInputClassName('currency')}>
-                                    <SelectValue placeholder="Select currency" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="PHP">PHP (₱)</SelectItem>
-                                    <SelectItem value="USD">USD ($)</SelectItem>
-                                </SelectContent>
-                            </Select>
-                            {errors?.currency && (
-                                <p className="text-sm text-red-600 flex items-center gap-1">
-                                    <AlertCircle className="h-3 w-3" />
-                                    {errors.currency}
-                                </p>
-                            )}
-                        </div>
-
                         {/* PO Amount */}
                         <div className="space-y-2">
-                            <Label htmlFor="po_amount" className={errors?.po_amount ? 'text-red-600' : ''}>
-                                PO Amount <span className="text-red-500">*</span>
-                            </Label>
+                            <div className="flex items-center justify-between">
+                                <Label htmlFor="po_amount" className={errors?.po_amount ? 'text-red-600' : ''}>
+                                    PO Amount <span className="text-red-500">*</span>
+                                </Label>
+                                <CurrencyToggle
+                                    value={data.currency || 'PHP'}
+                                    onChange={(value) => setData('currency', value)}
+                                />
+                            </div>
                             <div className="relative">
                                 <span className="absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground">
                                     {data.currency === 'USD' ? '$' : '₱'}

@@ -11,7 +11,7 @@ export function useBulkInvoiceConfig() {
         siPrefix: '',
         autoIncrementEnabled: false,
         startingNumber: 1,
-        inputMode: 'manual', // 'manual' or 'range'
+        inputMode: 'range', // 'manual' or 'range' - default is 'range'
         rangeStart: '',
         rangeEnd: '',
         sharedFields: {
@@ -60,8 +60,14 @@ export function useBulkInvoiceConfig() {
                     const currentNumber = bulkConfig.startingNumber + index;
                     // Count digits in prefix to determine padding
                     const prefixMatch = bulkConfig.siPrefix.match(/0+$/);
-                    const paddingLength = prefixMatch ? prefixMatch[0].length : 3; // Default to 3 if no zeros
-                    siNumber = `${bulkConfig.siPrefix.replace(/0+$/, '')}${String(currentNumber).padStart(paddingLength, '0')}`;
+                    if (prefixMatch) {
+                        // If prefix ends with zeros, use them for padding
+                        const paddingLength = prefixMatch[0].length;
+                        siNumber = `${bulkConfig.siPrefix.replace(/0+$/, '')}${String(currentNumber).padStart(paddingLength, '0')}`;
+                    } else {
+                        // If no trailing zeros, just append the number without padding
+                        siNumber = `${bulkConfig.siPrefix}${currentNumber}`;
+                    }
                 } else {
                     siNumber = bulkConfig.siPrefix;
                 }
@@ -137,7 +143,7 @@ export function useBulkInvoiceConfig() {
             siPrefix: '',
             autoIncrementEnabled: false,
             startingNumber: 1,
-            inputMode: 'manual',
+            inputMode: 'range',
             rangeStart: '',
             rangeEnd: '',
             sharedFields: {

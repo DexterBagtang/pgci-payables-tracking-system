@@ -196,6 +196,21 @@ const BulkInvoiceReview = ({ invoices, filters, filterOptions }) => {
         toast.info('Selection cleared');
     }, []);
 
+    const handleSelectVisible = useCallback(() => {
+        const newSelectedInvoices = new Set();
+        const newSelectedAmounts = new Map();
+
+        // Select only the visible invoices from the current page (invoices.data)
+        invoices.data.forEach((invoice) => {
+            newSelectedInvoices.add(invoice.id);
+            newSelectedAmounts.set(invoice.id, invoice.invoice_amount);
+        });
+
+        setSelectedInvoices(newSelectedInvoices);
+        setSelectedAmounts(newSelectedAmounts);
+        toast.success(`Selected ${invoices.data.length} visible invoice(s)`);
+    }, [invoices.data]);
+
     const handleSelectAll = useCallback(() => {
         const newSelectedInvoices = new Set();
         const newSelectedAmounts = new Map();
@@ -396,11 +411,13 @@ const BulkInvoiceReview = ({ invoices, filters, filterOptions }) => {
                         onMarkReceived={() => handleBulkAction('mark-received')}
                         onApprove={() => handleBulkAction('approve')}
                         onReject={() => handleBulkAction('reject')}
+                        onSelectVisible={handleSelectVisible}
                         onSelectAll={handleSelectAll}
                         onClearSelection={handleClearSelection}
                         totalInvoices={invoices.total}
                         reviewedCount={reviewedCount}
                         loadedCount={accumulatedInvoices.length}
+                        visibleCount={invoices.data.length}
                         hasSelection={selectedInvoices.size > 0}
                     />
 
