@@ -24,6 +24,7 @@ return new class extends Migration
             $table->string('disk')->default('local'); // Storage disk (local, s3, etc.)
             $table->text('description')->nullable(); // File description/notes
             $table->boolean('is_active')->default(true); // Soft delete flag
+            $table->unsignedInteger('version')->default(1); // File version
             $table->foreignId('uploaded_by')->constrained('users');
             $table->timestamps();
 
@@ -33,6 +34,7 @@ return new class extends Migration
             $table->index('file_purpose');
             $table->index('is_active');
             $table->index('uploaded_by');
+            $table->index(['fileable_type', 'fileable_id', 'file_purpose', 'version'], 'files_purpose_version_index');
         });
     }
 

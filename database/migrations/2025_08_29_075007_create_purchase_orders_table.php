@@ -19,6 +19,7 @@ return new class extends Migration
             $table->foreignId('project_id')->nullable()->constrained('projects');
             $table->foreignId('vendor_id')->nullable()->constrained('vendors');
             $table->decimal('po_amount', 15, 2)->nullable();
+            $table->enum('currency', ['PHP', 'USD'])->default('PHP');
 
             // Simplified statuses
             $table->enum('po_status', [
@@ -39,6 +40,11 @@ return new class extends Migration
             // Only set once draft → open
             $table->foreignId('finalized_by')->nullable()->constrained('users');
             $table->timestamp('finalized_at')->nullable();
+
+            // Closure fields
+            $table->foreignId('closed_by')->nullable()->constrained('users');
+            $table->timestamp('closed_at')->nullable();
+            $table->text('closure_remarks')->nullable();
 
             $table->timestamps();
 

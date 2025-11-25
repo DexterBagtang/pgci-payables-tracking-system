@@ -19,6 +19,7 @@ return new class extends Migration
             $table->date('si_received_at')->nullable();
             $table->enum('payment_type', ['cash', 'check', 'bank_transfer', 'credit_card', 'other'])->nullable();
             $table->decimal('invoice_amount', 15, 2);
+            $table->enum('currency', ['PHP', 'USD'])->default('PHP');
             $table->decimal('tax_amount', 15, 2)->default(0);
             $table->decimal('discount_amount', 15, 2)->default(0);
             $table->decimal('net_amount', 15, 2);
@@ -35,10 +36,18 @@ return new class extends Migration
             $table->foreignId('created_by')->constrained('users')->onDelete('cascade');
             $table->timestamps();
 
-            // Indexes
+            // Indexes for basic lookups
             $table->index('si_number');
             $table->index('invoice_status');
             $table->index('due_date');
+
+            // Composite indexes for performance on common query patterns
+            $table->index(['invoice_status', 'created_at'], 'idx_invoices_status_created');
+            $table->index(['invoice_status', 'si_date'], 'idx_invoices_status_si_date');
+            $table->index(['invoice_status', 'due_date'], 'idx_invoices_status_due_date');
+            $table->index(['invoice_status', 'files_received_at'], 'idx_invoices_status_files_received');
+            $table->index(['purchase_order_id', 'invoice_status'], 'idx_invoices_po_status');
+            $table->index(['purchase_order_id', 'created_at'], 'idx_invoices_po_created');
         });
     }
 

@@ -32,8 +32,8 @@ import {
     FileText,
     Building,
     X,
-    Eye
-} from "lucide-react";
+    Eye, Banknote
+} from 'lucide-react';
 import PaginationServerSide from '@/components/custom/Pagination.jsx';
 import DialogLoadingFallback from '@/components/custom/DialogLoadingFallback.jsx';
 import ProjectStats from './ProjectStats';
@@ -447,15 +447,11 @@ function ProjectRow({ project, onEdit }) {
             <TableCell className="px-3 py-4">
                 <div className="space-y-1">
                     <div className="flex items-center text-sm">
-                        <DollarSign className="h-3.5 w-3.5 mr-1.5 text-green-600" />
-                        <span className="font-medium">Project:</span>
+                        <Banknote className="h-3.5 w-3.5 mr-1.5 text-green-600" />
+                        <span className="font-medium">Total Cost:</span>
                         <span className="ml-1">{formatCurrency(project.total_project_cost)}</span>
                     </div>
-                    <div className="flex items-center text-sm text-muted-foreground">
-                        <DollarSign className="h-3.5 w-3.5 mr-1.5 text-blue-600" />
-                        <span className="font-medium">Contract:</span>
-                        <span className="ml-1">{formatCurrency(project.total_contract_cost)}</span>
-                    </div>
+
                 </div>
             </TableCell>
 
