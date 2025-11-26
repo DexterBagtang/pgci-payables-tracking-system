@@ -30,6 +30,81 @@ class DisbursementController extends Controller
             });
         }
 
+        // Status filter
+        if ($request->filled('status') && $request->status !== 'all') {
+            if ($request->status === 'released') {
+                $query->whereNotNull('date_check_released_to_vendor');
+            } elseif ($request->status === 'pending') {
+                $query->whereNull('date_check_released_to_vendor');
+            } elseif ($request->status === 'scheduled') {
+                $query->whereNotNull('date_check_scheduled')
+                      ->whereNull('date_check_released_to_vendor');
+            }
+        }
+
+        // Date range filter
+        if ($request->has('date_from') || $request->has('date_to')) {
+            $dateField = $request->get('date_field', 'date_check_scheduled');
+
+            // Whitelist date fields
+            if (!in_array($dateField, ['date_check_scheduled', 'date_check_released_to_vendor',
+                                         'date_check_printing', 'created_at'])) {
+                $dateField = 'date_check_scheduled';
+            }
+
+            if ($request->filled('date_from')) {
+                $query->whereDate($dateField, '>=', $request->date_from);
+            }
+
+            if ($request->filled('date_to')) {
+                $query->whereDate($dateField, '<=', $request->date_to);
+            }
+        }
+
+        // Vendor filter
+        if ($request->filled('vendor_id')) {
+            $query->whereHas('checkRequisitions.invoices', function ($q) use ($request) {
+                $q->whereHas('purchaseOrder', function ($poQuery) use ($request) {
+                    $poQuery->where('vendor_id', $request->vendor_id);
+                });
+            });
+        }
+
+        // Purchase Order filter
+        if ($request->filled('purchase_order_id')) {
+            $query->whereHas('checkRequisitions.invoices', function ($q) use ($request) {
+                $q->where('purchase_order_id', $request->purchase_order_id);
+            });
+        }
+
+        // Check Requisition filter
+        if ($request->filled('check_requisition_id')) {
+            $query->whereHas('checkRequisitions', function ($q) use ($request) {
+                $q->where('check_requisitions.id', $request->check_requisition_id);
+            });
+        }
+
+        // Amount range filter - using subquery for aggregated amounts
+        if ($request->filled('amount_min') || $request->filled('amount_max')) {
+            $query->whereHas('checkRequisitions', function ($q) use ($request) {
+                // This creates a subquery that filters based on total amount
+            })->when($request->filled('amount_min') || $request->filled('amount_max'), function ($q) use ($request) {
+                $q->whereIn('id', function ($subQuery) use ($request) {
+                    $subQuery->select('disbursement_id')
+                        ->from('check_requisition_disbursement')
+                        ->join('check_requisitions', 'check_requisitions.id', '=', 'check_requisition_disbursement.check_requisition_id')
+                        ->groupBy('disbursement_id');
+
+                    if ($request->filled('amount_min')) {
+                        $subQuery->havingRaw('SUM(check_requisitions.php_amount) >= ?', [$request->amount_min]);
+                    }
+                    if ($request->filled('amount_max')) {
+                        $subQuery->havingRaw('SUM(check_requisitions.php_amount) <= ?', [$request->amount_max]);
+                    }
+                });
+            });
+        }
+
         // Sorting
         $sortBy = $request->get('sort_by', 'created_at');
         $sortOrder = $request->get('sort_order', 'desc');
@@ -46,16 +121,99 @@ class DisbursementController extends Controller
             $query->orderBy($sortBy, $sortOrder);
         }
 
-        $disbursements = $query->with(['creator:id,name', 'checkRequisitions'])
-            ->paginate(15)
-            ->withQueryString();
+        // Calculate statistics (before pagination)
+        $statsQuery = clone $query;
+
+        // Count statistics with conditional aggregation
+        $statsResult = DB::table(DB::raw("({$statsQuery->toSql()}) as filtered_disbursements"))
+            ->mergeBindings($statsQuery->getQuery())
+            ->selectRaw("
+                COUNT(*) as total_count,
+                SUM(CASE WHEN date_check_released_to_vendor IS NOT NULL THEN 1 ELSE 0 END) as released_count,
+                SUM(CASE WHEN date_check_released_to_vendor IS NULL THEN 1 ELSE 0 END) as pending_count,
+                SUM(CASE WHEN date_check_scheduled IS NOT NULL
+                         AND date_check_released_to_vendor IS NULL THEN 1 ELSE 0 END) as scheduled_count
+            ")
+            ->first();
+
+        $statistics = [
+            'total' => (int) $statsResult->total_count,
+            'released' => (int) $statsResult->released_count,
+            'pending' => (int) $statsResult->pending_count,
+            'scheduled' => (int) $statsResult->scheduled_count,
+        ];
+
+        // Calculate financial aggregations
+        $financialQuery = clone $query;
+        $financialStats = $financialQuery
+            ->reorder() // Clear any existing order by clauses to avoid ambiguity
+            ->join('check_requisition_disbursement', 'disbursements.id', '=',
+                   'check_requisition_disbursement.disbursement_id')
+            ->join('check_requisitions', 'check_requisition_disbursement.check_requisition_id', '=',
+                   'check_requisitions.id')
+            ->selectRaw("
+                SUM(check_requisitions.php_amount) as total_amount,
+                SUM(CASE WHEN disbursements.date_check_released_to_vendor IS NOT NULL
+                         THEN check_requisitions.php_amount ELSE 0 END) as released_amount,
+                SUM(CASE WHEN disbursements.date_check_released_to_vendor IS NULL
+                         THEN check_requisitions.php_amount ELSE 0 END) as pending_amount,
+                AVG(check_requisitions.php_amount) as average_amount
+            ")
+            ->first();
+
+        $statistics['total_amount'] = (float) ($financialStats->total_amount ?? 0);
+        $statistics['released_amount'] = (float) ($financialStats->released_amount ?? 0);
+        $statistics['pending_amount'] = (float) ($financialStats->pending_amount ?? 0);
+        $statistics['average_amount'] = (float) ($financialStats->average_amount ?? 0);
+
+        // Paginate with improved eager loading
+        $disbursements = $query->with([
+            'creator:id,name',
+            'checkRequisitions' => function ($q) {
+                $q->select('check_requisitions.id', 'requisition_number', 'php_amount', 'payee_name');
+            }
+        ])
+        ->paginate(15)
+        ->withQueryString();
+
+        // Transform collection to add computed fields
+        $disbursements->getCollection()->transform(function ($disbursement) {
+            $disbursement->total_amount = $disbursement->checkRequisitions->sum('php_amount');
+            $disbursement->check_requisition_count = $disbursement->checkRequisitions->count();
+            $disbursement->status = $disbursement->date_check_released_to_vendor ? 'released' : 'pending';
+            return $disbursement;
+        });
 
         return inertia('disbursements/index', [
             'disbursements' => $disbursements,
+            'statistics' => $statistics,
             'filters' => [
                 'search' => $request->search,
+                'status' => $request->status ?? 'all',
                 'sort_by' => $sortBy,
                 'sort_order' => $sortOrder,
+                'date_field' => $request->get('date_field', 'date_check_scheduled'),
+                'date_from' => $request->date_from,
+                'date_to' => $request->date_to,
+                'vendor_id' => $request->vendor_id,
+                'purchase_order_id' => $request->purchase_order_id,
+                'check_requisition_id' => $request->check_requisition_id,
+                'amount_min' => $request->amount_min,
+                'amount_max' => $request->amount_max,
+            ],
+            'filterOptions' => [
+                'vendors' => \App\Models\Vendor::select('id', 'name')
+                    ->orderBy('name')
+                    ->get(),
+                'purchaseOrders' => \App\Models\PurchaseOrder::select('id', 'po_number')
+                    ->orderBy('po_number', 'desc')
+                    ->limit(100)
+                    ->get(),
+                'checkRequisitions' => \App\Models\CheckRequisition::select('id', 'requisition_number', 'payee_name')
+                    ->whereIn('requisition_status', ['approved', 'processed', 'paid'])
+                    ->orderBy('requisition_number', 'desc')
+                    ->limit(100)
+                    ->get(),
             ],
         ]);
     }
@@ -135,6 +293,14 @@ class DisbursementController extends Controller
             // Link check requisitions
             $disbursement->checkRequisitions()->attach($checkReqIds);
 
+            // Update check requisitions to 'processed' status
+            CheckRequisition::whereIn('id', $checkReqIds)
+                ->update([
+                    'requisition_status' => 'processed',
+                    'processed_at' => now(),
+                    'processed_by' => auth()->id()
+                ]);
+
             // Get all invoices from the selected check requisitions
             $invoiceIds = CheckRequisition::whereIn('id', $checkReqIds)
                 ->with('invoices')
@@ -145,12 +311,14 @@ class DisbursementController extends Controller
                 ->unique()
                 ->toArray();
 
-            // Update invoice statuses based on whether check was released
+            // Update invoice and check requisition statuses based on whether check was released
             if (!empty($validated['date_check_released_to_vendor'])) {
-                // Check was released - mark invoices as paid
+                // Check was released - mark CRs as paid and invoices as paid
+                CheckRequisition::whereIn('id', $checkReqIds)
+                    ->update(['requisition_status' => 'paid']);
                 Invoice::whereIn('id', $invoiceIds)->update(['invoice_status' => 'paid']);
             } else {
-                // Check not yet released - mark invoices as pending_disbursement
+                // Check not yet released - mark invoices as pending_disbursement (CRs already 'processed')
                 Invoice::whereIn('id', $invoiceIds)->update(['invoice_status' => 'pending_disbursement']);
             }
 
@@ -217,6 +385,7 @@ class DisbursementController extends Controller
         $disbursement = Disbursement::with([
             'creator:id,name',
             'activityLogs.user:id,name',
+            'remarks.user:id,name',
         ])->findOrFail($id);
 
         // Get associated check requisitions with their invoices
@@ -308,10 +477,74 @@ class DisbursementController extends Controller
             $checkReqIds = $validated['check_requisition_ids'];
             unset($validated['check_requisition_ids']);
 
-            // Track old check req IDs to determine changes
+            // Track old vs new check requisitions
             $oldCheckReqIds = $disbursement->checkRequisitions()->pluck('check_requisitions.id')->toArray();
+            $addedCheckReqIds = array_diff($checkReqIds, $oldCheckReqIds);
+            $removedCheckReqIds = array_diff($oldCheckReqIds, $checkReqIds);
 
-            // Get old invoices
+            // Update disbursement
+            $disbursement->update($validated);
+
+            // Sync check requisitions
+            $disbursement->checkRequisitions()->sync($checkReqIds);
+
+            // Revert removed CRs to 'approved' status
+            if (!empty($removedCheckReqIds)) {
+                CheckRequisition::whereIn('id', $removedCheckReqIds)
+                    ->update([
+                        'requisition_status' => 'approved',
+                        'processed_at' => null,
+                        'processed_by' => null
+                    ]);
+            }
+
+            // Update newly added CRs to 'processed'
+            if (!empty($addedCheckReqIds)) {
+                CheckRequisition::whereIn('id', $addedCheckReqIds)
+                    ->update([
+                        'requisition_status' => 'processed',
+                        'processed_at' => now(),
+                        'processed_by' => auth()->id()
+                    ]);
+            }
+
+            // Update status based on check release date
+            if (!empty($validated['date_check_released_to_vendor'])) {
+                // Mark all CRs in this disbursement as 'paid'
+                CheckRequisition::whereIn('id', $checkReqIds)
+                    ->update(['requisition_status' => 'paid']);
+
+                // Get all invoices and mark as paid
+                $newInvoiceIds = CheckRequisition::whereIn('id', $checkReqIds)
+                    ->with('invoices')
+                    ->get()
+                    ->pluck('invoices')
+                    ->flatten()
+                    ->pluck('id')
+                    ->unique()
+                    ->toArray();
+
+                Invoice::whereIn('id', $newInvoiceIds)->update(['invoice_status' => 'paid']);
+            } else {
+                // Check not yet released - mark CRs as 'processed'
+                CheckRequisition::whereIn('id', $checkReqIds)
+                    ->where('requisition_status', '!=', 'paid')
+                    ->update(['requisition_status' => 'processed']);
+
+                // Get new invoices
+                $newInvoiceIds = CheckRequisition::whereIn('id', $checkReqIds)
+                    ->with('invoices')
+                    ->get()
+                    ->pluck('invoices')
+                    ->flatten()
+                    ->pluck('id')
+                    ->unique()
+                    ->toArray();
+
+                Invoice::whereIn('id', $newInvoiceIds)->update(['invoice_status' => 'pending_disbursement']);
+            }
+
+            // Handle removed invoices - revert to approved status
             $oldInvoiceIds = CheckRequisition::whereIn('id', $oldCheckReqIds)
                 ->with('invoices')
                 ->get()
@@ -321,13 +554,6 @@ class DisbursementController extends Controller
                 ->unique()
                 ->toArray();
 
-            // Update disbursement
-            $disbursement->update($validated);
-
-            // Sync check requisitions
-            $disbursement->checkRequisitions()->sync($checkReqIds);
-
-            // Get new invoices
             $newInvoiceIds = CheckRequisition::whereIn('id', $checkReqIds)
                 ->with('invoices')
                 ->get()
@@ -337,18 +563,10 @@ class DisbursementController extends Controller
                 ->unique()
                 ->toArray();
 
-            // Reset removed invoices to pending_disbursement
             $removedInvoiceIds = array_diff($oldInvoiceIds, $newInvoiceIds);
             if (!empty($removedInvoiceIds)) {
                 Invoice::whereIn('id', $removedInvoiceIds)
-                    ->update(['invoice_status' => 'pending_disbursement']);
-            }
-
-            // Update invoice statuses based on whether check was released
-            if (!empty($validated['date_check_released_to_vendor'])) {
-                Invoice::whereIn('id', $newInvoiceIds)->update(['invoice_status' => 'paid']);
-            } else {
-                Invoice::whereIn('id', $newInvoiceIds)->update(['invoice_status' => 'pending_disbursement']);
+                    ->update(['invoice_status' => 'approved']);
             }
 
             // Handle file uploads
@@ -417,8 +635,19 @@ class DisbursementController extends Controller
 
         DB::beginTransaction();
         try {
+            // Get check requisition IDs before deleting
+            $checkReqIds = $disbursement->checkRequisitions->pluck('id');
+
+            // Revert check requisition statuses to 'approved'
+            CheckRequisition::whereIn('id', $checkReqIds)
+                ->update([
+                    'requisition_status' => 'approved',
+                    'processed_at' => null,
+                    'processed_by' => null
+                ]);
+
             // Get all invoice IDs before deleting
-            $invoiceIds = CheckRequisition::whereIn('id', $disbursement->checkRequisitions->pluck('id'))
+            $invoiceIds = CheckRequisition::whereIn('id', $checkReqIds)
                 ->with('invoices')
                 ->get()
                 ->pluck('invoices')
@@ -427,8 +656,8 @@ class DisbursementController extends Controller
                 ->unique()
                 ->toArray();
 
-            // Reset invoice statuses back to pending_disbursement
-            Invoice::whereIn('id', $invoiceIds)->update(['invoice_status' => 'pending_disbursement']);
+            // Reset invoice statuses back to approved
+            Invoice::whereIn('id', $invoiceIds)->update(['invoice_status' => 'approved']);
 
             // Delete the disbursement (cascade will handle pivot table)
             $disbursement->delete();

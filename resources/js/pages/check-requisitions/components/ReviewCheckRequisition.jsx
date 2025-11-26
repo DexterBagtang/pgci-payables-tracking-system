@@ -121,6 +121,7 @@ export default function ReviewCheckRequisition({
         approvalForm.post(`/check-requisitions/${checkRequisition.id}/approve`, {
             preserveScroll: true,
             forceFormData: true,
+            replace:true,
             onSuccess: () => {
                 toast.success('Check requisition approved successfully!');
                 setApprovalDialog(false);

@@ -58,7 +58,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/check-requisitions/{checkRequisition}/reject', [CheckRequisitionController::class, 'reject'])
         ->name('check-requisitions.reject');
 
-    Route::resource('disbursements', DisbursementController::class);
+    Route::resource('disbursements', DisbursementController::class)->except(['update']);
+    Route::post('disbursements/{disbursement}', [DisbursementController::class, 'update'])
+        ->name('disbursements.update');
 
     Route::resource('remarks',RemarksController::class);
 

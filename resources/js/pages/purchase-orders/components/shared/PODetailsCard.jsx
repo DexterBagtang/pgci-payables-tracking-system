@@ -17,7 +17,7 @@ import { CurrencyToggle } from '@/components/custom/CurrencyToggle.jsx';
  * PODetailsCard Component
  * Shared UI component for displaying and editing PO basic details
  * Used by both CreatePOForm and EditPOForm with client-side validation
- * 
+ *
  * @param {Object} props
  * @param {Object} props.data - Form data object
  * @param {Function} props.setData - Function to update form data
@@ -57,32 +57,32 @@ export default function PODetailsCard({
                         Purchase Order Details
                     </CardTitle>
                     <CardDescription>
-                        {mode === 'create' 
-                            ? 'Enter all the details for the purchase order' 
+                        {mode === 'create'
+                            ? 'Enter all the details for the purchase order'
                             : 'Update the details for the purchase order'}
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                     {/* Project & Vendor Selection */}
                     <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                        <ProjectSelection 
-                            projects={projects} 
-                            data={data} 
-                            setData={setData} 
-                            errors={errors} 
+                        <ProjectSelection
+                            projects={projects}
+                            data={data}
+                            setData={setData}
+                            errors={errors}
                             project_id={projectId}
                         />
 
-                        <VendorSelection 
-                            vendors={vendors} 
-                            data={data} 
-                            setData={setData} 
-                            errors={errors} 
+                        <VendorSelection
+                            vendors={vendors}
+                            data={data}
+                            setData={setData}
+                            errors={errors}
                         />
                     </div>
 
                     {/* Top Section: PO Number, Date, Currency, Amount */}
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
                         {/* PO Number */}
                         <div className="space-y-2">
                             <Label htmlFor="po_number" className={errors?.po_number ? 'text-red-600' : ''}>
@@ -116,7 +116,7 @@ export default function PODetailsCard({
 
                         {/* PO Amount */}
                         <div className="space-y-2">
-                            <div className="flex items-center justify-between">
+                            <div className="flex items-center justify-between m-0">
                                 <Label htmlFor="po_amount" className={errors?.po_amount ? 'text-red-600' : ''}>
                                     PO Amount <span className="text-red-500">*</span>
                                 </Label>
@@ -219,9 +219,9 @@ export default function PODetailsCard({
 
                     {/* Bottom Section: Save as Draft Checkbox */}
                     <div className="flex items-center space-x-2 border-t pt-4">
-                        <Checkbox 
-                            id="is_draft" 
-                            checked={isDraft} 
+                        <Checkbox
+                            id="is_draft"
+                            checked={isDraft}
                             onCheckedChange={onDraftChange}
                         />
                         <Label

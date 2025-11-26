@@ -7,7 +7,8 @@ import {
     CheckSquare,
     Clock,
     Calendar,
-    ChevronRight
+    ChevronRight,
+    CreditCard
 } from 'lucide-react';
 import { Link } from '@inertiajs/react';
 
@@ -17,6 +18,7 @@ export default function PendingActionsWidget({ actions = {} }) {
         check_reqs_for_approval = 0,
         overdue_invoices = 0,
         pos_near_delivery = 0,
+        disbursements_pending_release = 0,
     } = actions;
 
     const actionItems = [
@@ -39,6 +41,16 @@ export default function PendingActionsWidget({ actions = {} }) {
             href: '/check-requisitions?requisition_status=pending_approval',
             priority: 'medium',
             show: check_reqs_for_approval > 0,
+        },
+        {
+            title: 'Disbursements Pending Release',
+            count: disbursements_pending_release,
+            icon: CreditCard,
+            iconColor: 'text-teal-600',
+            bgColor: 'bg-teal-50 dark:bg-teal-950/20',
+            href: '/disbursements',
+            priority: 'medium',
+            show: disbursements_pending_release > 0,
         },
         {
             title: 'Overdue Invoices',

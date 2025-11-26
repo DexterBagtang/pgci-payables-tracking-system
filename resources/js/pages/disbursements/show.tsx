@@ -1,5 +1,5 @@
 import AppLayout from '@/layouts/app-layout';
-import { type BreadcrumbItem, type Disbursement } from '@/types';
+import { type BreadcrumbItem, type Disbursement, type CheckRequisition, type FileAttachment, type ActivityLog, type Remark } from '@/types';
 import { Head, Link } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -27,11 +27,17 @@ import {
     CheckCircle2,
     Clock,
 } from 'lucide-react';
+import ActivityTimeline from '@/components/custom/ActivityTimeline';
+import Remarks from '@/components/custom/Remarks';
+import AttachmentsCard from '@/components/custom/AttachmentsCard';
 
 interface PageProps {
-    disbursement: Disbursement;
-    checkRequisitions: unknown[];
-    files: unknown[];
+    disbursement: Disbursement & {
+        activity_logs?: ActivityLog[];
+        remarks?: Remark[];
+    };
+    checkRequisitions: CheckRequisition[];
+    files: FileAttachment[];
 }
 
 const formatDate = (dateString: string | null) => {
@@ -154,13 +160,6 @@ export default function ShowDisbursementPage({
                                             {formatDate(disbursement.date_check_released_to_vendor)}
                                         </p>
                                     </div>
-
-                                    {disbursement.remarks && (
-                                        <div className="md:col-span-2">
-                                            <p className="text-sm font-medium text-gray-500">Remarks</p>
-                                            <p className="text-base">{disbursement.remarks}</p>
-                                        </div>
-                                    )}
                                 </div>
                             </CardContent>
                         </Card>
@@ -260,36 +259,34 @@ export default function ShowDisbursementPage({
 
                     {/* Sidebar */}
                     <div className="space-y-4">
-                        {/* Files Card */}
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="text-base">Supporting Documents</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                {files.length === 0 ? (
-                                    <p className="text-sm text-gray-500">No files attached</p>
-                                ) : (
-                                    <div className="space-y-2">
-                                        {files.map((file: any) => (
-                                            <a
-                                                key={file.id}
-                                                href={`/storage/${file.file_path}`}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="flex items-center gap-2 rounded-md border p-2 hover:bg-gray-50"
-                                            >
-                                                <FileText className="h-4 w-4 text-blue-600" />
-                                                <span className="flex-1 truncate text-sm">
-                                                    {file.file_name}
-                                                </span>
-                                                <Download className="h-4 w-4 text-gray-400" />
-                                            </a>
-                                        ))}
-                                    </div>
-                                )}
-                            </CardContent>
-                        </Card>
+                        {/* Supporting Documents */}
+                        <AttachmentsCard
+                            files={files}
+                            title="Supporting Documents"
+                            readonly={true}
+                            storageBasePath="/storage/"
+                        />
                     </div>
+                </div>
+
+                {/* Activity Timeline */}
+                {disbursement.activity_logs && disbursement.activity_logs.length > 0 && (
+                    <div className="mt-6">
+                        <ActivityTimeline
+                            activity_logs={disbursement.activity_logs}
+                            title="Disbursement Activity History"
+                            entityType="disbursement"
+                        />
+                    </div>
+                )}
+
+                {/* Remarks Section */}
+                <div className="mt-6">
+                    <Remarks
+                        remarkableType="Disbursement"
+                        remarkableId={disbursement.id}
+                        remarks={disbursement.remarks || []}
+                    />
                 </div>
             </div>
         </AppLayout>

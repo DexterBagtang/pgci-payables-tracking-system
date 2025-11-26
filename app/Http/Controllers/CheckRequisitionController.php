@@ -518,7 +518,7 @@ class CheckRequisitionController extends Controller
         $perPage = in_array($perPage, [10, 15, 25, 30, 50, 100]) ? $perPage : 30;
 
         $invoices = $query->latest()->paginate($perPage);
-        
+
         // Debug: Log actual count vs pagination total to help identify discrepancies
         \Log::info('Check Requisition API Debug', [
             'pagination_total' => $invoices->total(),
@@ -704,7 +704,7 @@ class CheckRequisitionController extends Controller
             DB::commit();
 
             return redirect()
-                ->route('check-requisitions.show', $checkRequisition)
+                ->route('check-requisitions.index')
                 ->with('success', 'Check requisition approved successfully');
 
         } catch (\Exception $e) {

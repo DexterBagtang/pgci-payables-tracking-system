@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { DollarSign, FileText, ShoppingCart, CheckCircle } from 'lucide-react';
+import { DollarSign, FileText, ShoppingCart, CheckCircle, CreditCard } from 'lucide-react';
 
 export default function FinancialSummaryCards({ summary = {} }) {
     const {
@@ -9,6 +9,9 @@ export default function FinancialSummaryCards({ summary = {} }) {
         active_pos_count = 0,
         active_pos_amount = 0,
         payments_this_month = 0,
+        pending_disbursements_count = 0,
+        pending_disbursements_amount = 0,
+        checks_released_this_month = 0,
     } = summary;
 
     const formatCurrency = (amount) => {
@@ -53,10 +56,27 @@ export default function FinancialSummaryCards({ summary = {} }) {
             bgColor: 'bg-green-50 dark:bg-green-950/20',
             description: 'Amount paid out',
         },
+        {
+            title: 'Pending Disbursements',
+            value: pending_disbursements_count,
+            subtitle: formatCurrency(pending_disbursements_amount),
+            icon: CreditCard,
+            iconColor: 'text-purple-600',
+            bgColor: 'bg-purple-50 dark:bg-purple-950/20',
+            description: 'Awaiting check release',
+        },
+        {
+            title: 'Checks Released (Month)',
+            value: checks_released_this_month,
+            icon: CheckCircle,
+            iconColor: 'text-teal-600',
+            bgColor: 'bg-teal-50 dark:bg-teal-950/20',
+            description: 'This month',
+        },
     ];
 
     return (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
             {cards.map((card, index) => (
                 <Card key={index} className="hover:shadow-md transition-shadow">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
