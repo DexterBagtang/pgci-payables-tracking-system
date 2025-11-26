@@ -110,15 +110,17 @@ export default function BulkConfiguration({
                                         type="number"
                                         min="1"
                                         max="100"
-                                        value={bulkConfig.count}
-                                        onChange={(e) =>
-                                            setBulkConfig((prev) => ({
+                                        value={bulkConfig.count ?? ""}
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            setBulkConfig(prev => ({
                                                 ...prev,
-                                                count: parseInt(e.target.value) || 1,
-                                            }))
-                                        }
+                                                count: val === "" ? "" : parseInt(val)
+                                            }));
+                                        }}
                                         className="mt-0.5 h-7 text-xs w-28"
                                     />
+
                                 </div>
                             )}
 
@@ -174,14 +176,15 @@ export default function BulkConfiguration({
                                 </div>
                             )}
 
-                            {/* Only show Invoice Number Prefix in Manual Mode */}
+                            {/* Only show Starting Invoice Number in Manual Mode */}
                             {bulkConfig.inputMode === 'manual' && (
                                 <div className="space-y-1.5">
                                     <Label htmlFor="prefix" className="text-xs text-slate-600">
-                                        Invoice Number Prefix
+                                        Starting Invoice Number
                                     </Label>
                                     <Input
                                         id="prefix"
+                                        type="text"
                                         value={bulkConfig.siPrefix}
                                         onChange={(e) =>
                                             setBulkConfig((prev) => ({
@@ -189,8 +192,8 @@ export default function BulkConfiguration({
                                                 siPrefix: e.target.value,
                                             }))
                                         }
-                                        placeholder="e.g. INV2025-000"
-                                        className="h-7 font-mono text-xs"
+                                        placeholder="e.g. 1234 or 00067"
+                                        className="h-7 font-mono text-xs w-40"
                                     />
                                     {bulkConfig.siPrefix && (
                                         <div className="flex items-center gap-3 rounded-md border border-slate-200 bg-slate-50 px-2 py-1.5">
@@ -211,50 +214,29 @@ export default function BulkConfiguration({
                                                 </Label>
                                             </div>
                                             {bulkConfig.autoIncrementEnabled && (
-                                                <>
-                                                    <div className="flex items-center gap-1.5">
-                                                        <Label htmlFor="startNumber" className="text-xs text-slate-600">
-                                                            from
-                                                        </Label>
-                                                        <Input
-                                                            id="startNumber"
-                                                            type="number"
-                                                            min="1"
-                                                            value={bulkConfig.startingNumber}
-                                                            onChange={(e) =>
-                                                                setBulkConfig((prev) => ({
-                                                                    ...prev,
-                                                                    startingNumber: parseInt(e.target.value) || 1,
-                                                                }))
-                                                            }
-                                                            placeholder="1"
-                                                            className="h-6 w-14 px-2 text-xs"
-                                                        />
-                                                    </div>
-                                                    {/* Preview */}
-                                                    <div className="ml-auto flex items-center gap-1 text-xs font-mono">
-                                                        <span className="text-slate-500">e.g.</span>
-                                                        {(() => {
-                                                            const prefixMatch = bulkConfig.siPrefix.match(/0+$/);
-                                                            const paddingLength = prefixMatch ? prefixMatch[0].length : 3;
-                                                            const basePrefix = bulkConfig.siPrefix.replace(/0+$/, '');
-                                                            const previewCount = Math.min(bulkConfig.count, 3);
+                                                <div className="ml-auto flex items-center gap-1 text-xs font-mono">
+                                                    <span className="text-slate-500">Preview:</span>
+                                                    {(() => {
+                                                        const baseNum = bulkConfig.siPrefix || '';
+                                                        const startingNumber = parseInt(baseNum) || 0;
+                                                        const paddingLength = baseNum.length;
+                                                        const previewCount = Math.min(bulkConfig.count, 4);
 
-                                                            return Array.from({ length: previewCount }, (_, i) => {
-                                                                const num = bulkConfig.startingNumber + i;
-                                                                return (
-                                                                    <span key={i} className="text-blue-700 font-semibold">
-                                                                        {basePrefix}{String(num).padStart(paddingLength, '0')}
-                                                                        {i < previewCount - 1 && <span className="text-slate-400">,</span>}
-                                                                    </span>
-                                                                );
-                                                            });
-                                                        })()}
-                                                        {bulkConfig.count > 3 && (
-                                                            <span className="text-slate-500">...+{bulkConfig.count - 3}</span>
-                                                        )}
-                                                    </div>
-                                                </>
+                                                        return Array.from({ length: previewCount }, (_, i) => {
+                                                            const num = startingNumber + i;
+                                                            const formatted = String(num).padStart(paddingLength, '0');
+                                                            return (
+                                                                <span key={i} className="text-blue-700 font-semibold">
+                                                                    {formatted}
+                                                                    {i < previewCount - 1 && <span className="text-slate-400">, </span>}
+                                                                </span>
+                                                            );
+                                                        });
+                                                    })()}
+                                                    {bulkConfig.count > 4 && (
+                                                        <span className="text-slate-500">... +{bulkConfig.count - 4} more</span>
+                                                    )}
+                                                </div>
                                             )}
                                         </div>
                                     )}

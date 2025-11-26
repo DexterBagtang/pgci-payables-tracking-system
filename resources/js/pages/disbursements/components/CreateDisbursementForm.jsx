@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { router, useForm } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,14 +27,16 @@ import {
     CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { ChevronDown, ChevronUp, Search, Calendar } from 'lucide-react';
+import { DatePicker } from '@/components/custom/DatePicker';
 
 export default function CreateDisbursementForm({ checkRequisitions, filters }) {
     const { data } = checkRequisitions;
     const [selectedCheckReqs, setSelectedCheckReqs] = useState([]);
     const [expandedRows, setExpandedRows] = useState([]);
     const [searchQuery, setSearchQuery] = useState(filters.search || '');
+    const fileInputRef = useRef(null);
 
-    const { data: formData, setData, post, processing, errors } = useForm({
+    const { data: formData, setData, post, processing, errors, reset } = useForm({
         check_voucher_number: '',
         date_check_scheduled: '',
         date_check_released_to_vendor: '',
@@ -73,7 +75,7 @@ export default function CreateDisbursementForm({ checkRequisitions, filters }) {
     };
 
     const handleFileChange = (e) => {
-        const files = Array.from(e.target.files);
+        const files = Array.from(e.target.files || []);
         setData('files', files);
     };
 
@@ -84,9 +86,19 @@ export default function CreateDisbursementForm({ checkRequisitions, filters }) {
             forceFormData: true,
             onSuccess: () => {
                 console.log('Disbursement created successfully');
+                // Reset file input
+                if (fileInputRef.current) {
+                    fileInputRef.current.value = '';
+                }
             },
             onError: (errors) => {
                 console.error('Validation errors:', errors);
+                // Reset file input on error too
+                if (fileInputRef.current) {
+                    fileInputRef.current.value = '';
+                }
+                // Clear files from form data
+                setData('files', []);
             },
         });
     };
@@ -303,39 +315,48 @@ export default function CreateDisbursementForm({ checkRequisitions, filters }) {
                                     )}
                                 </div>
 
-                                <div className="space-y-2">
-                                    <Label htmlFor="date_check_scheduled">Date Check Scheduled</Label>
-                                    <Input
-                                        id="date_check_scheduled"
-                                        type="date"
-                                        value={formData.date_check_scheduled}
-                                        onChange={(e) => setData('date_check_scheduled', e.target.value)}
-                                    />
-                                </div>
+                                <DatePicker
+                                    label="Date Check Scheduled"
+                                    value={formData.date_check_scheduled}
+                                    onChange={(date) => {
+                                        const formattedDate = date
+                                            ? new Date(date).toISOString().split('T')[0]
+                                            : '';
+                                        setData('date_check_scheduled', formattedDate);
+                                    }}
+                                    error={errors.date_check_scheduled}
+                                    placeholder="Select date"
+                                />
 
-                                <div className="space-y-2">
-                                    <Label htmlFor="date_check_printing">Date Check Printing</Label>
-                                    <Input
-                                        id="date_check_printing"
-                                        type="date"
-                                        value={formData.date_check_printing}
-                                        onChange={(e) => setData('date_check_printing', e.target.value)}
-                                    />
-                                </div>
+                                <DatePicker
+                                    label="Date Check Printing"
+                                    value={formData.date_check_printing}
+                                    onChange={(date) => {
+                                        const formattedDate = date
+                                            ? new Date(date).toISOString().split('T')[0]
+                                            : '';
+                                        setData('date_check_printing', formattedDate);
+                                    }}
+                                    error={errors.date_check_printing}
+                                    placeholder="Select date"
+                                />
 
-                                <div className="space-y-2">
-                                    <Label htmlFor="date_check_released_to_vendor">
-                                        Date Check Released to Vendor
-                                        <span className="ml-2 text-xs text-gray-500">
-                                            (Stops aging, marks invoices as paid)
-                                        </span>
-                                    </Label>
-                                    <Input
-                                        id="date_check_released_to_vendor"
-                                        type="date"
+                                <div className="space-y-1">
+                                    <DatePicker
+                                        label="Date Check Released to Vendor"
                                         value={formData.date_check_released_to_vendor}
-                                        onChange={(e) => setData('date_check_released_to_vendor', e.target.value)}
+                                        onChange={(date) => {
+                                            const formattedDate = date
+                                                ? new Date(date).toISOString().split('T')[0]
+                                                : '';
+                                            setData('date_check_released_to_vendor', formattedDate);
+                                        }}
+                                        error={errors.date_check_released_to_vendor}
+                                        placeholder="Select date"
                                     />
+                                    <p className="text-xs text-gray-500">
+                                        (Stops aging, marks invoices as paid)
+                                    </p>
                                 </div>
                             </div>
 
@@ -351,7 +372,18 @@ export default function CreateDisbursementForm({ checkRequisitions, filters }) {
 
                             <div className="space-y-2">
                                 <Label htmlFor="files">Supporting Documents (Optional)</Label>
-                                <Input id="files" type="file" multiple onChange={handleFileChange} />
+                                <Input
+                                    id="files"
+                                    ref={fileInputRef}
+                                    type="file"
+                                    multiple
+                                    onChange={handleFileChange}
+                                />
+                                {formData.files && formData.files.length > 0 && (
+                                    <p className="text-xs text-blue-600">
+                                        {formData.files.length} file(s) selected
+                                    </p>
+                                )}
                                 <p className="text-xs text-gray-500">Upload supporting documents (PDF, JPG, PNG)</p>
                             </div>
 

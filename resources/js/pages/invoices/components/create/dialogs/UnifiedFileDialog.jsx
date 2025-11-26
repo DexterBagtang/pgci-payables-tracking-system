@@ -28,7 +28,7 @@ export default function UnifiedFileDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="!max-w-3xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                         <FileStack className="h-5 w-5 text-blue-600" />
@@ -45,7 +45,7 @@ export default function UnifiedFileDialog({
                         <div className="flex items-center gap-3">
                             <FileText className="h-10 w-10 text-blue-600 flex-shrink-0" />
                             <div className="flex-1 min-w-0">
-                                <p className="font-semibold text-slate-900 truncate">{pendingFile?.name}</p>
+                                <p className="font-semibold text-slate-900 text-wrap">{pendingFile?.name}</p>
                                 <p className="text-sm text-slate-600">
                                     {pendingFile && (pendingFile.size / 1024 / 1024).toFixed(2)} MB
                                 </p>

@@ -267,6 +267,13 @@ class DisbursementController extends Controller
      */
     public function store(Request $request)
     {
+        // Debug logging
+        \Log::info('Disbursement store request', [
+            'has_files' => $request->hasFile('files'),
+            'files_count' => $request->hasFile('files') ? count($request->file('files')) : 0,
+            'all_input_keys' => array_keys($request->all()),
+        ]);
+
         $validated = $request->validate([
             'check_voucher_number' => 'required|string|unique:disbursements,check_voucher_number',
             'date_check_scheduled' => 'nullable|date',
@@ -275,14 +282,18 @@ class DisbursementController extends Controller
             'remarks' => 'nullable|string',
             'check_requisition_ids' => 'required|array',
             'check_requisition_ids.*' => 'exists:check_requisitions,id',
-            'files.*' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240', // 10MB max per file
+            'files' => 'nullable|array',
+            'files.*' => 'file|mimes:pdf,jpg,jpeg,png|max:10240', // 10MB max per file
         ]);
 
         DB::beginTransaction();
         try {
-            // Extract check_requisition_ids before creating the record
+            // Extract check_requisition_ids and files before creating the record
             $checkReqIds = $validated['check_requisition_ids'];
             unset($validated['check_requisition_ids']);
+
+            // Remove files from validated array (handled separately via polymorphic relationship)
+            unset($validated['files']);
 
             // Create disbursement
             $disbursement = Disbursement::create([
@@ -469,13 +480,17 @@ class DisbursementController extends Controller
             'remarks' => 'nullable|string',
             'check_requisition_ids' => 'required|array',
             'check_requisition_ids.*' => 'exists:check_requisitions,id',
-            'files.*' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
+            'files' => 'nullable|array',
+            'files.*' => 'file|mimes:pdf,jpg,jpeg,png|max:10240',
         ]);
 
         DB::beginTransaction();
         try {
             $checkReqIds = $validated['check_requisition_ids'];
             unset($validated['check_requisition_ids']);
+
+            // Remove files from validated array (handled separately via polymorphic relationship)
+            unset($validated['files']);
 
             // Track old vs new check requisitions
             $oldCheckReqIds = $disbursement->checkRequisitions()->pluck('check_requisitions.id')->toArray();

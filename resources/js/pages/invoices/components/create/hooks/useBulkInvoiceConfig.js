@@ -10,7 +10,6 @@ export function useBulkInvoiceConfig() {
         count: 2,
         siPrefix: '',
         autoIncrementEnabled: false,
-        startingNumber: 1,
         inputMode: 'range', // 'manual' or 'range' - default is 'range'
         rangeStart: '',
         rangeEnd: '',
@@ -54,20 +53,14 @@ export function useBulkInvoiceConfig() {
                 siNumber = String(rangeStartNum + index);
             }
         } else {
-            // Manual Mode: Use prefix with optional auto-increment
+            // Manual Mode: Use starting number with optional auto-increment
             if (bulkConfig.siPrefix) {
                 if (bulkConfig.autoIncrementEnabled) {
-                    const currentNumber = bulkConfig.startingNumber + index;
-                    // Count digits in prefix to determine padding
-                    const prefixMatch = bulkConfig.siPrefix.match(/0+$/);
-                    if (prefixMatch) {
-                        // If prefix ends with zeros, use them for padding
-                        const paddingLength = prefixMatch[0].length;
-                        siNumber = `${bulkConfig.siPrefix.replace(/0+$/, '')}${String(currentNumber).padStart(paddingLength, '0')}`;
-                    } else {
-                        // If no trailing zeros, just append the number without padding
-                        siNumber = `${bulkConfig.siPrefix}${currentNumber}`;
-                    }
+                    // Increment the actual number while preserving leading zeros
+                    const startingNumber = parseInt(bulkConfig.siPrefix) || 0;
+                    const paddingLength = bulkConfig.siPrefix.length;
+                    const currentNumber = startingNumber + index;
+                    siNumber = String(currentNumber).padStart(paddingLength, '0');
                 } else {
                     siNumber = bulkConfig.siPrefix;
                 }
@@ -142,7 +135,6 @@ export function useBulkInvoiceConfig() {
             count: 2,
             siPrefix: '',
             autoIncrementEnabled: false,
-            startingNumber: 1,
             inputMode: 'range',
             rangeStart: '',
             rangeEnd: '',
