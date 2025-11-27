@@ -1,11 +1,7 @@
 import { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import axios from 'axios';
 import {
     Dialog,
@@ -16,7 +12,7 @@ import {
     DialogTrigger
 } from '@/components/ui/dialog';
 import { Label } from "@/components/ui/label";
-import { FileText, Plus, Clock, User, MessageSquare } from "lucide-react";
+import { MessageSquare, Plus } from "lucide-react";
 import { toast } from 'sonner';
 
 export default function Remarks({ remarkableType, remarkableId, remarks = [] }) {
@@ -72,12 +68,21 @@ export default function Remarks({ remarkableType, remarkableId, remarks = [] }) 
 
     const formatDateTime = (date) => {
         const remarkDate = new Date(date);
-        return remarkDate.toLocaleString('en-US', {
-            year: 'numeric',
-            month: 'long',
+        const now = new Date();
+        const diffMs = now - remarkDate;
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMs / 3600000);
+        const diffDays = Math.floor(diffMs / 86400000);
+
+        if (diffMins < 1) return 'Just now';
+        if (diffMins < 60) return `${diffMins}m ago`;
+        if (diffHours < 24) return `${diffHours}h ago`;
+        if (diffDays < 7) return `${diffDays}d ago`;
+
+        return remarkDate.toLocaleDateString('en-US', {
+            month: 'short',
             day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
+            year: remarkDate.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
         });
     };
 
@@ -90,123 +95,103 @@ export default function Remarks({ remarkableType, remarkableId, remarks = [] }) 
     }, [isDialogOpen]);
 
     return (
-        <Card className="w-full">
-            <CardHeader>
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-lg bg-slate-100">
-                            <FileText className="h-5 w-5 text-slate-600" />
-                        </div>
-                        <div>
-                            <CardTitle className="text-lg">Remarks & Notes</CardTitle>
-                            <p className="text-sm text-muted-foreground">
-                                {currentRemarks.length} {currentRemarks.length === 1 ? 'entry' : 'entries'}
-                            </p>
-                        </div>
-                    </div>
-
-                    <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                        <DialogTrigger asChild>
-                            <Button className="gap-2">
-                                <Plus className="h-4 w-4" />
-                                Add Remark
-                            </Button>
-                        </DialogTrigger>
-                        <DialogContent className="sm:max-w-[500px]">
-                            <DialogHeader>
-                                <DialogTitle className="flex items-center gap-2">
-                                    <MessageSquare className="h-5 w-5" />
-                                    Add New Remark
-                                </DialogTitle>
-                                <DialogDescription></DialogDescription>
-                            </DialogHeader>
-
-                            <form onSubmit={handleSubmit} className="space-y-4 mt-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="remark-text" className="text-sm font-medium">
-                                        Remark Details
-                                    </Label>
-                                    <Textarea
-                                        id="remark-text"
-                                        placeholder="Enter your professional remark or observation..."
-                                        value={remarkText}
-                                        onChange={(e) => setRemarkText(e.target.value)}
-                                        className="min-h-[120px] resize-none"
-                                        disabled={isSubmitting}
-                                    />
-                                    {error && (
-                                        <p className="text-sm text-red-600 bg-red-50 p-2 rounded border">
-                                            {error}
-                                        </p>
-                                    )}
-                                </div>
-
-                                <div className="flex gap-3 pt-4">
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        onClick={() => setIsDialogOpen(false)}
-                                        disabled={isSubmitting}
-                                        className="flex-1"
-                                    >
-                                        Cancel
-                                    </Button>
-                                    <Button
-                                        type="submit"
-                                        disabled={isSubmitting || !remarkText.trim()}
-                                        className="flex-1"
-                                    >
-                                        {isSubmitting ? "Saving..." : "Save Remark"}
-                                    </Button>
-                                </div>
-                            </form>
-                        </DialogContent>
-                    </Dialog>
+        <div className="w-full border rounded-lg bg-white">
+            {/* Compact Header */}
+            <div className="flex items-center justify-between px-4 py-2.5 border-b bg-slate-50/50">
+                <div className="flex items-center gap-2">
+                    <MessageSquare className="h-4 w-4 text-slate-600" />
+                    <h3 className="text-sm font-medium text-slate-900">
+                        Remarks
+                        <span className="ml-1.5 text-xs text-slate-500 font-normal">
+                            ({currentRemarks.length})
+                        </span>
+                    </h3>
                 </div>
-            </CardHeader>
 
-            <CardContent>
+                <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                    <DialogTrigger asChild>
+                        <Button size="sm" variant="ghost" className="h-7 gap-1.5 text-xs">
+                            <Plus className="h-3.5 w-3.5" />
+                            Add
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[500px]">
+                        <DialogHeader>
+                            <DialogTitle className="flex items-center gap-2">
+                                <MessageSquare className="h-5 w-5" />
+                                Add New Remark
+                            </DialogTitle>
+                            <DialogDescription></DialogDescription>
+                        </DialogHeader>
+
+                        <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="remark-text" className="text-sm font-medium">
+                                    Remark Details
+                                </Label>
+                                <Textarea
+                                    id="remark-text"
+                                    placeholder="Enter your remark..."
+                                    value={remarkText}
+                                    onChange={(e) => setRemarkText(e.target.value)}
+                                    className="min-h-[120px] resize-none"
+                                    disabled={isSubmitting}
+                                />
+                                {error && (
+                                    <p className="text-sm text-red-600 bg-red-50 p-2 rounded border">
+                                        {error}
+                                    </p>
+                                )}
+                            </div>
+
+                            <div className="flex gap-3 pt-4">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => setIsDialogOpen(false)}
+                                    disabled={isSubmitting}
+                                    className="flex-1"
+                                >
+                                    Cancel
+                                </Button>
+                                <Button
+                                    type="submit"
+                                    disabled={isSubmitting || !remarkText.trim()}
+                                    className="flex-1"
+                                >
+                                    {isSubmitting ? "Saving..." : "Save"}
+                                </Button>
+                            </div>
+                        </form>
+                    </DialogContent>
+                </Dialog>
+            </div>
+
+            {/* Comments Area */}
+            <div className="px-4 py-3">
                 {currentRemarks.length === 0 ? (
-                    <div className="text-center py-8 bg-slate-50 rounded-lg border-2 border-dashed border-slate-200">
-                        <div className="mx-auto w-12 h-12 bg-slate-200 rounded-lg flex items-center justify-center mb-3">
-                            <FileText className="h-6 w-6 text-slate-500" />
-                        </div>
-                        <h3 className="text-base font-medium text-slate-900 mb-1">No remarks recorded</h3>
-                        <p className="text-sm text-slate-500 mb-4">
-                            Click "Add Remark" to document observations or notes.
-                        </p>
+                    <div className="text-center py-6">
+                        <p className="text-xs text-slate-400">No remarks yet</p>
                     </div>
                 ) : (
-                    <div className="space-y-4">
-                        {currentRemarks.map((remark, index) => (
-                            <div key={remark.id} className="border rounded-lg p-4 bg-white hover:bg-slate-50 transition-colors">
-                                <div className="flex items-start justify-between mb-3">
-                                    <div className="flex items-center gap-3">
-                                        <Avatar className="h-10 w-10">
-                                            <AvatarFallback className="bg-slate-100 text-slate-700 font-medium">
-                                                {remark.user?.name?.[0]?.toUpperCase() || "U"}
-                                            </AvatarFallback>
-                                        </Avatar>
-                                        <div>
-                                            <p className="font-medium text-slate-900">
-                                                {remark.user?.name || "System User"}
-                                            </p>
-                                            <div className="flex items-center gap-1 text-xs text-slate-500">
-                                                <Clock className="h-3 w-3" />
-                                                <span>{formatDateTime(remark.created_at)}</span>
-                                            </div>
-                                        </div>
+                    <div className="space-y-3">
+                        {currentRemarks.map((remark) => (
+                            <div key={remark.id} className="flex gap-2.5 group">
+                                <Avatar className="h-7 w-7 mt-0.5 flex-shrink-0">
+                                    <AvatarFallback className="bg-slate-200 text-slate-600 text-xs">
+                                        {remark.user?.name?.[0]?.toUpperCase() || "U"}
+                                    </AvatarFallback>
+                                </Avatar>
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-baseline gap-2">
+                                        <span className="text-sm font-medium text-slate-900">
+                                            {remark.user?.name || "System User"}
+                                        </span>
+                                        <span className="text-xs text-slate-400">
+                                            {formatDateTime(remark.created_at)}
+                                        </span>
                                     </div>
-
-                                    {index === 0 && (
-                                        <Badge variant="secondary" className="text-xs">
-                                            Latest
-                                        </Badge>
-                                    )}
-                                </div>
-
-                                <div className="pl-13">
-                                    <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
+                                    <p className="text-sm text-slate-700 mt-0.5 leading-relaxed whitespace-pre-wrap break-words">
                                         {remark.remark_text}
                                     </p>
                                 </div>
@@ -214,7 +199,7 @@ export default function Remarks({ remarkableType, remarkableId, remarks = [] }) 
                         ))}
                     </div>
                 )}
-            </CardContent>
-        </Card>
+            </div>
+        </div>
     );
 }

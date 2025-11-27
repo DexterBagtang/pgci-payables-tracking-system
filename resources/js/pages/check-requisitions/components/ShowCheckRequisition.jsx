@@ -69,7 +69,7 @@ export default function ShowCheckRequisition({ checkRequisition, invoices, files
         <div className="py-6 print:py-2">
             <Head title={`Check Requisition - ${checkRequisition.requisition_number}`} />
 
-            <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
+            <div className="mx-auto sm:px-6 lg:px-8">
                 {/* Header */}
                 <CRHeader
                     checkRequisition={checkRequisition}
