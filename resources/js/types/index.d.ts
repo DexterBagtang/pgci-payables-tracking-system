@@ -216,3 +216,283 @@ export interface Disbursement {
     status?: 'pending' | 'released';
     [key: string]: unknown;
 }
+
+// Dashboard Types
+export type TimeRange = 'today' | 'week' | 'month' | 'quarter' | 'year' | 'fiscal' | 'custom' | 'all';
+
+export type AlertPriority = 'urgent' | 'high' | 'medium' | 'low';
+export type AlertCategory = 'invoice' | 'budget' | 'approval' | 'disbursement' | 'po';
+
+export interface Alert {
+    id: string;
+    category: AlertCategory;
+    priority: AlertPriority;
+    title: string;
+    message: string;
+    count: number;
+    action_url: string;
+    created_at: string;
+}
+
+export interface TimeRangeState {
+    range: TimeRange;
+    start: string | null;
+    end: string | null;
+}
+
+export interface DashboardFilterContext {
+    timeRange: TimeRange;
+    setTimeRange: (range: TimeRange) => void;
+    customDates: { start: Date; end: Date } | null;
+    setCustomDates: (dates: { start: Date; end: Date } | null) => void;
+}
+
+// PO Dashboard Data Types
+export interface POStatusData {
+    status: PurchaseOrderStatus;
+    count: number;
+    total_amount: number;
+    currency: 'PHP' | 'USD';
+}
+
+export interface POAgingBucket {
+    bucket: string;
+    count: number;
+    total_amount: number;
+}
+
+export interface POFinancialMetrics {
+    open_po_value_php: number;
+    open_po_value_usd: number;
+    pos_created_this_month: number;
+    average_po_value: number;
+    pos_closed_this_month: number;
+}
+
+export interface ProjectBudgetData {
+    project_id: number;
+    project_title: string;
+    budget: number;
+    committed: number;
+    remaining: number;
+    percentage: number;
+    status: 'normal' | 'warning' | 'critical';
+}
+
+export interface VendorPerformanceData {
+    vendor_id: number;
+    vendor_name: string;
+    active_pos: number;
+    total_committed: number;
+}
+
+// Invoice/Payables Dashboard Data Types
+export interface InvoiceAgingBucket {
+    bucket: string;
+    count: number;
+    total_amount: number;
+}
+
+export interface PayablesFinancialMetrics {
+    outstanding_balance: number;
+    pending_review_amount: number;
+    approved_this_month: number;
+    average_approval_time: number;
+}
+
+// Disbursement Dashboard Data Types
+export interface DisbursementMetrics {
+    checks_ready_to_print: number;
+    checks_pending_release: number;
+    released_this_month: number;
+    total_pending_value: number;
+}
+
+export interface CheckAgingBucket {
+    bucket: string;
+    count: number;
+    total_amount: number;
+}
+
+export interface VendorPaymentStatusData {
+    payee_name: string;
+    total_checks: number;
+    released_checks: number;
+    pending_checks: number;
+    total_amount: number;
+    last_payment_date: string | null;
+}
+
+export interface CheckScheduleData {
+    week: string;
+    total_amount: number;
+    checks: {
+        id: number;
+        check_number: string | null;
+        payee_name: string;
+        php_amount: number;
+        date_check_scheduled: string;
+        payment_method: string;
+        requisition_number: string;
+    }[];
+}
+
+// Dashboard Props Types
+export interface BaseDashboardProps {
+    alerts: Alert[];
+    timeRange: TimeRangeState;
+}
+
+export interface PurchasingDashboardData extends BaseDashboardProps {
+    role: 'purchasing';
+    // New compact widgets
+    financialCommitments: POFinancialMetrics;
+    vendorPerformance: VendorPerformanceData[];
+    poStatusSummary: {
+        draft: number;
+        open: number;
+        closed_this_month: number;
+        cancelled_this_month: number;
+    };
+    currencySummary: {
+        php_count: number;
+        php_total: number;
+        usd_count: number;
+        usd_total: number;
+    };
+    recentPOActivity: {
+        id: number;
+        po_number: string;
+        vendor_name: string;
+        project_code: string;
+        total_amount: number;
+        currency: 'PHP' | 'USD';
+        status: 'draft' | 'open' | 'closed' | 'cancelled';
+        created_at: string;
+    }[];
+    // Old chart-based widgets (kept for future use)
+    // poStatusDistribution: POStatusData[];
+    // poAging: POAgingBucket[];
+    // budgetTracking: ProjectBudgetData[];
+    // currencyBreakdown: { currency: 'PHP' | 'USD'; count: number; total_amount: number }[];
+    // poCreationTrend: { date: string; count: number; amount: number }[];
+    // expectedDeliveries: { week: string; deliveries: PurchaseOrder[] }[];
+}
+
+export interface PayablesDashboardData extends BaseDashboardProps {
+    role: 'payables';
+    invoiceReviewQueue: Invoice[];
+    crApprovalQueue: CheckRequisition[];
+    invoiceAging: InvoiceAgingBucket[];
+    paymentSchedule: { week: string; invoices: Invoice[]; total_amount: number }[];
+    invoiceStatusFunnel: { status: string; count: number }[];
+    financialMetrics: PayablesFinancialMetrics;
+    approvalVelocity: { date: string; count: number }[];
+}
+
+export interface DisbursementDashboardData extends BaseDashboardProps {
+    role: 'disbursement';
+    checkSchedule: CheckScheduleData[];
+    printingQueue: {
+        id: number;
+        requisition_number: string;
+        payee_name: string;
+        php_amount: number;
+        date_check_scheduled: string;
+        days_waiting: number;
+    }[];
+    pendingReleases: {
+        id: number;
+        check_number: string;
+        requisition_number: string;
+        payee_name: string;
+        php_amount: number;
+        date_check_printed: string;
+        days_pending: number;
+        payment_method: string;
+    }[];
+    disbursementTrends: { date: string; count: number; amount: number }[];
+    checkAging: CheckAgingBucket[];
+    vendorPaymentStatus: VendorPaymentStatusData[];
+    disbursementMetrics: DisbursementMetrics;
+    releaseVelocity: { date: string; count: number }[];
+}
+
+export interface AdminDashboardData extends BaseDashboardProps {
+    role: 'admin';
+    purchasing: {
+        // New compact widgets
+        financialCommitments: POFinancialMetrics;
+        vendorPerformance: VendorPerformanceData[];
+        poStatusSummary: {
+            draft: number;
+            open: number;
+            closed_this_month: number;
+            cancelled_this_month: number;
+        };
+        currencySummary: {
+            php_count: number;
+            php_total: number;
+            usd_count: number;
+            usd_total: number;
+        };
+        recentPOActivity: {
+            id: number;
+            po_number: string;
+            vendor_name: string;
+            project_code: string;
+            total_amount: number;
+            currency: 'PHP' | 'USD';
+            status: 'draft' | 'open' | 'closed' | 'cancelled';
+            created_at: string;
+        }[];
+        // Old chart-based widgets (kept for future use)
+        // poStatusDistribution: POStatusData[];
+        // poAging: POAgingBucket[];
+        // budgetTracking: ProjectBudgetData[];
+        // currencyBreakdown: { currency: 'PHP' | 'USD'; count: number; total_amount: number }[];
+        // poCreationTrend: { date: string; count: number; amount: number }[];
+        // expectedDeliveries: { week: string; deliveries: PurchaseOrder[] }[];
+    };
+    payables: {
+        invoiceReviewQueue: Invoice[];
+        crApprovalQueue: CheckRequisition[];
+        invoiceAging: InvoiceAgingBucket[];
+        paymentSchedule: { week: string; invoices: Invoice[]; total_amount: number }[];
+        invoiceStatusFunnel: { status: string; count: number }[];
+        financialMetrics: PayablesFinancialMetrics;
+        approvalVelocity: { date: string; count: number }[];
+    };
+    disbursement: {
+        checkSchedule: CheckScheduleData[];
+        printingQueue: {
+            id: number;
+            requisition_number: string;
+            payee_name: string;
+            php_amount: number;
+            date_check_scheduled: string;
+            days_waiting: number;
+        }[];
+        pendingReleases: {
+            id: number;
+            check_number: string;
+            requisition_number: string;
+            payee_name: string;
+            php_amount: number;
+            date_check_printed: string;
+            days_pending: number;
+            payment_method: string;
+        }[];
+        disbursementTrends: { date: string; count: number; amount: number }[];
+        checkAging: CheckAgingBucket[];
+        vendorPaymentStatus: VendorPaymentStatusData[];
+        disbursementMetrics: DisbursementMetrics;
+        releaseVelocity: { date: string; count: number }[];
+    };
+}
+
+export type DashboardData =
+    | PurchasingDashboardData
+    | PayablesDashboardData
+    | DisbursementDashboardData
+    | AdminDashboardData;
