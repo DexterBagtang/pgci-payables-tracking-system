@@ -22,10 +22,19 @@ export interface NavItem {
     isActive?: boolean;
 }
 
+export interface FlashMessages {
+    success?: string;
+    error?: string;
+    warning?: string;
+    info?: string;
+    message?: string;
+}
+
 export interface SharedData {
     name: string;
     quote: { message: string; author: string };
     auth: Auth;
+    flash: FlashMessages;
     sidebarOpen: boolean;
     [key: string]: unknown;
 }
