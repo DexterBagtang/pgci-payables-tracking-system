@@ -320,7 +320,7 @@ const BulkInvoiceReview = ({ invoices, filters, filterOptions }) => {
             notes: 'Quick action: Approved',
         }, {
             onSuccess: () => {
-                toast.success('Invoice approved successfully!');
+                // toast.success('Invoice approved successfully!');
                 setReviewedCount(prev => prev + 1);
             },
             onError: (errors) => {
@@ -349,7 +349,7 @@ const BulkInvoiceReview = ({ invoices, filters, filterOptions }) => {
             notes: reviewNotes,
         }, {
             onSuccess: (e) => {
-                toast.success('Invoices marked as received successfully!');
+                // toast.success('Invoices marked as received successfully!');
                 setReviewedCount(prev => prev + invoiceIds.length);
                 setSelectedInvoices(new Set());
                 setSelectedAmounts(new Map());

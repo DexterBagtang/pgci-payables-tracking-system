@@ -1,5 +1,3 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card.js';
-import { Badge } from '@/components/ui/badge.js';
 import {
     Clock,
     Plus,
@@ -393,39 +391,36 @@ export default function ActivityTimeline({ activity_logs, title = "Activity Hist
 
     if (!activity_logs || activity_logs.length === 0) {
         return (
-            <Card>
-                <CardHeader className="pb-3">
-                    <CardTitle className="flex items-center gap-2 text-base">
-                        <Clock className="h-4 w-4" />
-                        {title}
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="text-center py-12 text-gray-500">
-                        <Activity className="h-12 w-12 mx-auto mb-3 opacity-20" />
-                        <p className="text-sm font-medium">No activity recorded</p>
-                        <p className="text-xs text-gray-400 mt-1">Actions will appear here</p>
-                    </div>
-                </CardContent>
-            </Card>
+            <div className="w-full border rounded-lg bg-white">
+                <div className="flex items-center gap-2 px-4 py-2.5 border-b bg-slate-50/50">
+                    <Clock className="h-4 w-4 text-slate-600" />
+                    <h3 className="text-sm font-medium text-slate-900">{title}</h3>
+                </div>
+                <div className="px-4 py-6 text-center">
+                    <p className="text-xs text-slate-400">No activity yet</p>
+                </div>
+            </div>
         );
     }
 
     return (
-        <Card>
-            <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                    <CardTitle className="flex items-center gap-2 text-base">
-                        <Clock className="h-4 w-4" />
+        <div className="w-full border rounded-lg bg-white">
+            {/* Compact Header */}
+            <div className="flex items-center justify-between px-4 py-2.5 border-b bg-slate-50/50">
+                <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-slate-600" />
+                    <h3 className="text-sm font-medium text-slate-900">
                         {title}
-                    </CardTitle>
-                    <Badge variant="secondary" className="text-xs">
-                        {activity_logs.length} {activity_logs.length === 1 ? 'entry' : 'entries'}
-                    </Badge>
+                        <span className="ml-1.5 text-xs text-slate-500 font-normal">
+                            ({activity_logs.length})
+                        </span>
+                    </h3>
                 </div>
-            </CardHeader>
-            <CardContent className="pt-0">
-                <div className="space-y-2">
+            </div>
+
+            {/* Timeline */}
+            <div className="px-4 py-3">
+                <div className="space-y-2.5">
                     {activity_logs.map((log, index) => {
                         const style = getActionStyle(log.action);
                         const Icon = style.icon;
@@ -436,63 +431,44 @@ export default function ActivityTimeline({ activity_logs, title = "Activity Hist
                         const notes = log.notes || log.comment || log.description;
 
                         return (
-                            <div
-                                key={log.id || index}
-                                className={`group relative rounded-lg border ${style.border} ${style.bg} p-3 transition-all hover:shadow-sm`}
-                            >
-                                <div className="flex items-start gap-3">
-                                    {/* Icon */}
-                                    <div className={`flex-shrink-0 ${style.color}`}>
-                                        <Icon className="h-4 w-4" />
+                            <div key={log.id || index} className="flex gap-2.5 group">
+                                {/* Icon with timeline line */}
+                                <div className="relative flex flex-col items-center">
+                                    <div className={`flex-shrink-0 ${style.color} z-10`}>
+                                        <Icon className="h-3.5 w-3.5" />
+                                    </div>
+                                    {index !== activity_logs.length - 1 && (
+                                        <div className="w-px h-full bg-slate-200 absolute top-4" />
+                                    )}
+                                </div>
+
+                                {/* Content */}
+                                <div className="flex-1 min-w-0 pb-0.5">
+                                    <div className="flex items-baseline gap-1.5 flex-wrap">
+                                        <span className={`text-xs font-medium ${style.color}`}>
+                                            {actionLabel}
+                                        </span>
+                                        <span className="text-xs text-slate-600">by</span>
+                                        <span className="text-xs font-medium text-slate-900">
+                                            {userName}
+                                        </span>
+                                        <span className="text-xs text-slate-400" title={fullDate}>
+                                            {relativeTime}
+                                        </span>
                                     </div>
 
-                                    {/* Content */}
-                                    <div className="flex-1 min-w-0 space-y-1">
-                                        {/* Header: Action + User + Time */}
-                                        <div className="flex items-center justify-between gap-2">
-                                            <div className="flex items-center gap-2 min-w-0">
-                                                <Badge className={`${style.badge} text-xs font-medium px-2 py-0 h-5`}>
-                                                    {actionLabel}
-                                                </Badge>
-                                                <span className="text-xs font-semibold text-gray-900 truncate">
-                                                    {userName}
-                                                </span>
-                                            </div>
-                                            <time
-                                                className="text-xs text-gray-500 whitespace-nowrap flex-shrink-0"
-                                                title={fullDate}
-                                            >
-                                                {relativeTime}
-                                            </time>
-                                        </div>
-
-                                        {/* Notes/Description */}
-                                        {notes && (
-                                            <p className="text-sm text-gray-700 leading-relaxed">
-                                                {notes}
-                                            </p>
-                                        )}
-
-                                        {/* Full date on hover */}
-                                        <p className="text-xs text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            {fullDate}
+                                    {/* Notes/Description */}
+                                    {notes && (
+                                        <p className="text-xs text-slate-600 mt-0.5 leading-relaxed">
+                                            {notes}
                                         </p>
-                                    </div>
+                                    )}
                                 </div>
                             </div>
                         );
                     })}
                 </div>
-
-                {/* View all if too many */}
-                {activity_logs.length > 20 && (
-                    <div className="mt-4 text-center">
-                        <p className="text-xs text-gray-500">
-                            Showing all {activity_logs.length} activities
-                        </p>
-                    </div>
-                )}
-            </CardContent>
-        </Card>
+            </div>
+        </div>
     );
 }

@@ -12,7 +12,7 @@ export default function CRFinancialCards({
     formatCurrency
 }) {
     return (
-        <div className="grid grid-cols-2 gap-4 mb-6 print:hidden">
+        <div className="grid grid-cols-2 gap-4 my-6 print:hidden">
             <Card className="border-blue-200 bg-blue-50">
                 <CardContent className="p-4">
                     <div className="flex items-center justify-between">
