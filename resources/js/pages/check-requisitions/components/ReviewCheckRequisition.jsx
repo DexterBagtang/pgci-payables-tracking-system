@@ -123,13 +123,12 @@ export default function ReviewCheckRequisition({
             forceFormData: true,
             replace:true,
             onSuccess: () => {
-                toast.success('Check requisition approved successfully!');
                 setApprovalDialog(false);
                 approvalForm.reset();
                 setApprovalFile(null);
             },
-            onError: (errors) => {
-                toast.error(Object.values(errors)[0] || 'Approval failed');
+            onError: () => {
+                // Errors are handled by flash messages
             },
         });
     };
@@ -144,13 +143,12 @@ export default function ReviewCheckRequisition({
             preserveScroll: true,
             forceFormData: true,
             onSuccess: () => {
-                toast.success('Check requisition rejected');
                 setRejectionDialog(false);
                 rejectionForm.reset();
                 setRejectionFile(null);
             },
-            onError: (errors) => {
-                toast.error(Object.values(errors)[0] || 'Rejection failed');
+            onError: () => {
+                // Errors are handled by flash messages
             },
         });
     };

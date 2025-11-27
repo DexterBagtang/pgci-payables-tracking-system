@@ -20,7 +20,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Loader2, ChevronDown, ChevronUp } from 'lucide-react';
-import { toast } from 'sonner';
 
 export default function EditVendorDialog({ vendor, isOpen, onOpenChange, onSuccess }) {
     const [showOptionalFields, setShowOptionalFields] = useState(false);
@@ -50,11 +49,6 @@ export default function EditVendorDialog({ vendor, isOpen, onOpenChange, onSucce
 
         patch(`/vendors/${vendor.id}`, {
             onSuccess: () => {
-                toast.success('Vendor updated successfully!', {
-                    duration: 3000,
-                    position: 'top-right',
-                });
-
                 setShowOptionalFields(false);
                 onOpenChange(false);
 
@@ -62,10 +56,7 @@ export default function EditVendorDialog({ vendor, isOpen, onOpenChange, onSucce
                 onSuccess?.();
             },
             onError: () => {
-                toast.error('❌ Failed to update vendor. Please check the details and try again.', {
-                    duration: 5000,
-                    position: 'top-right',
-                });
+                // Errors are handled by flash messages
             },
         });
     };

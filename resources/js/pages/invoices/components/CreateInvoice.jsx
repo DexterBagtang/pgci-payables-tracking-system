@@ -330,8 +330,6 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
 
             // Handle successful response
             onSuccess: (page) => {
-                toast.success(`${isBulkMode ? bulkInvoices.length : '1'} invoice(s) created successfully!`);
-
                 // Reset forms
                 setSingleData({
                     purchase_order_id: '',
@@ -358,30 +356,6 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
             // Handle validation errors (422)
             onError: (errors) => {
                 console.error('Validation errors:', errors);
-
-                // Extract and format error messages
-                const errorMessages = Object.entries(errors)
-                    .map(([field, messages]) => {
-                        const fieldName = field.replace(/invoices\.\d+\./, '').replace(/_/g, ' ');
-                        const message = Array.isArray(messages) ? messages[0] : messages;
-                        return `${fieldName}: ${message}`;
-                    })
-                    .slice(0, 3); // Show first 3 errors
-
-                if (errorMessages.length > 0) {
-                    toast.error(
-                        <div>
-                            <p className="font-semibold">Validation failed:</p>
-                            <ul className="mt-1 list-disc pl-4 text-xs">
-                                {errorMessages.map((msg, i) => <li key={i}>{msg}</li>)}
-                            </ul>
-                            {Object.keys(errors).length > 3 && (
-                                <p className="mt-1 text-xs">+ {Object.keys(errors).length - 3} more errors</p>
-                            )}
-                        </div>,
-                        { duration: 8000 }
-                    );
-                }
 
                 // Set errors for inline display
                 setErrors(errors);

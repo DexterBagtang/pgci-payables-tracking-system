@@ -204,7 +204,7 @@ class PurchaseOrderController extends Controller
             }
         }
 
-        return back()->with('message', 'Purchase Order created.');
+        return back()->with('success', 'Purchase Order created.');
     }
 
 

@@ -6,7 +6,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Textarea } from '@/components/ui/textarea';
 import { useForm } from '@inertiajs/react';
-import { toast } from 'sonner';
 import { formatNumberWithCommas, parseFormattedNumber } from '@/components/custom/helpers.jsx';
 
 export default function AddProjectDialog({ open, onOpenChange, project = null }) {
@@ -221,7 +220,6 @@ export default function AddProjectDialog({ open, onOpenChange, project = null })
                 setContractCostManuallyEdited(false);
                 onOpenChange(false);
                 project = null
-                toast.success(successMessage, { position: 'top-center' });
             },
             onError: () => {
                 // Errors are automatically handled by Inertia

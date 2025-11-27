@@ -144,7 +144,6 @@ export const usePOForm = (initialData = null, mode = 'create', onSuccess = null)
         post('/purchase-orders', {
             forceFormData: true,
             onSuccess: () => {
-                toast.success('PO added successfully.');
                 reset();
                 setFiles([]);
                 setClientErrors({});
@@ -153,7 +152,6 @@ export const usePOForm = (initialData = null, mode = 'create', onSuccess = null)
             onError: () => {
                 // Server errors take precedence over client errors
                 setClientErrors({});
-                toast.error('Failed to create Purchase Order.');
             }
         });
     }, [post, reset, onSuccess, validateBeforeSubmit]);
@@ -173,9 +171,6 @@ export const usePOForm = (initialData = null, mode = 'create', onSuccess = null)
             _method: 'patch',
             forceFormData: true,
             onSuccess: () => {
-                setTimeout(() => {
-                    toast.success('Purchase Order updated successfully.');
-                }, 500);
                 setFiles([]);
                 setClientErrors({});
                 onSuccess?.();
@@ -183,7 +178,6 @@ export const usePOForm = (initialData = null, mode = 'create', onSuccess = null)
             onError: () => {
                 // Server errors take precedence over client errors
                 setClientErrors({});
-                toast.error('Failed to update Purchase Order.');
             }
         });
     }, [post, onSuccess, validateBeforeSubmit]);

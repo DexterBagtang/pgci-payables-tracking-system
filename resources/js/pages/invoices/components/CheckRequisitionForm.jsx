@@ -356,19 +356,12 @@ CER Number: ${data.cer_number}
         post("/check-requisitions", {
             preserveScroll: true,
             onSuccess: () => {
-                toast.success("Check requisition created successfully!");
                 setSelectedInvoices(new Set());
                 setShowValidation(false);
                 reset();
             },
-            onError: (errors) => {
-                // Show all errors instead of just the first one
-                const errorMessages = Object.values(errors);
-                if (errorMessages.length > 0) {
-                    errorMessages.forEach(error => toast.error(error));
-                } else {
-                    toast.error("Submission failed");
-                }
+            onError: () => {
+                // Errors handled by flash messages
             },
         });
     }, [post, reset]);

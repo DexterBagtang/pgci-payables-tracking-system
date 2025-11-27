@@ -20,7 +20,6 @@ import { Button } from '@/components/ui/button';
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, Loader2, ChevronDown, ChevronUp } from 'lucide-react';
-import { toast } from 'sonner';
 
 export default function AddVendorDialog({ trigger, onSuccess }) {
     const [isOpen, setIsOpen] = useState(false);
@@ -51,11 +50,6 @@ export default function AddVendorDialog({ trigger, onSuccess }) {
 
         post('/vendors', {
             onSuccess: () => {
-                toast.success('Vendor added successfully!', {
-                    duration: 3000,
-                    position: 'top-right',
-                });
-
                 if (addMore) {
                     setData(initialValues);
                 } else {
@@ -67,10 +61,6 @@ export default function AddVendorDialog({ trigger, onSuccess }) {
                 onSuccess?.();
             },
             onError: () => {
-                toast.error('❌ Failed to add vendor. Please check the details and try again.', {
-                    duration: 5000,
-                    position: 'top-right',
-                });
                 setShouldAddMore(false);
             },
         });

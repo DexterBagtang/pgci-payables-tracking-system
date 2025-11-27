@@ -299,15 +299,10 @@ const EditCheckRequisition = ({ checkRequisition, currentInvoices, availableInvo
         put(`/check-requisitions/${checkRequisition.id}`, {
             preserveScroll: true,
             onSuccess: () => {
-                toast.success("Check requisition updated successfully!");
+                // Success handled by flash messages
             },
-            onError: (errors) => {
-                const errorMessages = Object.values(errors);
-                if (errorMessages.length > 0) {
-                    errorMessages.forEach(error => toast.error(error));
-                } else {
-                    toast.error("Update failed");
-                }
+            onError: () => {
+                // Errors handled by flash messages
             },
         });
     }, [put, checkRequisition.id]);
