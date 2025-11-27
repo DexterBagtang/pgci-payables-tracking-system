@@ -84,6 +84,20 @@ class DisbursementController extends Controller
             });
         }
 
+        // Project filter
+        if ($request->filled('project_id')) {
+            $query->whereHas('checkRequisitions.invoices.purchaseOrder', function ($q) use ($request) {
+                $q->where('project_id', $request->project_id);
+            });
+        }
+
+        // Account Code filter
+        if ($request->filled('account_code')) {
+            $query->whereHas('checkRequisitions', function ($q) use ($request) {
+                $q->where('account_charge', $request->account_code);
+            });
+        }
+
         // Amount range filter - using subquery for aggregated amounts
         if ($request->filled('amount_min') || $request->filled('amount_max')) {
             $query->whereHas('checkRequisitions', function ($q) use ($request) {
@@ -170,7 +184,23 @@ class DisbursementController extends Controller
         $disbursements = $query->with([
             'creator:id,name',
             'checkRequisitions' => function ($q) {
-                $q->select('check_requisitions.id', 'requisition_number', 'php_amount', 'payee_name');
+                $q->select('check_requisitions.id', 'requisition_number', 'php_amount', 'payee_name',
+                          'po_number', 'cer_number', 'si_number', 'account_charge', 'service_line_dist', 'purpose')
+                  ->with([
+                      'invoices' => function ($invQuery) {
+                          $invQuery->select('invoices.id', 'purchase_order_id', 'si_number', 'si_date',
+                                           'si_received_at', 'invoice_amount', 'net_amount', 'due_date')
+                                   ->with([
+                                       'purchaseOrder' => function ($poQuery) {
+                                           $poQuery->select('id', 'po_number', 'vendor_id', 'project_id')
+                                                   ->with([
+                                                       'vendor:id,name,payment_terms',
+                                                       'project:id,project_title,cer_number,project_type'
+                                                   ]);
+                                       }
+                                   ]);
+                      }
+                  ]);
             }
         ])
         ->paginate(15)
@@ -178,9 +208,85 @@ class DisbursementController extends Controller
 
         // Transform collection to add computed fields
         $disbursements->getCollection()->transform(function ($disbursement) {
-            $disbursement->total_amount = $disbursement->checkRequisitions->sum('php_amount');
-            $disbursement->check_requisition_count = $disbursement->checkRequisitions->count();
+            // Ensure checkRequisitions is loaded and available
+            $checkReqs = $disbursement->checkRequisitions;
+
+            $disbursement->total_amount = $checkReqs->sum('php_amount');
+            $disbursement->check_requisition_count = $checkReqs->count();
             $disbursement->status = $disbursement->date_check_released_to_vendor ? 'released' : 'pending';
+
+            // Compute vendor information (most common vendor)
+            $vendors = collect();
+            $projects = collect();
+            $poNumbers = collect();
+            $invoiceNumbers = collect();
+            $payeeNames = collect();
+            $accountCodes = collect();
+            $agingDays = collect();
+
+            foreach ($checkReqs as $cr) {
+                if ($cr->payee_name) {
+                    $payeeNames->push($cr->payee_name);
+                }
+                if ($cr->account_charge) {
+                    $accountCodes->push($cr->account_charge);
+                }
+
+                foreach ($cr->invoices as $invoice) {
+                    if ($invoice->purchaseOrder) {
+                        $po = $invoice->purchaseOrder;
+
+                        if ($po->vendor) {
+                            $vendors->push($po->vendor);
+                        }
+                        if ($po->project) {
+                            $projects->push($po->project);
+                        }
+                        if ($po->po_number) {
+                            $poNumbers->push($po->po_number);
+                        }
+                    }
+
+                    if ($invoice->si_number) {
+                        $invoiceNumbers->push($invoice->si_number);
+                    }
+
+                    // Calculate aging
+                    if ($invoice->si_received_at) {
+                        $endDate = $disbursement->date_check_released_to_vendor ?? now();
+                        $agingDays->push($endDate->diffInDays($invoice->si_received_at));
+                    }
+                }
+            }
+
+            // Set primary vendor (most common)
+            $disbursement->primary_vendor = $vendors->unique('id')->first();
+            $disbursement->vendor_count = $vendors->unique('id')->count();
+
+            // Set primary project (most common)
+            $disbursement->primary_project = $projects->unique('id')->first();
+            $disbursement->project_count = $projects->unique('id')->count();
+
+            // Set payee names
+            $disbursement->payee_names = $payeeNames->unique()->values()->all();
+            $disbursement->primary_payee = $payeeNames->first();
+
+            // Set PO and Invoice numbers
+            $disbursement->po_numbers = $poNumbers->unique()->values()->all();
+            $disbursement->invoice_numbers = $invoiceNumbers->unique()->values()->all();
+
+            // Set account codes
+            $disbursement->account_codes = $accountCodes->unique()->values()->all();
+            $disbursement->primary_account = $accountCodes->first();
+
+            // Set aging information
+            $disbursement->average_aging = $agingDays->avg();
+            $disbursement->max_aging = $agingDays->max();
+
+            // Remove checkRequisitions from response to reduce payload size
+            // All necessary data has been extracted to computed fields above
+            unset($disbursement->checkRequisitions);
+
             return $disbursement;
         });
 
@@ -198,6 +304,8 @@ class DisbursementController extends Controller
                 'vendor_id' => $request->vendor_id,
                 'purchase_order_id' => $request->purchase_order_id,
                 'check_requisition_id' => $request->check_requisition_id,
+                'project_id' => $request->project_id,
+                'account_code' => $request->account_code,
                 'amount_min' => $request->amount_min,
                 'amount_max' => $request->amount_max,
             ],
@@ -214,6 +322,18 @@ class DisbursementController extends Controller
                     ->orderBy('requisition_number', 'desc')
                     ->limit(100)
                     ->get(),
+                'projects' => \App\Models\Project::select('id', 'project_title', 'cer_number')
+                    ->where('project_status', 'active')
+                    ->orderBy('project_title')
+                    ->get(),
+                'accountCodes' => \App\Models\CheckRequisition::select('account_charge')
+                    ->distinct()
+                    ->whereNotNull('account_charge')
+                    ->orderBy('account_charge')
+                    ->pluck('account_charge')
+                    ->filter()
+                    ->values()
+                    ->all(),
             ],
         ]);
     }

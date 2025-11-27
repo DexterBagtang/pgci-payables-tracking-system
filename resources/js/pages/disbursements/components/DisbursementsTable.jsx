@@ -35,6 +35,8 @@ import {
     Building2,
     Receipt,
     TrendingUp,
+    User,
+    Package,
 } from 'lucide-react';
 import PaginationServerSide from '@/components/custom/Pagination.jsx';
 import DisbursementSummaryCards from './DisbursementSummaryCards';
@@ -49,6 +51,8 @@ export default function DisbursementsTable({ disbursements, filters, filterOptio
         vendor_id: filters.vendor_id || '',
         purchase_order_id: filters.purchase_order_id || '',
         check_requisition_id: filters.check_requisition_id || '',
+        project_id: filters.project_id || '',
+        account_code: filters.account_code || '',
         amount_min: filters.amount_min || '',
         amount_max: filters.amount_max || '',
     });
@@ -164,6 +168,8 @@ export default function DisbursementsTable({ disbursements, filters, filterOptio
             vendor_id: '',
             purchase_order_id: '',
             check_requisition_id: '',
+            project_id: '',
+            account_code: '',
             amount_min: '',
             amount_max: '',
         });
@@ -211,6 +217,13 @@ export default function DisbursementsTable({ disbursements, filters, filterOptio
         return new Date(dateString);
     };
 
+    const getAgingBadgeColor = (days) => {
+        if (!days) return 'bg-gray-100 text-gray-700';
+        if (days <= 30) return 'bg-green-100 text-green-700';
+        if (days <= 60) return 'bg-yellow-100 text-yellow-700';
+        return 'bg-red-100 text-red-700';
+    };
+
     // Status tabs configuration
     const statusTabs = [
         {
@@ -251,6 +264,8 @@ export default function DisbursementsTable({ disbursements, filters, filterOptio
         filters.vendor_id,
         filters.purchase_order_id,
         filters.check_requisition_id,
+        filters.project_id,
+        filters.account_code,
         filters.amount_min,
         filters.amount_max,
         filters.date_from || filters.date_to
@@ -377,6 +392,28 @@ export default function DisbursementsTable({ disbursements, filters, filterOptio
                                     </Badge>
                                 )}
 
+                                {filters.project_id && (
+                                    <Badge variant="secondary" className="gap-1 bg-white border border-blue-200">
+                                        <Building2 className="h-3 w-3" />
+                                        Project: {filterOptions.projects?.find(p => p.id.toString() === filters.project_id)?.cer_number || filterOptions.projects?.find(p => p.id.toString() === filters.project_id)?.project_title}
+                                        <XCircle
+                                            className="h-3 w-3 cursor-pointer hover:text-red-600"
+                                            onClick={() => clearFilter('project_id')}
+                                        />
+                                    </Badge>
+                                )}
+
+                                {filters.account_code && (
+                                    <Badge variant="secondary" className="gap-1 bg-white border border-blue-200">
+                                        <DollarSign className="h-3 w-3" />
+                                        Account: {filters.account_code}
+                                        <XCircle
+                                            className="h-3 w-3 cursor-pointer hover:text-red-600"
+                                            onClick={() => clearFilter('account_code')}
+                                        />
+                                    </Badge>
+                                )}
+
                                 {(filters.amount_min || filters.amount_max) && (
                                     <Badge variant="secondary" className="gap-1 bg-white border border-blue-200">
                                         <TrendingUp className="h-3 w-3" />
@@ -443,6 +480,24 @@ export default function DisbursementsTable({ disbursements, filters, filterOptio
                                 </SelectContent>
                             </Select>
 
+                            {/* Project Filter */}
+                            <Select
+                                value={localFilters.project_id || 'all'}
+                                onValueChange={(value) => handleFilterChange('project_id', value === 'all' ? '' : value)}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="All Projects" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Projects</SelectItem>
+                                    {filterOptions.projects?.map((project) => (
+                                        <SelectItem key={project.id} value={project.id.toString()}>
+                                            {project.cer_number || project.project_title}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+
                             {/* PO Filter */}
                             <Select
                                 value={localFilters.purchase_order_id || 'all'}
@@ -456,24 +511,6 @@ export default function DisbursementsTable({ disbursements, filters, filterOptio
                                     {filterOptions.purchaseOrders.map((po) => (
                                         <SelectItem key={po.id} value={po.id.toString()}>
                                             {po.po_number}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-
-                            {/* CR Filter */}
-                            <Select
-                                value={localFilters.check_requisition_id || 'all'}
-                                onValueChange={(value) => handleFilterChange('check_requisition_id', value === 'all' ? '' : value)}
-                            >
-                                <SelectTrigger>
-                                    <SelectValue placeholder="All CRs" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">All CRs</SelectItem>
-                                    {filterOptions.checkRequisitions.map((cr) => (
-                                        <SelectItem key={cr.id} value={cr.id.toString()}>
-                                            {cr.requisition_number}
                                         </SelectItem>
                                     ))}
                                 </SelectContent>
@@ -517,8 +554,45 @@ export default function DisbursementsTable({ disbursements, filters, filterOptio
                             </Popover>
                         </div>
 
-                        {/* Amount Range Filters - Row 2 */}
+                        {/* Filter Controls Grid - Row 2 */}
                         <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-6">
+                            {/* CR Filter */}
+                            <Select
+                                value={localFilters.check_requisition_id || 'all'}
+                                onValueChange={(value) => handleFilterChange('check_requisition_id', value === 'all' ? '' : value)}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="All Check Requisitions" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Check Requisitions</SelectItem>
+                                    {filterOptions.checkRequisitions.map((cr) => (
+                                        <SelectItem key={cr.id} value={cr.id.toString()}>
+                                            {cr.requisition_number} - {cr.payee_name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+
+                            {/* Account Code Filter */}
+                            <Select
+                                value={localFilters.account_code || 'all'}
+                                onValueChange={(value) => handleFilterChange('account_code', value === 'all' ? '' : value)}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="All Account Codes" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Account Codes</SelectItem>
+                                    {filterOptions.accountCodes?.map((code, idx) => (
+                                        <SelectItem key={idx} value={code}>
+                                            {code}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+
+                            {/* Min Amount */}
                             <div className="md:col-span-2">
                                 <Input
                                     type="number"
@@ -527,6 +601,8 @@ export default function DisbursementsTable({ disbursements, filters, filterOptio
                                     onChange={(e) => handleFilterChange('amount_min', e.target.value)}
                                 />
                             </div>
+
+                            {/* Max Amount */}
                             <div className="md:col-span-2">
                                 <Input
                                     type="number"
@@ -551,15 +627,18 @@ export default function DisbursementsTable({ disbursements, filters, filterOptio
                                                 Check Voucher {getSortIcon('check_voucher_number')}
                                             </Button>
                                         </TableHead>
+                                        <TableHead>Vendor / Payee</TableHead>
+                                        <TableHead>Project</TableHead>
                                         <TableHead>Total Amount</TableHead>
-                                        <TableHead>Check Requisitions</TableHead>
+                                        <TableHead>PO / Invoice</TableHead>
+                                        <TableHead>Aging</TableHead>
                                         <TableHead>
                                             <Button
                                                 variant="ghost"
                                                 size="sm"
                                                 onClick={() => handleSort('date_check_scheduled')}
                                             >
-                                                Scheduled Date {getSortIcon('date_check_scheduled')}
+                                                Scheduled {getSortIcon('date_check_scheduled')}
                                             </Button>
                                         </TableHead>
                                         <TableHead>
@@ -568,18 +647,17 @@ export default function DisbursementsTable({ disbursements, filters, filterOptio
                                                 size="sm"
                                                 onClick={() => handleSort('date_check_released_to_vendor')}
                                             >
-                                                Released Date {getSortIcon('date_check_released_to_vendor')}
+                                                Released {getSortIcon('date_check_released_to_vendor')}
                                             </Button>
                                         </TableHead>
                                         <TableHead>Status</TableHead>
-                                        <TableHead>Created By</TableHead>
                                         <TableHead className="text-right">Actions</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {data.length === 0 ? (
                                         <TableRow>
-                                            <TableCell colSpan={8} className="text-center text-gray-500 py-8">
+                                            <TableCell colSpan={10} className="text-center text-gray-500 py-8">
                                                 No disbursements found
                                             </TableCell>
                                         </TableRow>
@@ -587,133 +665,271 @@ export default function DisbursementsTable({ disbursements, filters, filterOptio
                                         data.map((disbursement) => (
                                             <TableRow key={disbursement.id} className="hover:bg-gray-50">
                                                 {/* Check Voucher Number */}
-                                                <TableCell>
-                                                    <TooltipProvider>
-                                                        <Tooltip>
-                                                            <TooltipTrigger asChild>
-                                                                <Link
-                                                                    href={`/disbursements/${disbursement.id}`}
-                                                                    className="flex items-center gap-2 font-semibold text-blue-600 hover:text-blue-800"
-                                                                >
-                                                                    <FileText className="h-4 w-4" />
-                                                                    {disbursement.check_voucher_number}
-                                                                </Link>
-                                                            </TooltipTrigger>
-                                                            <TooltipContent>
-                                                                <p>View disbursement details</p>
-                                                            </TooltipContent>
-                                                        </Tooltip>
-                                                    </TooltipProvider>
-                                                </TableCell>
-
-                                                {/* Total Amount */}
-                                                <TableCell>
-                                                    <div className="flex flex-col">
-                                                        <span className="text-lg font-bold text-green-700">
-                                                            {formatCurrency(disbursement.total_amount)}
-                                                        </span>
-                                                    </div>
-                                                </TableCell>
-
-                                                {/* Check Requisitions Count */}
-                                                <TableCell>
-                                                    <Badge variant="secondary" className="bg-purple-100 text-purple-700">
-                                                        {disbursement.check_requisition_count} CR(s)
-                                                    </Badge>
-                                                </TableCell>
-
-                                                {/* Scheduled Date */}
-                                                <TableCell>
-                                                    {disbursement.date_check_scheduled ? (
-                                                        <div className="flex items-center gap-2">
-                                                            <CalendarIcon className="h-4 w-4 text-gray-400" />
-                                                            <span className="text-sm">
-                                                                {format(formatDate(disbursement.date_check_scheduled), 'MMM dd, yyyy')}
-                                                            </span>
-                                                        </div>
-                                                    ) : (
-                                                        <span className="text-sm text-gray-400">Not scheduled</span>
-                                                    )}
-                                                </TableCell>
-
-                                                {/* Released Date */}
-                                                <TableCell>
-                                                    {disbursement.date_check_released_to_vendor ? (
-                                                        <div className="flex items-center gap-2">
-                                                            <CheckCircle2 className="h-4 w-4 text-green-600" />
-                                                            <span className="text-sm">
-                                                                {format(formatDate(disbursement.date_check_released_to_vendor), 'MMM dd, yyyy')}
-                                                            </span>
-                                                        </div>
-                                                    ) : (
-                                                        <span className="text-sm text-gray-400">Not released</span>
-                                                    )}
-                                                </TableCell>
-
-                                                {/* Status */}
-                                                <TableCell>
-                                                    <Badge
-                                                        variant={disbursement.status === 'released' ? 'success' : 'secondary'}
-                                                        className={
-                                                            disbursement.status === 'released'
-                                                                ? 'bg-green-100 text-green-700'
-                                                                : 'bg-yellow-100 text-yellow-700'
-                                                        }
-                                                    >
-                                                        {disbursement.status === 'released' ? 'Released' : 'Pending'}
-                                                    </Badge>
-                                                </TableCell>
-
-                                                {/* Created By */}
-                                                <TableCell>
-                                                    <span className="text-sm text-gray-600">
-                                                        {disbursement.creator?.name}
-                                                    </span>
-                                                </TableCell>
-
-                                                {/* Actions */}
-                                                <TableCell className="text-right">
-                                                    <div className="flex justify-end gap-2">
-                                                        <TooltipProvider>
-                                                            <Tooltip>
-                                                                <TooltipTrigger asChild>
-                                                                    <Button
-                                                                        variant="ghost"
-                                                                        size="icon"
-                                                                        className="h-8 w-8"
-                                                                        onClick={() => router.visit(`/disbursements/${disbursement.id}`)}
-                                                                    >
-                                                                        <Eye className="h-4 w-4" />
-                                                                    </Button>
-                                                                </TooltipTrigger>
-                                                                <TooltipContent>
-                                                                    <p>View Details</p>
-                                                                </TooltipContent>
-                                                            </Tooltip>
-                                                        </TooltipProvider>
-
-                                                        {!disbursement.date_check_released_to_vendor && (
+                                                        <TableCell>
                                                             <TooltipProvider>
                                                                 <Tooltip>
                                                                     <TooltipTrigger asChild>
-                                                                        <Button
-                                                                            variant="ghost"
-                                                                            size="icon"
-                                                                            className="h-8 w-8"
-                                                                            onClick={() => router.visit(`/disbursements/${disbursement.id}/edit`)}
+                                                                        <Link
+                                                                            href={`/disbursements/${disbursement.id}`}
+                                                                            className="flex items-center gap-2 font-semibold text-blue-600 hover:text-blue-800"
                                                                         >
-                                                                            <Edit className="h-4 w-4" />
-                                                                        </Button>
+                                                                            <FileText className="h-4 w-4" />
+                                                                            {disbursement.check_voucher_number}
+                                                                        </Link>
                                                                     </TooltipTrigger>
                                                                     <TooltipContent>
-                                                                        <p>Edit Disbursement</p>
+                                                                        <p>View disbursement details</p>
                                                                     </TooltipContent>
                                                                 </Tooltip>
                                                             </TooltipProvider>
-                                                        )}
-                                                    </div>
-                                                </TableCell>
-                                            </TableRow>
+                                                        </TableCell>
+
+                                                        {/* Vendor / Payee */}
+                                                        <TableCell>
+                                                            <div className="flex flex-col gap-1">
+                                                                {disbursement.primary_vendor ? (
+                                                                    <TooltipProvider>
+                                                                        <Tooltip>
+                                                                            <TooltipTrigger asChild>
+                                                                                <div className="flex items-center gap-1.5">
+                                                                                    <Building2 className="h-3.5 w-3.5 text-blue-600" />
+                                                                                    <span className="text-sm font-medium">
+                                                                                        {disbursement.primary_vendor.name}
+                                                                                    </span>
+                                                                                    {disbursement.vendor_count > 1 && (
+                                                                                        <Badge variant="secondary" className="h-5 px-1.5 text-xs">
+                                                                                            +{disbursement.vendor_count - 1}
+                                                                                        </Badge>
+                                                                                    )}
+                                                                                </div>
+                                                                            </TooltipTrigger>
+                                                                            {disbursement.vendor_count > 1 && (
+                                                                                <TooltipContent>
+                                                                                    <p>Multiple vendors - click to expand</p>
+                                                                                </TooltipContent>
+                                                                            )}
+                                                                        </Tooltip>
+                                                                    </TooltipProvider>
+                                                                ) : null}
+                                                                {disbursement.primary_payee && (
+                                                                    <TooltipProvider>
+                                                                        <Tooltip>
+                                                                            <TooltipTrigger asChild>
+                                                                                <div className="flex items-center gap-1.5">
+                                                                                    <User className="h-3.5 w-3.5 text-purple-600" />
+                                                                                    <span className="text-xs text-gray-600">
+                                                                                        {disbursement.primary_payee}
+                                                                                    </span>
+                                                                                </div>
+                                                                            </TooltipTrigger>
+                                                                            <TooltipContent>
+                                                                                <p>Payee: {disbursement.primary_payee}</p>
+                                                                            </TooltipContent>
+                                                                        </Tooltip>
+                                                                    </TooltipProvider>
+                                                                )}
+                                                            </div>
+                                                        </TableCell>
+
+                                                        {/* Project */}
+                                                        <TableCell>
+                                                            {disbursement.primary_project ? (
+                                                                <TooltipProvider>
+                                                                    <Tooltip>
+                                                                        <TooltipTrigger asChild>
+                                                                            <div className="flex flex-col gap-0.5">
+                                                                                <span className="text-sm font-medium">
+                                                                                    {disbursement.primary_project.cer_number || 'N/A'}
+                                                                                </span>
+                                                                                <span className="text-xs text-gray-500 truncate max-w-[150px]">
+                                                                                    {disbursement.primary_project.project_title}
+                                                                                </span>
+                                                                                {disbursement.project_count > 1 && (
+                                                                                    <Badge variant="secondary" className="w-fit text-xs">
+                                                                                        +{disbursement.project_count - 1} more
+                                                                                    </Badge>
+                                                                                )}
+                                                                            </div>
+                                                                        </TooltipTrigger>
+                                                                        <TooltipContent>
+                                                                            <p>{disbursement.primary_project.project_title}</p>
+                                                                        </TooltipContent>
+                                                                    </Tooltip>
+                                                                </TooltipProvider>
+                                                            ) : (
+                                                                <span className="text-sm text-gray-400">N/A</span>
+                                                            )}
+                                                        </TableCell>
+
+                                                        {/* Total Amount */}
+                                                        <TableCell>
+                                                            <div className="flex flex-col gap-0.5">
+                                                                <span className="text-lg font-bold text-green-700">
+                                                                    {formatCurrency(disbursement.total_amount)}
+                                                                </span>
+                                                                <span className="text-xs text-gray-500">
+                                                                    {disbursement.check_requisition_count} CR{disbursement.check_requisition_count !== 1 ? 's' : ''}
+                                                                </span>
+                                                            </div>
+                                                        </TableCell>
+
+                                                        {/* PO / Invoice */}
+                                                        <TableCell>
+                                                            <TooltipProvider>
+                                                                <Tooltip>
+                                                                    <TooltipTrigger asChild>
+                                                                        <div className="flex flex-col gap-1">
+                                                                            {disbursement.po_numbers && disbursement.po_numbers.length > 0 ? (
+                                                                                <div className="flex items-center gap-1.5">
+                                                                                    <Package className="h-3.5 w-3.5 text-blue-600" />
+                                                                                    <span className="text-xs font-medium">
+                                                                                        {disbursement.po_numbers[0]}
+                                                                                    </span>
+                                                                                    {disbursement.po_numbers.length > 1 && (
+                                                                                        <Badge variant="secondary" className="h-5 px-1.5 text-xs">
+                                                                                            +{disbursement.po_numbers.length - 1}
+                                                                                        </Badge>
+                                                                                    )}
+                                                                                </div>
+                                                                            ) : null}
+                                                                            {disbursement.invoice_numbers && disbursement.invoice_numbers.length > 0 ? (
+                                                                                <div className="flex items-center gap-1.5">
+                                                                                    <Receipt className="h-3.5 w-3.5 text-purple-600" />
+                                                                                    <span className="text-xs text-gray-600">
+                                                                                        {disbursement.invoice_numbers.length} invoice(s)
+                                                                                    </span>
+                                                                                </div>
+                                                                            ) : null}
+                                                                        </div>
+                                                                    </TooltipTrigger>
+                                                                    <TooltipContent>
+                                                                        {disbursement.po_numbers && disbursement.po_numbers.length > 0 && (
+                                                                            <div className="mb-2">
+                                                                                <p className="font-semibold">POs:</p>
+                                                                                {disbursement.po_numbers.map((po, idx) => (
+                                                                                    <p key={idx} className="text-xs">{po}</p>
+                                                                                ))}
+                                                                            </div>
+                                                                        )}
+                                                                        {disbursement.invoice_numbers && disbursement.invoice_numbers.length > 0 && (
+                                                                            <div>
+                                                                                <p className="font-semibold">Invoices:</p>
+                                                                                {disbursement.invoice_numbers.map((inv, idx) => (
+                                                                                    <p key={idx} className="text-xs">{inv}</p>
+                                                                                ))}
+                                                                            </div>
+                                                                        )}
+                                                                    </TooltipContent>
+                                                                </Tooltip>
+                                                            </TooltipProvider>
+                                                        </TableCell>
+
+                                                        {/* Aging */}
+                                                        <TableCell>
+                                                            {disbursement.max_aging ? (
+                                                                <TooltipProvider>
+                                                                    <Tooltip>
+                                                                        <TooltipTrigger asChild>
+                                                                            <Badge className={cn('font-semibold', getAgingBadgeColor(disbursement.max_aging))}>
+                                                                                {Math.round(disbursement.max_aging)} days
+                                                                            </Badge>
+                                                                        </TooltipTrigger>
+                                                                        <TooltipContent>
+                                                                            <p>Average: {Math.round(disbursement.average_aging || 0)} days</p>
+                                                                            <p>Maximum: {Math.round(disbursement.max_aging)} days</p>
+                                                                        </TooltipContent>
+                                                                    </Tooltip>
+                                                                </TooltipProvider>
+                                                            ) : (
+                                                                <span className="text-xs text-gray-400">N/A</span>
+                                                            )}
+                                                        </TableCell>
+
+                                                        {/* Scheduled Date */}
+                                                        <TableCell>
+                                                            {disbursement.date_check_scheduled ? (
+                                                                <div className="flex items-center gap-2">
+                                                                    <CalendarIcon className="h-4 w-4 text-gray-400" />
+                                                                    <span className="text-sm">
+                                                                        {format(formatDate(disbursement.date_check_scheduled), 'MMM dd, yyyy')}
+                                                                    </span>
+                                                                </div>
+                                                            ) : (
+                                                                <span className="text-sm text-gray-400">Not set</span>
+                                                            )}
+                                                        </TableCell>
+
+                                                        {/* Released Date */}
+                                                        <TableCell>
+                                                            {disbursement.date_check_released_to_vendor ? (
+                                                                <div className="flex items-center gap-2">
+                                                                    <CheckCircle2 className="h-4 w-4 text-green-600" />
+                                                                    <span className="text-sm">
+                                                                        {format(formatDate(disbursement.date_check_released_to_vendor), 'MMM dd, yyyy')}
+                                                                    </span>
+                                                                </div>
+                                                            ) : (
+                                                                <span className="text-sm text-gray-400">Not released</span>
+                                                            )}
+                                                        </TableCell>
+
+                                                        {/* Status */}
+                                                        <TableCell>
+                                                            <Badge
+                                                                variant={disbursement.status === 'released' ? 'success' : 'secondary'}
+                                                                className={
+                                                                    disbursement.status === 'released'
+                                                                        ? 'bg-green-100 text-green-700'
+                                                                        : 'bg-yellow-100 text-yellow-700'
+                                                                }
+                                                            >
+                                                                {disbursement.status === 'released' ? 'Released' : 'Pending'}
+                                                            </Badge>
+                                                        </TableCell>
+
+                                                        {/* Actions */}
+                                                        <TableCell className="text-right">
+                                                            <div className="flex justify-end gap-2">
+                                                                <TooltipProvider>
+                                                                    <Tooltip>
+                                                                        <TooltipTrigger asChild>
+                                                                            <Button
+                                                                                variant="ghost"
+                                                                                size="icon"
+                                                                                className="h-8 w-8"
+                                                                                onClick={() => router.visit(`/disbursements/${disbursement.id}`)}
+                                                                            >
+                                                                                <Eye className="h-4 w-4" />
+                                                                            </Button>
+                                                                        </TooltipTrigger>
+                                                                        <TooltipContent>
+                                                                            <p>View Details</p>
+                                                                        </TooltipContent>
+                                                                    </Tooltip>
+                                                                </TooltipProvider>
+
+                                                                {!disbursement.date_check_released_to_vendor && (
+                                                                    <TooltipProvider>
+                                                                        <Tooltip>
+                                                                            <TooltipTrigger asChild>
+                                                                                <Button
+                                                                                    variant="ghost"
+                                                                                    size="icon"
+                                                                                    className="h-8 w-8"
+                                                                                    onClick={() => router.visit(`/disbursements/${disbursement.id}/edit`)}
+                                                                                >
+                                                                                    <Edit className="h-4 w-4" />
+                                                                                </Button>
+                                                                            </TooltipTrigger>
+                                                                            <TooltipContent>
+                                                                                <p>Edit Disbursement</p>
+                                                                            </TooltipContent>
+                                                                        </Tooltip>
+                                                                    </TooltipProvider>
+                                                                )}
+                                                            </div>
+                                                        </TableCell>
+                                                    </TableRow>
                                         ))
                                     )}
                                 </TableBody>
