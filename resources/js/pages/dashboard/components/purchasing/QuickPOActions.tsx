@@ -7,7 +7,7 @@ import { Zap } from 'lucide-react';
 export default function QuickPOActions() {
     const actions = [
         {
-            label: 'Create PO',
+            label: 'Add PO',
             href: '/purchase-orders/create',
             icon: Plus,
             variant: 'default' as const,

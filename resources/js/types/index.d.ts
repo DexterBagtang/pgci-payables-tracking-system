@@ -267,6 +267,10 @@ export interface POFinancialMetrics {
     pos_created_this_month: number;
     average_po_value: number;
     pos_closed_this_month: number;
+    total_invoices: number;
+    invoices_this_month: number;
+    pending_invoices: number;
+    total_invoice_amount: number;
 }
 
 export interface ProjectBudgetData {
@@ -284,6 +288,11 @@ export interface VendorPerformanceData {
     vendor_name: string;
     active_pos: number;
     total_committed: number;
+    total_invoiced: number;
+    total_paid: number;
+    outstanding_balance: number;
+    invoice_count: number;
+    currency: string;
 }
 
 // Invoice/Payables Dashboard Data Types
@@ -360,15 +369,15 @@ export interface PurchasingDashboardData extends BaseDashboardProps {
         usd_count: number;
         usd_total: number;
     };
-    recentPOActivity: {
+    recentInvoiceActivity: {
         id: number;
-        po_number: string;
+        si_number: string;
         vendor_name: string;
-        project_code: string;
-        total_amount: number;
+        po_number: string;
+        net_amount: number;
         currency: 'PHP' | 'USD';
-        status: 'draft' | 'open' | 'closed' | 'cancelled';
-        created_at: string;
+        invoice_status: 'pending' | 'received' | 'in_progress' | 'approved' | 'pending_disbursement' | 'paid' | 'rejected';
+        si_received_at: string;
     }[];
     // Old chart-based widgets (kept for future use)
     // poStatusDistribution: POStatusData[];
@@ -436,15 +445,15 @@ export interface AdminDashboardData extends BaseDashboardProps {
             usd_count: number;
             usd_total: number;
         };
-        recentPOActivity: {
+        recentInvoiceActivity: {
             id: number;
-            po_number: string;
+            si_number: string;
             vendor_name: string;
-            project_code: string;
-            total_amount: number;
+            po_number: string;
+            net_amount: number;
             currency: 'PHP' | 'USD';
-            status: 'draft' | 'open' | 'closed' | 'cancelled';
-            created_at: string;
+            invoice_status: 'pending' | 'received' | 'in_progress' | 'approved' | 'pending_disbursement' | 'paid' | 'rejected';
+            si_received_at: string;
         }[];
         // Old chart-based widgets (kept for future use)
         // poStatusDistribution: POStatusData[];

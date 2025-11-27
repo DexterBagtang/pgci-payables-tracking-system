@@ -88,30 +88,30 @@ export default function MetricCard({
             )}
             onClick={onClick}
         >
-            <CardContent className="p-6">
+            <CardContent className="p-3">
                 {loading ? (
-                    <div className="space-y-3">
-                        <Skeleton className="h-4 w-24" />
-                        <Skeleton className="h-8 w-32" />
+                    <div className="space-y-2">
                         <Skeleton className="h-3 w-20" />
+                        <Skeleton className="h-6 w-24" />
+                        <Skeleton className="h-2 w-16" />
                     </div>
                 ) : (
-                    <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                            <p className="text-sm font-medium text-muted-foreground">
+                    <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                            <p className="text-xs font-medium text-muted-foreground truncate">
                                 {title}
                             </p>
-                            <p className={cn('mt-2 text-3xl font-bold', colorVariant.text)}>
+                            <p className={cn('mt-1 text-xl font-bold', colorVariant.text)}>
                                 {value}
                             </p>
                             {trend && TrendIcon && (
-                                <div className="mt-2 flex items-center gap-1">
-                                    <TrendIcon className={cn('h-4 w-4', getTrendColor())} />
-                                    <span className={cn('text-sm font-medium', getTrendColor())}>
+                                <div className="mt-1 flex items-center gap-1">
+                                    <TrendIcon className={cn('h-3 w-3', getTrendColor())} />
+                                    <span className={cn('text-xs font-medium', getTrendColor())}>
                                         {Math.abs(trend.value)}%
                                     </span>
                                     {trend.label && (
-                                        <span className="text-sm text-muted-foreground">
+                                        <span className="text-xs text-muted-foreground">
                                             {trend.label}
                                         </span>
                                     )}
@@ -121,11 +121,11 @@ export default function MetricCard({
                         {Icon && (
                             <div
                                 className={cn(
-                                    'flex h-12 w-12 items-center justify-center rounded-lg',
+                                    'flex h-8 w-8 items-center justify-center rounded-lg shrink-0',
                                     colorVariant.bg
                                 )}
                             >
-                                <Icon className={cn('h-6 w-6', colorVariant.icon)} />
+                                <Icon className={cn('h-4 w-4', colorVariant.icon)} />
                             </div>
                         )}
                     </div>

@@ -88,7 +88,7 @@ class DashboardController extends Controller
             'vendorPerformance' => $this->getVendorPerformance($dateRange),
             'poStatusSummary' => $this->getPOStatusSummary($dateRange),
             'currencySummary' => $this->getCurrencySummary($dateRange),
-            'recentPOActivity' => $this->getRecentPOActivity($dateRange),
+            'recentInvoiceActivity' => $this->getRecentInvoiceActivity($dateRange),
             // Old chart-based widgets (kept for future use)
             // 'poStatusDistribution' => $this->getPOStatusDistribution($dateRange),
             // 'poAging' => $this->getPOAging($dateRange),
@@ -147,7 +147,7 @@ class DashboardController extends Controller
                 'vendorPerformance' => $this->getVendorPerformance($dateRange),
                 'poStatusSummary' => $this->getPOStatusSummary($dateRange),
                 'currencySummary' => $this->getCurrencySummary($dateRange),
-                'recentPOActivity' => $this->getRecentPOActivity($dateRange),
+                'recentInvoiceActivity' => $this->getRecentInvoiceActivity($dateRange),
                 // Old chart-based widgets (commented for future use)
                 // 'poStatusDistribution' => $this->getPOStatusDistribution($dateRange),
                 // 'poAging' => $this->getPOAging($dateRange),
@@ -407,12 +407,27 @@ class DashboardController extends Controller
             $posClosedThisMonth = PurchaseOrder::whereBetween('closed_at', $thisMonth)
                 ->count();
 
+            // Invoice metrics
+            $totalInvoices = Invoice::count();
+
+            $invoicesThisMonth = Invoice::whereBetween('si_received_at', $thisMonth)
+                ->count();
+
+            $pendingInvoices = Invoice::whereIn('invoice_status', ['received', 'in_progress', 'pending'])
+                ->count();
+
+            $totalInvoiceAmount = Invoice::sum('net_amount') ?? 0;
+
             return [
                 'open_po_value_php' => (float) $openPOValuePHP,
                 'open_po_value_usd' => (float) $openPOValueUSD,
                 'pos_created_this_month' => $posCreatedThisMonth,
                 'average_po_value' => (float) $averagePOValue,
                 'pos_closed_this_month' => $posClosedThisMonth,
+                'total_invoices' => $totalInvoices,
+                'invoices_this_month' => $invoicesThisMonth,
+                'pending_invoices' => $pendingInvoices,
+                'total_invoice_amount' => (float) $totalInvoiceAmount,
             ];
         });
     }
@@ -455,27 +470,43 @@ class DashboardController extends Controller
         $cacheKey = 'dashboard.vendor_performance.' . md5(json_encode($dateRange));
 
         return Cache::remember($cacheKey, 300, function () use ($dateRange) {
-            $query = PurchaseOrder::with('vendor')
+            $query = PurchaseOrder::with(['vendor', 'invoices'])
                 ->where('po_status', 'open')
                 ->selectRaw('
                     vendor_id,
                     COUNT(*) as active_pos,
-                    SUM(po_amount) as total_committed
+                    SUM(po_amount) as total_committed,
+                    MAX(currency) as currency
                 ')
                 ->groupBy('vendor_id')
                 ->orderByDesc('total_committed')
-                ->limit(5);
+                ->limit(10);
 
             if ($dateRange[0] && $dateRange[1]) {
                 $query->whereBetween('finalized_at', $dateRange);
             }
 
             return $query->get()->map(function($item) {
+                // Calculate invoice metrics from the vendor's invoices
+                $invoices = Invoice::whereHas('purchaseOrder', function($q) use ($item) {
+                    $q->where('vendor_id', $item->vendor_id);
+                })->get();
+
+                $totalInvoiced = $invoices->sum('net_amount');
+                $totalPaid = $invoices->where('invoice_status', 'paid')->sum('net_amount');
+                $outstandingBalance = $invoices->whereNotIn('invoice_status', ['paid', 'rejected', 'cancelled'])->sum('net_amount');
+                $invoiceCount = $invoices->count();
+
                 return [
                     'vendor_id' => $item->vendor_id,
                     'vendor_name' => $item->vendor->name ?? 'Unknown Vendor',
                     'active_pos' => $item->active_pos,
                     'total_committed' => (float) $item->total_committed,
+                    'total_invoiced' => (float) $totalInvoiced,
+                    'total_paid' => (float) $totalPaid,
+                    'outstanding_balance' => (float) $outstandingBalance,
+                    'invoice_count' => $invoiceCount,
+                    'currency' => $item->currency ?? 'PHP',
                 ];
             })->toArray();
         });
@@ -1211,26 +1242,26 @@ class DashboardController extends Controller
         });
     }
 
-    private function getRecentPOActivity(array $dateRange)
+    private function getRecentInvoiceActivity(array $dateRange)
     {
-        $cacheKey = 'dashboard.recent_po_activity.' . md5(json_encode($dateRange));
+        $cacheKey = 'dashboard.recent_invoice_activity.' . md5(json_encode($dateRange));
 
         return Cache::remember($cacheKey, 300, function () use ($dateRange) {
-            return PurchaseOrder::with(['vendor', 'project'])
-                ->whereNotNull('finalized_at')
-                ->orderBy('finalized_at', 'desc')
+            return Invoice::with(['vendor', 'purchaseOrder'])
+                ->whereNotNull('si_received_at')
+                ->orderBy('si_received_at', 'desc')
                 ->limit(8)
                 ->get()
-                ->map(function($po) {
+                ->map(function($invoice) {
                     return [
-                        'id' => $po->id,
-                        'po_number' => $po->po_number,
-                        'vendor_name' => $po->vendor->name ?? 'Unknown Vendor',
-                        'project_code' => $po->project->project_code ?? 'N/A',
-                        'total_amount' => (float) $po->po_amount,
-                        'currency' => $po->currency ?? 'PHP',
-                        'status' => $po->po_status,
-                        'created_at' => $po->finalized_at,
+                        'id' => $invoice->id,
+                        'si_number' => $invoice->si_number,
+                        'vendor_name' => $invoice->vendor->name ?? 'Unknown Vendor',
+                        'po_number' => $invoice->purchaseOrder->po_number ?? 'N/A',
+                        'net_amount' => (float) $invoice->net_amount,
+                        'currency' => $invoice->currency ?? 'PHP',
+                        'invoice_status' => $invoice->invoice_status,
+                        'si_received_at' => $invoice->si_received_at,
                     ];
                 })
                 ->toArray();

@@ -1,32 +1,35 @@
-import { Clock, ExternalLink } from 'lucide-react';
+import { FileText, ExternalLink } from 'lucide-react';
 import DashboardCard from '../shared/DashboardCard';
 import { Link } from '@inertiajs/react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
-interface RecentPO {
+interface RecentInvoice {
     id: number;
-    po_number: string;
+    si_number: string;
     vendor_name: string;
-    project_code: string;
-    total_amount: number;
+    po_number: string;
+    net_amount: number;
     currency: 'PHP' | 'USD';
-    status: 'draft' | 'open' | 'closed' | 'cancelled';
-    created_at: string;
+    invoice_status: 'pending' | 'received' | 'in_progress' | 'approved' | 'pending_disbursement' | 'paid' | 'rejected';
+    si_received_at: string;
 }
 
-interface RecentPOActivityProps {
-    data: RecentPO[];
+interface RecentInvoiceActivityProps {
+    data: RecentInvoice[];
 }
 
 const STATUS_CONFIG = {
-    draft: { label: 'Draft', variant: 'secondary' as const, color: 'text-gray-600' },
-    open: { label: 'Open', variant: 'default' as const, color: 'text-blue-600' },
-    closed: { label: 'Closed', variant: 'default' as const, color: 'text-teal-600' },
-    cancelled: { label: 'Cancelled', variant: 'destructive' as const, color: 'text-red-600' },
+    pending: { label: 'Pending', variant: 'secondary' as const, color: 'text-gray-600' },
+    received: { label: 'Received', variant: 'default' as const, color: 'text-blue-600' },
+    in_progress: { label: 'In Review', variant: 'default' as const, color: 'text-yellow-600' },
+    approved: { label: 'Approved', variant: 'default' as const, color: 'text-green-600' },
+    pending_disbursement: { label: 'Pending Disbursement', variant: 'default' as const, color: 'text-purple-600' },
+    paid: { label: 'Paid', variant: 'default' as const, color: 'text-teal-600' },
+    rejected: { label: 'Rejected', variant: 'destructive' as const, color: 'text-red-600' },
 };
 
-export default function RecentPOActivity({ data }: RecentPOActivityProps) {
+export default function RecentInvoiceActivity({ data }: RecentInvoiceActivityProps) {
     const formatCurrency = (value: number, currency: 'PHP' | 'USD') => {
         return new Intl.NumberFormat('en-PH', {
             style: 'currency',
@@ -55,29 +58,29 @@ export default function RecentPOActivity({ data }: RecentPOActivityProps) {
 
     return (
         <DashboardCard
-            title="Recent PO Activity"
-            description="Latest purchase orders created"
-            icon={Clock}
+            title="Recent Invoice Activity"
+            description="Latest invoices added to the system"
+            icon={FileText}
         >
             {isEmpty ? (
                 <div className="flex items-center justify-center h-32 text-muted-foreground">
-                    <p className="text-sm">No recent purchase orders</p>
+                    <p className="text-sm">No recent invoices</p>
                 </div>
             ) : (
                 <div className="space-y-2">
-                    {data.map((po) => {
-                        const statusConfig = STATUS_CONFIG[po.status];
+                    {data.map((invoice) => {
+                        const statusConfig = STATUS_CONFIG[invoice.invoice_status];
                         return (
                             <Link
-                                key={po.id}
-                                href={`/purchase-orders/${po.id}`}
+                                key={invoice.id}
+                                href={`/invoices/${invoice.id}`}
                                 className="block group"
                             >
                                 <div className="flex items-center gap-3 p-2.5 rounded-md border bg-card hover:bg-accent transition-colors">
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-2 mb-1">
                                             <p className="font-medium text-sm truncate group-hover:text-primary">
-                                                {po.po_number}
+                                                {invoice.si_number}
                                             </p>
                                             <Badge variant={statusConfig.variant} className="text-xs px-1.5 py-0">
                                                 {statusConfig.label}
@@ -85,16 +88,16 @@ export default function RecentPOActivity({ data }: RecentPOActivityProps) {
                                             <ExternalLink className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                                         </div>
                                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                            <span className="truncate">{po.vendor_name}</span>
+                                            <span className="truncate">{invoice.vendor_name}</span>
                                             <span>•</span>
-                                            <span>{po.project_code}</span>
+                                            <span>{invoice.po_number}</span>
                                             <span>•</span>
-                                            <span>{formatDate(po.created_at)}</span>
+                                            <span>{formatDate(invoice.si_received_at)}</span>
                                         </div>
                                     </div>
                                     <div className="text-right">
                                         <p className={cn('text-sm font-semibold font-mono', statusConfig.color)}>
-                                            {formatCurrency(po.total_amount, po.currency)}
+                                            {formatCurrency(invoice.net_amount, invoice.currency)}
                                         </p>
                                     </div>
                                 </div>

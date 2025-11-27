@@ -27,7 +27,7 @@ export default function DashboardCard({
 }: DashboardCardProps) {
     return (
         <Card className={cn('flex flex-col', className)}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0">
                 <div className="flex items-center gap-3">
                     {Icon && (
                         <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">

@@ -8,9 +8,7 @@ import type { PurchasingDashboardData } from '@/types';
 // Active widgets
 import POFinancialCommitments from './POFinancialCommitments';
 import VendorPerformanceWidget from './VendorPerformanceWidget';
-import POStatusSummary from './POStatusSummary';
-import CurrencySummary from './CurrencySummary';
-import RecentPOActivity from './RecentPOActivity';
+import RecentInvoiceActivity from './RecentInvoiceActivity';
 import QuickPOActions from './QuickPOActions';
 
 interface PurchasingDashboardProps extends PurchasingDashboardData {}
@@ -21,7 +19,7 @@ export default function PurchasingDashboard(props: PurchasingDashboardProps) {
         vendorPerformance,
         poStatusSummary,
         currencySummary,
-        recentPOActivity,
+        recentInvoiceActivity,
         // Old chart-based data (kept for future use)
         // poStatusDistribution,
         // poAging,
@@ -31,27 +29,23 @@ export default function PurchasingDashboard(props: PurchasingDashboardProps) {
 
     return (
         <div className="space-y-4">
-            {/* Financial Commitments - Metric Cards */}
-            <POFinancialCommitments data={financialCommitments} />
+            {/* Consolidated Financial Metrics */}
+            <POFinancialCommitments
+                data={financialCommitments}
+                statusData={poStatusSummary}
+                currencyData={currencySummary}
+            />
 
-            {/* Status & Currency Summary Row */}
+            {/* Vendor Performance & Quick Actions Row */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 <div className="lg:col-span-2">
-                    <POStatusSummary data={poStatusSummary} />
+                    <VendorPerformanceWidget data={vendorPerformance} />
                 </div>
-                <CurrencySummary data={currencySummary} />
-            </div>
-
-            {/* Recent Activity & Quick Actions Row */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                <div className="lg:col-span-2">
-                    <RecentPOActivity data={recentPOActivity} />
+                <div className="space-y-4">
+                    <QuickPOActions />
+                    <RecentInvoiceActivity data={recentInvoiceActivity} />
                 </div>
-                <QuickPOActions />
             </div>
-
-            {/* Vendor Performance */}
-            <VendorPerformanceWidget data={vendorPerformance} />
 
             {/* Chart-based widgets (commented for future use) */}
             {/* <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
