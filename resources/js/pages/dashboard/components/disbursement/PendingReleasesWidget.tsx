@@ -1,16 +1,40 @@
 import { PackageCheck, AlertCircle } from 'lucide-react';
 import DashboardCard from '../shared/DashboardCard';
+import WidgetSkeleton from '../shared/WidgetSkeleton';
+import WidgetError from '../shared/WidgetError';
+import { useDashboardWidget } from '@/hooks/useDashboardWidget';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import type { DisbursementDashboardData } from '@/types';
 
-interface PendingReleasesWidgetProps {
-    data: DisbursementDashboardData['pendingReleases'];
+interface PendingRelease {
+    id: number;
+    check_number: string;
+    requisition_number: string;
+    payee_name: string;
+    php_amount: number;
+    date_check_printed: string;
+    days_pending: number;
+    payment_method: string;
 }
 
-export default function PendingReleasesWidget({ data }: PendingReleasesWidgetProps) {
+export default function PendingReleasesWidget() {
+    const { data, loading, error, refetch } = useDashboardWidget<PendingRelease[]>({
+        endpoint: '/api/dashboard/disbursement/pending-releases'
+    });
+
+    if (loading) {
+        return <WidgetSkeleton variant="list" title="Pending Releases" />;
+    }
+
+    if (error || !data) {
+        return (
+            <DashboardCard title="Pending Releases" description="Checks pending release" icon={PackageCheck}>
+                <WidgetError message={error || 'Failed to load pending releases'} onRetry={refetch} />
+            </DashboardCard>
+        );
+    }
     const formatCurrency = (value: number) => {
         return new Intl.NumberFormat('en-PH', {
             style: 'currency',

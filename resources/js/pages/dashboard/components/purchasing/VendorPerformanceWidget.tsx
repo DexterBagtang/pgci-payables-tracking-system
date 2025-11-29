@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { Users, TrendingUp, FileText, ArrowUpDown } from 'lucide-react';
 import DashboardCard from '../shared/DashboardCard';
+import WidgetSkeleton from '../shared/WidgetSkeleton';
+import WidgetError from '../shared/WidgetError';
+import { useDashboardWidget } from '@/hooks/useDashboardWidget';
 import {
     Table,
     TableBody,
@@ -20,14 +23,29 @@ import {
 import type { VendorPerformanceData } from '@/types';
 import { Label } from '@/components/ui/label';
 
-interface VendorPerformanceWidgetProps {
-    data: VendorPerformanceData[];
-}
-
 type SortOption = 'committed' | 'outstanding' | 'invoiced' | 'paid' | 'invoice_count' | 'active_pos';
 
-export default function VendorPerformanceWidget({ data }: VendorPerformanceWidgetProps) {
+export default function VendorPerformanceWidget() {
     const [sortBy, setSortBy] = useState<SortOption>('committed');
+    const { data, loading, error, refetch } = useDashboardWidget<VendorPerformanceData[]>({
+        endpoint: '/api/dashboard/purchasing/vendor-performance'
+    });
+
+    if (loading) {
+        return <WidgetSkeleton variant="table" title="Top Vendors by Commitment" />;
+    }
+
+    if (error || !data) {
+        return (
+            <DashboardCard
+                title="Top Vendors by Commitment"
+                description="Top 10 vendors by open PO value with invoice details"
+                icon={Users}
+            >
+                <WidgetError message={error || 'Failed to load vendor data'} onRetry={refetch} />
+            </DashboardCard>
+        );
+    }
 
     const formatCurrency = (value: number, currency: string = 'PHP') => {
         return new Intl.NumberFormat('en-PH', {

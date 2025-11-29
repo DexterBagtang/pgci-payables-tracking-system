@@ -1,5 +1,8 @@
 import { FileText, ExternalLink } from 'lucide-react';
 import DashboardCard from '../shared/DashboardCard';
+import WidgetSkeleton from '../shared/WidgetSkeleton';
+import WidgetError from '../shared/WidgetError';
+import { useDashboardWidget } from '@/hooks/useDashboardWidget';
 import { Link } from '@inertiajs/react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -15,10 +18,6 @@ interface RecentInvoice {
     si_received_at: string;
 }
 
-interface RecentInvoiceActivityProps {
-    data: RecentInvoice[];
-}
-
 const STATUS_CONFIG = {
     pending: { label: 'Pending', variant: 'secondary' as const, color: 'text-gray-600' },
     received: { label: 'Received', variant: 'default' as const, color: 'text-blue-600' },
@@ -29,7 +28,26 @@ const STATUS_CONFIG = {
     rejected: { label: 'Rejected', variant: 'destructive' as const, color: 'text-red-600' },
 };
 
-export default function RecentInvoiceActivity({ data }: RecentInvoiceActivityProps) {
+export default function RecentInvoiceActivity() {
+    const { data, loading, error, refetch } = useDashboardWidget<RecentInvoice[]>({
+        endpoint: '/api/dashboard/purchasing/recent-invoices'
+    });
+
+    if (loading) {
+        return <WidgetSkeleton variant="list" title="Recent Invoice Activity" />;
+    }
+
+    if (error || !data) {
+        return (
+            <DashboardCard
+                title="Recent Invoice Activity"
+                description="Latest invoices added to the system"
+                icon={FileText}
+            >
+                <WidgetError message={error || 'Failed to load recent invoices'} onRetry={refetch} />
+            </DashboardCard>
+        );
+    }
     const formatCurrency = (value: number, currency: 'PHP' | 'USD') => {
         return new Intl.NumberFormat('en-PH', {
             style: 'currency',

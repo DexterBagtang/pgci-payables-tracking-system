@@ -1,5 +1,8 @@
 import { CalendarClock } from 'lucide-react';
 import DashboardCard from '../shared/DashboardCard';
+import WidgetSkeleton from '../shared/WidgetSkeleton';
+import WidgetError from '../shared/WidgetError';
+import { useDashboardWidget } from '@/hooks/useDashboardWidget';
 import { Badge } from '@/components/ui/badge';
 import {
     Accordion,
@@ -10,11 +13,22 @@ import {
 import { format } from 'date-fns';
 import type { CheckScheduleData } from '@/types';
 
-interface CheckScheduleProps {
-    data: CheckScheduleData[];
-}
+export default function CheckSchedule() {
+    const { data, loading, error, refetch } = useDashboardWidget<CheckScheduleData[]>({
+        endpoint: '/api/dashboard/disbursement/check-schedule'
+    });
 
-export default function CheckSchedule({ data }: CheckScheduleProps) {
+    if (loading) {
+        return <WidgetSkeleton variant="list" title="Check Schedule" />;
+    }
+
+    if (error || !data) {
+        return (
+            <DashboardCard title="Check Schedule" description="Upcoming check releases" icon={CalendarClock}>
+                <WidgetError message={error || 'Failed to load check schedule'} onRetry={refetch} />
+            </DashboardCard>
+        );
+    }
     const formatCurrency = (value: number) => {
         return new Intl.NumberFormat('en-PH', {
             style: 'currency',

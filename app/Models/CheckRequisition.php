@@ -44,6 +44,32 @@ class CheckRequisition extends Model
     }
 
     /**
+     * Query Scopes for Dashboard Widgets
+     */
+    public function scopeInDateRange($query, $start, $end)
+    {
+        if ($start && $end) {
+            return $query->whereBetween('request_date', [$start, $end]);
+        }
+        return $query;
+    }
+
+    public function scopePendingApproval($query)
+    {
+        return $query->where('requisition_status', 'pending_approval');
+    }
+
+    public function scopeApproved($query)
+    {
+        return $query->where('requisition_status', 'approved');
+    }
+
+    public function scopeProcessed($query)
+    {
+        return $query->where('requisition_status', 'processed');
+    }
+
+    /**
      * Custom activity log messages
      */
     protected function getCreationMessage(): string

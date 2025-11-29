@@ -1,6 +1,9 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { Calendar } from 'lucide-react';
 import DashboardCard from '../shared/DashboardCard';
+import WidgetSkeleton from '../shared/WidgetSkeleton';
+import WidgetError from '../shared/WidgetError';
+import { useDashboardWidget } from '@/hooks/useDashboardWidget';
 import type { InvoiceAgingBucket } from '@/types';
 
 const BUCKET_COLORS: Record<string, string> = {
@@ -13,11 +16,26 @@ const BUCKET_COLORS: Record<string, string> = {
 
 const BUCKET_ORDER = ['Overdue', '0-7 days', '8-30 days', '31-60 days', '60+ days'];
 
-interface InvoiceAgingChartProps {
-    data: InvoiceAgingBucket[];
-}
+export default function InvoiceAgingChart() {
+    const { data, loading, error, refetch } = useDashboardWidget<InvoiceAgingBucket[]>({
+        endpoint: '/api/dashboard/payables/invoice-aging'
+    });
 
-export default function InvoiceAgingChart({ data }: InvoiceAgingChartProps) {
+    if (loading) {
+        return <WidgetSkeleton variant="chart" title="Invoice Aging" />;
+    }
+
+    if (error || !data) {
+        return (
+            <DashboardCard
+                title="Invoice Aging"
+                description="Invoices grouped by days until due"
+                icon={Calendar}
+            >
+                <WidgetError message={error || 'Failed to load aging data'} onRetry={refetch} />
+            </DashboardCard>
+        );
+    }
     // Sort data by bucket order
     const sortedData = [...data].sort((a, b) => {
         return BUCKET_ORDER.indexOf(a.bucket) - BUCKET_ORDER.indexOf(b.bucket);

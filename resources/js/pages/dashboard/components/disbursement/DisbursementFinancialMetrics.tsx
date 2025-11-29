@@ -1,12 +1,15 @@
 import { Printer, PackageCheck, TrendingUp, Banknote } from 'lucide-react';
 import MetricCard from '../shared/MetricCard';
+import WidgetSkeleton from '../shared/WidgetSkeleton';
+import WidgetError from '../shared/WidgetError';
+import { useDashboardWidget } from '@/hooks/useDashboardWidget';
 import type { DisbursementMetrics } from '@/types';
 
-interface DisbursementFinancialMetricsProps {
-    data: DisbursementMetrics;
-}
+export default function DisbursementFinancialMetrics() {
+    const { data, loading, error, refetch } = useDashboardWidget<DisbursementMetrics>({
+        endpoint: '/api/dashboard/disbursement/financial-metrics'
+    });
 
-export default function DisbursementFinancialMetrics({ data }: DisbursementFinancialMetricsProps) {
     const formatCurrency = (value: number) => {
         return new Intl.NumberFormat('en-PH', {
             style: 'currency',
@@ -14,6 +17,14 @@ export default function DisbursementFinancialMetrics({ data }: DisbursementFinan
             minimumFractionDigits: 0,
         }).format(value);
     };
+
+    if (loading) {
+        return <WidgetSkeleton variant="metrics" />;
+    }
+
+    if (error || !data) {
+        return <WidgetError message={error || 'Failed to load disbursement metrics'} onRetry={refetch} />;
+    }
 
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

@@ -71,6 +71,39 @@ class Disbursement extends Model
     }
 
     /**
+     * Query Scopes for Dashboard Widgets
+     */
+    public function scopeInDateRange($query, $start, $end)
+    {
+        if ($start && $end) {
+            return $query->whereBetween('date_check_scheduled', [$start, $end]);
+        }
+        return $query;
+    }
+
+    public function scopePendingRelease($query)
+    {
+        return $query->whereNotNull('date_check_printing')
+            ->whereNull('date_check_released_to_vendor');
+    }
+
+    public function scopePendingPrinting($query)
+    {
+        return $query->whereNull('date_check_printing')
+            ->whereNotNull('date_check_scheduled');
+    }
+
+    public function scopeReleased($query)
+    {
+        return $query->whereNotNull('date_check_released_to_vendor');
+    }
+
+    public function scopeScheduled($query)
+    {
+        return $query->whereNotNull('date_check_scheduled');
+    }
+
+    /**
      * Custom activity log messages
      */
     protected function getCreationMessage(): string

@@ -55,6 +55,43 @@ class Invoice extends Model
     }
 
     /**
+     * Query Scopes for Dashboard Widgets
+     */
+    public function scopeInDateRange($query, $start, $end)
+    {
+        if ($start && $end) {
+            return $query->whereBetween('si_received_at', [$start, $end]);
+        }
+        return $query;
+    }
+
+    public function scopePending($query)
+    {
+        return $query->whereIn('invoice_status', ['received', 'in_progress', 'pending']);
+    }
+
+    public function scopeOverdue($query)
+    {
+        return $query->where('due_date', '<', now())
+            ->whereNotIn('invoice_status', ['paid', 'rejected']);
+    }
+
+    public function scopeApproved($query)
+    {
+        return $query->where('invoice_status', 'approved');
+    }
+
+    public function scopePendingDisbursement($query)
+    {
+        return $query->where('invoice_status', 'pending_disbursement');
+    }
+
+    public function scopePaid($query)
+    {
+        return $query->where('invoice_status', 'paid');
+    }
+
+    /**
      * Custom activity log messages
      */
     protected function getCreationMessage(): string

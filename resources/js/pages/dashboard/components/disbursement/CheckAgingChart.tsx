@@ -1,6 +1,9 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { Clock } from 'lucide-react';
 import DashboardCard from '../shared/DashboardCard';
+import WidgetSkeleton from '../shared/WidgetSkeleton';
+import WidgetError from '../shared/WidgetError';
+import { useDashboardWidget } from '@/hooks/useDashboardWidget';
 import type { CheckAgingBucket } from '@/types';
 
 const BUCKET_COLORS: Record<string, string> = {
@@ -19,11 +22,22 @@ const BUCKET_ORDER = [
     'Printed (>14 days)'
 ];
 
-interface CheckAgingChartProps {
-    data: CheckAgingBucket[];
-}
+export default function CheckAgingChart() {
+    const { data, loading, error, refetch } = useDashboardWidget<CheckAgingBucket[]>({
+        endpoint: '/api/dashboard/disbursement/check-aging'
+    });
 
-export default function CheckAgingChart({ data }: CheckAgingChartProps) {
+    if (loading) {
+        return <WidgetSkeleton variant="chart" title="Check Aging" />;
+    }
+
+    if (error || !data) {
+        return (
+            <DashboardCard title="Check Aging" description="Check status by aging" icon={Clock}>
+                <WidgetError message={error || 'Failed to load check aging'} onRetry={refetch} />
+            </DashboardCard>
+        );
+    }
     // Sort data by bucket order
     const sortedData = [...data].sort((a, b) => {
         return BUCKET_ORDER.indexOf(a.bucket) - BUCKET_ORDER.indexOf(b.bucket);

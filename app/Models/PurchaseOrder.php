@@ -60,6 +60,37 @@ class PurchaseOrder extends Model
     }
 
     /**
+     * Query Scopes for Dashboard Widgets
+     */
+    public function scopeInDateRange($query, $start, $end)
+    {
+        if ($start && $end) {
+            return $query->whereBetween('finalized_at', [$start, $end]);
+        }
+        return $query;
+    }
+
+    public function scopeOpen($query)
+    {
+        return $query->where('po_status', 'open');
+    }
+
+    public function scopeDraft($query)
+    {
+        return $query->where('po_status', 'draft');
+    }
+
+    public function scopeClosed($query)
+    {
+        return $query->where('po_status', 'closed');
+    }
+
+    public function scopeCancelled($query)
+    {
+        return $query->where('po_status', 'cancelled');
+    }
+
+    /**
      * Custom activity log messages
      */
     protected function getCreationMessage(): string

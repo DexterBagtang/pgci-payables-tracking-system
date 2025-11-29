@@ -1,5 +1,8 @@
 import { CalendarDays } from 'lucide-react';
 import DashboardCard from '../shared/DashboardCard';
+import WidgetSkeleton from '../shared/WidgetSkeleton';
+import WidgetError from '../shared/WidgetError';
+import { useDashboardWidget } from '@/hooks/useDashboardWidget';
 import { Badge } from '@/components/ui/badge';
 import {
     Accordion,
@@ -24,11 +27,26 @@ interface WeekSchedule {
     invoices: Invoice[];
 }
 
-interface PaymentScheduleProps {
-    data: WeekSchedule[];
-}
+export default function PaymentSchedule() {
+    const { data, loading, error, refetch } = useDashboardWidget<WeekSchedule[]>({
+        endpoint: '/api/dashboard/payables/payment-schedule'
+    });
 
-export default function PaymentSchedule({ data }: PaymentScheduleProps) {
+    if (loading) {
+        return <WidgetSkeleton variant="list" title="Payment Schedule" />;
+    }
+
+    if (error || !data) {
+        return (
+            <DashboardCard
+                title="Payment Schedule"
+                description="Upcoming payments by week"
+                icon={CalendarDays}
+            >
+                <WidgetError message={error || 'Failed to load payment schedule'} onRetry={refetch} />
+            </DashboardCard>
+        );
+    }
     const formatCurrency = (value: number) => {
         return new Intl.NumberFormat('en-PH', {
             style: 'currency',
