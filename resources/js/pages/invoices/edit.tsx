@@ -2,48 +2,22 @@ import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/react';
 import EditInvoice from "@/pages/invoices/components/EditInvoice";
+import { buildInvoiceBreadcrumbs } from '@/lib/breadcrumbs';
 
 interface EditPageProps{
     invoice:any;
     purchaseOrders:unknown[];
+    backUrl: string;
 }
 
 
-export default function EditPoPage({invoice,purchaseOrders}: EditPageProps) {
-    // Build breadcrumbs with purchase order context if available
-    const breadcrumbs: BreadcrumbItem[] = invoice?.purchaseOrder
-        ? [
-            {
-                title: 'Purchase Orders',
-                href: '/purchase-orders',
-            },
-            {
-                title: invoice.purchaseOrder.po_number || 'PO',
-                href: `/purchase-orders/${invoice.purchaseOrder.id}`,
-            },
-            {
-                title: invoice.si_number || 'Edit',
-                href: `/invoices/${invoice.id}`,
-            },
-            {
-                title: 'Edit',
-                href: '',
-            },
-        ]
-        : [
-            {
-                title: 'Invoices',
-                href: '/invoices',
-            },
-            {
-                title: invoice?.si_number || 'Edit',
-                href: `/invoices/${invoice?.id}`,
-            },
-            {
-                title: 'Edit',
-                href: '',
-            },
-        ];
+export default function EditPoPage({invoice,purchaseOrders, backUrl}: EditPageProps) {
+    // Build breadcrumbs based on referrer
+    const breadcrumbs: BreadcrumbItem[] = buildInvoiceBreadcrumbs(
+        invoice,
+        backUrl,
+        'edit'
+    );
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>

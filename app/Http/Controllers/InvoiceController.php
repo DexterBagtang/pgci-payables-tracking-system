@@ -467,6 +467,7 @@ class InvoiceController extends Controller
         return inertia('invoices/show', [
             'invoice' => $invoice,
             'purchaseOrders' => PurchaseOrder::with(['project', 'vendor'])->get(),
+            'backUrl' => url()->previous() ?: '/invoices',
         ]);
 
     }
@@ -480,6 +481,7 @@ class InvoiceController extends Controller
         return inertia('invoices/edit', [
             'invoice' => $invoice,
             'purchaseOrders' => PurchaseOrder::with(['project', 'vendor'])->get(),
+            'backUrl' => url()->previous() ?: '/invoices',
         ]);
     }
 

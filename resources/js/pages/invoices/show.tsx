@@ -2,39 +2,21 @@ import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/react';
 import ShowInvoice from "@/pages/invoices/components/ShowInvoice";
+import { buildInvoiceBreadcrumbs } from '@/lib/breadcrumbs';
 
 interface ShowPageProps{
     invoice:any;
+    backUrl: string;
 }
 
 
-export default function ShowPoPage({invoice}: ShowPageProps) {
-    // Build breadcrumbs with purchase order context if available
-    const breadcrumbs: BreadcrumbItem[] = invoice?.purchaseOrder
-        ? [
-            {
-                title: 'Purchase Orders',
-                href: '/purchase-orders',
-            },
-            {
-                title: invoice.purchaseOrder.po_number || 'PO',
-                href: `/purchase-orders/${invoice.purchaseOrder.id}`,
-            },
-            {
-                title: invoice.si_number || 'Details',
-                href: `/invoices/${invoice.id}`,
-            },
-        ]
-        : [
-            {
-                title: 'Invoices',
-                href: '/invoices',
-            },
-            {
-                title: invoice?.si_number || 'Details',
-                href: `/invoices/${invoice?.id}`,
-            },
-        ];
+export default function ShowPoPage({invoice, backUrl}: ShowPageProps) {
+    // Build breadcrumbs based on referrer
+    const breadcrumbs: BreadcrumbItem[] = buildInvoiceBreadcrumbs(
+        invoice,
+        backUrl,
+        'show'
+    );
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>

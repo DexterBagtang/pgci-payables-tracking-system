@@ -282,6 +282,7 @@ class PurchaseOrderController extends Controller
             'purchaseOrder' => $purchaseOrder,
             'vendors' => $vendors,
             'projects' => $projects,
+            'backUrl' => url()->previous() ?: '/purchase-orders',
         ]);
     }
 
