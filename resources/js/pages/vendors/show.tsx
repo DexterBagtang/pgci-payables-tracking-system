@@ -4,18 +4,22 @@ import { Head } from '@inertiajs/react';
 import ShowVendor from '@/pages/vendors/components/ShowVendor.jsx';
 
 
-const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'Vendor',
-        href: "vendors",
-    },
-];
-
 interface ShowVendorsProp {
-    vendor: unknown[];
+    vendor: any;
 }
 
 export default function VendorDetails({vendor,}: ShowVendorsProp) {
+    const breadcrumbs: BreadcrumbItem[] = [
+        {
+            title: 'Vendors',
+            href: '/vendors',
+        },
+        {
+            title: vendor?.name || 'Details',
+            href: `/vendors/${vendor?.id}`,
+        },
+    ];
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Vendors" />

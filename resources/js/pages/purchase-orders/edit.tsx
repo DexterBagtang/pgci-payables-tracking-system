@@ -3,21 +3,29 @@ import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/react';
 import EditPOForm from '@/pages/purchase-orders/components/EditPOForm';
 
-const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'Edit Purchase Order',
-        href: 'edit',
-    },
-];
-
 interface EditPageProps{
-    purchaseOrder: unknown[];
+    purchaseOrder: any;
     vendors: unknown[];
     projects: unknown[];
 }
 
 
 export default function CreatePoPage({purchaseOrder,vendors, projects}: EditPageProps) {
+    const breadcrumbs: BreadcrumbItem[] = [
+        {
+            title: 'Purchase Orders',
+            href: '/purchase-orders',
+        },
+        {
+            title: purchaseOrder?.po_number || 'Edit',
+            href: `/purchase-orders/${purchaseOrder?.id}`,
+        },
+        {
+            title: 'Edit',
+            href: '',
+        },
+    ];
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Edit Purchase Order" />

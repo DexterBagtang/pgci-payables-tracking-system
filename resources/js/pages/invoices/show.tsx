@@ -3,19 +3,23 @@ import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/react';
 import ShowInvoice from "@/pages/invoices/components/ShowInvoice";
 
-const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'Show Invoice',
-        href: '/invoices/',
-    },
-];
-
 interface ShowPageProps{
-    invoice:unknown[];
+    invoice:any;
 }
 
 
 export default function ShowPoPage({invoice}: ShowPageProps) {
+    const breadcrumbs: BreadcrumbItem[] = [
+        {
+            title: 'Invoices',
+            href: '/invoices',
+        },
+        {
+            title: invoice?.si_number || 'Details',
+            href: `/invoices/${invoice?.id}`,
+        },
+    ];
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Show Invoice" />

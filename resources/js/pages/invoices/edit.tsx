@@ -3,20 +3,28 @@ import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/react';
 import EditInvoice from "@/pages/invoices/components/EditInvoice";
 
-const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'Edit Invoice',
-        href: '/invoices/edit',
-    },
-];
-
 interface EditPageProps{
-    invoice:unknown[];
+    invoice:any;
     purchaseOrders:unknown[];
 }
 
 
 export default function EditPoPage({invoice,purchaseOrders}: EditPageProps) {
+    const breadcrumbs: BreadcrumbItem[] = [
+        {
+            title: 'Invoices',
+            href: '/invoices',
+        },
+        {
+            title: invoice?.si_number || 'Edit',
+            href: `/invoices/${invoice?.id}`,
+        },
+        {
+            title: 'Edit',
+            href: '',
+        },
+    ];
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Edit Invoice" />

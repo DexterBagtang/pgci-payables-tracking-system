@@ -5,15 +5,8 @@ import { lazy, Suspense } from 'react';
 
 const PODetails = lazy(() => import('@/pages/purchase-orders/components/PODetails'));
 
-const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'Show Purchase Order',
-        href: 'show',
-    },
-];
-
 interface ShowPageProps{
-    purchaseOrder: unknown[];
+    purchaseOrder: any;
     vendors: unknown[];
     projects: unknown[];
     backUrl: string;
@@ -21,6 +14,17 @@ interface ShowPageProps{
 
 
 export default function CreatePoPage({purchaseOrder,vendors, projects,backUrl}: ShowPageProps) {
+    const breadcrumbs: BreadcrumbItem[] = [
+        {
+            title: 'Purchase Orders',
+            href: '/purchase-orders',
+        },
+        {
+            title: purchaseOrder?.po_number || 'Details',
+            href: `/purchase-orders/${purchaseOrder?.id}`,
+        },
+    ];
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`Purchase Order`} />
