@@ -11,20 +11,40 @@ interface EditPageProps{
 
 
 export default function CreatePoPage({purchaseOrder,vendors, projects}: EditPageProps) {
-    const breadcrumbs: BreadcrumbItem[] = [
-        {
-            title: 'Purchase Orders',
-            href: '/purchase-orders',
-        },
-        {
-            title: purchaseOrder?.po_number || 'Edit',
-            href: `/purchase-orders/${purchaseOrder?.id}`,
-        },
-        {
-            title: 'Edit',
-            href: '',
-        },
-    ];
+    // Build breadcrumbs with project context if available
+    const breadcrumbs: BreadcrumbItem[] = purchaseOrder?.project
+        ? [
+            {
+                title: 'Projects',
+                href: '/projects',
+            },
+            {
+                title: purchaseOrder.project.project_title || 'Project',
+                href: `/projects/${purchaseOrder.project.id}`,
+            },
+            {
+                title: purchaseOrder.po_number || 'Edit',
+                href: `/purchase-orders/${purchaseOrder.id}`,
+            },
+            {
+                title: 'Edit',
+                href: '',
+            },
+        ]
+        : [
+            {
+                title: 'Purchase Orders',
+                href: '/purchase-orders',
+            },
+            {
+                title: purchaseOrder?.po_number || 'Edit',
+                href: `/purchase-orders/${purchaseOrder?.id}`,
+            },
+            {
+                title: 'Edit',
+                href: '',
+            },
+        ];
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>

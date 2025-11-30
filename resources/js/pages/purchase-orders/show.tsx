@@ -14,16 +14,32 @@ interface ShowPageProps{
 
 
 export default function CreatePoPage({purchaseOrder,vendors, projects,backUrl}: ShowPageProps) {
-    const breadcrumbs: BreadcrumbItem[] = [
-        {
-            title: 'Purchase Orders',
-            href: '/purchase-orders',
-        },
-        {
-            title: purchaseOrder?.po_number || 'Details',
-            href: `/purchase-orders/${purchaseOrder?.id}`,
-        },
-    ];
+    // Build breadcrumbs with project context if available
+    const breadcrumbs: BreadcrumbItem[] = purchaseOrder?.project
+        ? [
+            {
+                title: 'Projects',
+                href: '/projects',
+            },
+            {
+                title: purchaseOrder.project.project_title || 'Project',
+                href: `/projects/${purchaseOrder.project.id}`,
+            },
+            {
+                title: purchaseOrder.po_number || 'Details',
+                href: `/purchase-orders/${purchaseOrder.id}`,
+            },
+        ]
+        : [
+            {
+                title: 'Purchase Orders',
+                href: '/purchase-orders',
+            },
+            {
+                title: purchaseOrder?.po_number || 'Details',
+                href: `/purchase-orders/${purchaseOrder?.id}`,
+            },
+        ];
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>

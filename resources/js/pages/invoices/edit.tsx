@@ -10,20 +10,40 @@ interface EditPageProps{
 
 
 export default function EditPoPage({invoice,purchaseOrders}: EditPageProps) {
-    const breadcrumbs: BreadcrumbItem[] = [
-        {
-            title: 'Invoices',
-            href: '/invoices',
-        },
-        {
-            title: invoice?.si_number || 'Edit',
-            href: `/invoices/${invoice?.id}`,
-        },
-        {
-            title: 'Edit',
-            href: '',
-        },
-    ];
+    // Build breadcrumbs with purchase order context if available
+    const breadcrumbs: BreadcrumbItem[] = invoice?.purchaseOrder
+        ? [
+            {
+                title: 'Purchase Orders',
+                href: '/purchase-orders',
+            },
+            {
+                title: invoice.purchaseOrder.po_number || 'PO',
+                href: `/purchase-orders/${invoice.purchaseOrder.id}`,
+            },
+            {
+                title: invoice.si_number || 'Edit',
+                href: `/invoices/${invoice.id}`,
+            },
+            {
+                title: 'Edit',
+                href: '',
+            },
+        ]
+        : [
+            {
+                title: 'Invoices',
+                href: '/invoices',
+            },
+            {
+                title: invoice?.si_number || 'Edit',
+                href: `/invoices/${invoice?.id}`,
+            },
+            {
+                title: 'Edit',
+                href: '',
+            },
+        ];
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>

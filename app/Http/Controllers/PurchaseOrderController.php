@@ -274,7 +274,7 @@ class PurchaseOrderController extends Controller
      */
     public function edit(PurchaseOrder $purchaseOrder)
     {
-        $purchaseOrder->load(['files']);
+        $purchaseOrder->load(['files', 'project:id,project_title,cer_number', 'vendor:id,name']);
         $vendors = Vendor::where('is_active', true)->orderBy('name')->get();
         $projects = Project::all();
 
