@@ -238,15 +238,35 @@ class InvoiceController extends Controller
             $invoices = $invoicesData;
 
             foreach ($invoices as $index => $invoice) {
-                $exists = \App\Models\Invoice::where('purchase_order_id', $invoice['purchase_order_id'])
+                // Get the vendor_id from the purchase order
+                $purchaseOrder = PurchaseOrder::find($invoice['purchase_order_id']);
+
+                if ($purchaseOrder) {
+                    // Check for duplicate SI number from the same vendor across all POs
+                    $exists = \App\Models\Invoice::whereHas('purchaseOrder', function ($q) use ($purchaseOrder) {
+                        $q->where('vendor_id', $purchaseOrder->vendor_id);
+                    })
                     ->where('si_number', $invoice['si_number'])
                     ->exists();
 
-                if ($exists) {
-                    $validator->errors()->add(
-                        "invoices.{$index}.si_number",
-                        "The SI number already exists for this purchase order."
-                    );
+                    if ($exists) {
+                        $vendorName = $purchaseOrder->vendor->name ?? 'this vendor';
+                        $validator->errors()->add(
+                            "invoices.{$index}.si_number",
+                            "The SI number '{$invoice['si_number']}' already exists for {$vendorName}. Duplicate invoices from the same vendor are not allowed."
+                        );
+                    }
+
+                    // Check if invoice currency matches PO currency
+                    $invoiceCurrency = $invoice['currency'] ?? 'PHP';
+                    $poCurrency = $purchaseOrder->currency ?? 'PHP';
+
+                    if ($invoiceCurrency !== $poCurrency) {
+                        $validator->errors()->add(
+                            "invoices.{$index}.currency",
+                            "Invoice currency ({$invoiceCurrency}) must match the Purchase Order currency ({$poCurrency})."
+                        );
+                    }
                 }
             }
         });
@@ -470,7 +490,7 @@ class InvoiceController extends Controller
     {
         $validated = $request->validate([
             'purchase_order_id' => 'required|exists:purchase_orders,id',
-            'si_number' => 'required|string|max:255|unique:invoices,si_number,' . $invoice->id,
+            'si_number' => 'required|string|max:255',
             'si_date' => 'required|date',
             'si_received_at' => 'nullable|date',
             'invoice_amount' => 'required|numeric|min:0',
@@ -481,6 +501,34 @@ class InvoiceController extends Controller
             'submitted_to' => 'nullable|string|max:255',
             'files.*' => 'file|max:20480|mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png',
         ]);
+
+        // Check for duplicate SI number from the same vendor and currency matching
+        $purchaseOrder = PurchaseOrder::find($validated['purchase_order_id']);
+        if ($purchaseOrder) {
+            $duplicateExists = Invoice::whereHas('purchaseOrder', function ($q) use ($purchaseOrder) {
+                $q->where('vendor_id', $purchaseOrder->vendor_id);
+            })
+            ->where('si_number', $validated['si_number'])
+            ->where('id', '!=', $invoice->id)
+            ->exists();
+
+            if ($duplicateExists) {
+                $vendorName = $purchaseOrder->vendor->name ?? 'this vendor';
+                return back()->withErrors([
+                    'si_number' => "The SI number '{$validated['si_number']}' already exists for {$vendorName}. Duplicate invoices from the same vendor are not allowed."
+                ])->withInput();
+            }
+
+            // Check if invoice currency matches PO currency
+            $invoiceCurrency = $validated['currency'] ?? 'PHP';
+            $poCurrency = $purchaseOrder->currency ?? 'PHP';
+
+            if ($invoiceCurrency !== $poCurrency) {
+                return back()->withErrors([
+                    'currency' => "Invoice currency ({$invoiceCurrency}) must match the Purchase Order currency ({$poCurrency})."
+                ])->withInput();
+            }
+        }
 
         // Remove files array from validated data for mass assignment
         $fileData = $validated['files'] ?? [];

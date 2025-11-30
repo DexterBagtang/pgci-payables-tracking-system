@@ -56,7 +56,7 @@ class PurchaseOrder extends Model
         }
 
         // All invoices must have 'paid' status
-        return $this->invoices()->where('status', '!=', 'paid')->count() === 0;
+        return $this->invoices()->where('invoice_status', '!=', 'paid')->count() === 0;
     }
 
     /**

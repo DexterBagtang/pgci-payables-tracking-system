@@ -45,36 +45,46 @@ class PurchasingMetricsService
 
     public function getVendorPerformance(?Carbon $start, ?Carbon $end, int $limit = 10): array
     {
-        return PurchaseOrder::with([
-                'vendor:id,name',
-                'invoices:id,purchase_order_id,net_amount,invoice_status'
-            ])
+        // Get vendor-level PO aggregates
+        $vendorData = PurchaseOrder::select('vendor_id')
+            ->selectRaw('COUNT(*) as active_pos')
+            ->selectRaw('SUM(po_amount) as total_committed')
+            ->selectRaw('MAX(currency) as currency')
             ->open()
             ->inDateRange($start, $end)
-            ->selectRaw('
-                vendor_id,
-                COUNT(*) as active_pos,
-                SUM(po_amount) as total_committed,
-                MAX(currency) as currency
-            ')
             ->groupBy('vendor_id')
             ->orderByDesc('total_committed')
             ->limit($limit)
-            ->get()
-            ->map(fn($po) => [
-                'vendor_id' => $po->vendor_id,
-                'vendor_name' => $po->vendor->name ?? 'Unknown',
-                'active_pos' => $po->active_pos,
-                'total_committed' => (float) $po->total_committed,
-                'total_invoiced' => (float) $po->invoices->sum('net_amount'),
-                'total_paid' => (float) $po->invoices->where('invoice_status', 'paid')->sum('net_amount'),
-                'outstanding_balance' => (float) $po->invoices
+            ->get();
+
+        // For each vendor, calculate invoice metrics
+        return $vendorData->map(function($data) use ($start, $end) {
+            // Get all POs for this vendor in the date range
+            $vendorPOs = PurchaseOrder::where('vendor_id', $data->vendor_id)
+                ->open()
+                ->inDateRange($start, $end)
+                ->pluck('id');
+
+            // Get invoice data for these POs
+            $invoices = \App\Models\Invoice::whereIn('purchase_order_id', $vendorPOs)->get();
+
+            // Get vendor name
+            $vendor = \App\Models\Vendor::find($data->vendor_id);
+
+            return [
+                'vendor_id' => $data->vendor_id,
+                'vendor_name' => $vendor->name ?? 'Unknown',
+                'active_pos' => $data->active_pos,
+                'total_committed' => (float) $data->total_committed,
+                'total_invoiced' => (float) $invoices->sum('net_amount'),
+                'total_paid' => (float) $invoices->where('invoice_status', 'paid')->sum('net_amount'),
+                'outstanding_balance' => (float) $invoices
                     ->whereNotIn('invoice_status', ['paid', 'rejected', 'cancelled'])
                     ->sum('net_amount'),
-                'invoice_count' => $po->invoices->count(),
-                'currency' => $po->currency ?? 'PHP',
-            ])
-            ->toArray();
+                'invoice_count' => $invoices->count(),
+                'currency' => $data->currency ?? 'PHP',
+            ];
+        })->toArray();
     }
 
     public function getPOStatusSummary(?Carbon $start, ?Carbon $end): array
