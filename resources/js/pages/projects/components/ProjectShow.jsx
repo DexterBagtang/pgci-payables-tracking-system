@@ -1,4 +1,4 @@
-import React, { useMemo, useState, lazy, Suspense } from 'react';
+import { useMemo, useState, lazy, Suspense } from 'react';
 import { Head, Link, router, usePage, useRemember } from '@inertiajs/react';
 import {
     Card,
@@ -28,29 +28,21 @@ import {
     CalendarDays,
     DollarSign,
     FileText,
-    User,
-    Building2,
     Hash,
     Package,
     Receipt,
-    ArrowLeft,
-    Edit,
     Plus,
     TrendingUp,
-    PieChart,
     Building,
     AlertTriangle,
     CheckCircle,
-    FileSearch,
-    ClipboardList,
     Users,
     Tag,
     Clock,
     XCircle,
     Loader,
-    TrendingDown,
     Activity,
-    ShoppingCart  // Add this
+    ShoppingCart
 } from 'lucide-react';
 import BackButton from '@/components/custom/BackButton.jsx';
 import { route } from 'ziggy-js';

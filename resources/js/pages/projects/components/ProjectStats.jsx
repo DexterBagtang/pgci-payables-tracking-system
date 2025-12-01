@@ -2,7 +2,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { FolderOpen, CheckCircle, DollarSign, TrendingUp } from 'lucide-react';
 
 export default function ProjectStats({ stats }) {
-    console.log(stats);
     const formatCurrency = (amount) => {
         return new Intl.NumberFormat('en-PH', {
             style: 'currency',
