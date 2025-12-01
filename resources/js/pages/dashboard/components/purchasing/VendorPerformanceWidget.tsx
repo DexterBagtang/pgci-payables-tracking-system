@@ -56,14 +56,6 @@ export default function VendorPerformanceWidget() {
         }).format(value);
     };
 
-    const formatCompact = (value: number) => {
-        if (value >= 1000000) {
-            return `${(value / 1000000).toFixed(1)}M`;
-        } else if (value >= 1000) {
-            return `${(value / 1000).toFixed(1)}K`;
-        }
-        return value.toString();
-    };
 
     const getOutstandingBadge = (vendor: VendorPerformanceData) => {
         const { outstanding_balance, total_committed, invoice_count, total_invoiced } = vendor;

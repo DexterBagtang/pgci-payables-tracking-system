@@ -1,4 +1,4 @@
-import { Plus, FileText, Receipt, Users, Briefcase, Zap } from 'lucide-react';
+import { FileText, Receipt, Users, Briefcase, Zap } from 'lucide-react';
 import DashboardCard from '../shared/DashboardCard';
 import { Link } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';

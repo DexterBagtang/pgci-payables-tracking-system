@@ -4,15 +4,6 @@ import { type BreadcrumbItem, type DashboardData } from '@/types';
 import { Head } from '@inertiajs/react';
 import { DashboardFilterProvider } from '@/contexts/DashboardFilterContext';
 import TimeRangeFilter from './components/shared/TimeRangeFilter';
-
-// Legacy components (to be replaced in phases 2-4)
-import FinancialSummaryCards from './components/FinancialSummaryCards';
-import PendingActionsWidget from './components/PendingActionsWidget';
-import QuickActionsPanel from './components/QuickActionsPanel';
-import UpcomingPayments from './components/UpcomingPayments';
-import RecentDisbursements from './components/RecentDisbursements';
-
-// Role-specific dashboard containers
 import PurchasingDashboard from './components/purchasing/PurchasingDashboard';
 import PayablesDashboard from './components/payables/PayablesDashboard';
 import DisbursementDashboard from './components/disbursement/DisbursementDashboard';
@@ -27,14 +18,6 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 export default function Dashboard(props: DashboardData) {
     const { role, alerts, timeRange } = props;
-
-    // Temporary fallback to old dashboard data structure for legacy components
-    const legacyProps = {
-        summary: {},
-        actions: {},
-        upcomingPayments: [],
-        recentDisbursements: [],
-    };
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -67,41 +50,9 @@ export default function Dashboard(props: DashboardData) {
 
                     {/* Role-Based Dashboard Content */}
                     {role === 'purchasing' && <PurchasingDashboard />}
-
                     {role === 'payables' && <PayablesDashboard />}
-
                     {role === 'disbursement' && <DisbursementDashboard />}
-
                     {role === 'admin' && <AdminDashboard />}
-
-                    {/* Legacy Dashboard - No longer needed, all roles have custom dashboards */}
-                    {!['purchasing', 'payables', 'disbursement', 'admin'].includes(role) && (
-                        <div className="space-y-6 border-t pt-6">
-                            <h2 className="text-lg font-semibold text-muted-foreground">
-                                Legacy Dashboard (temporary - custom dashboard not yet implemented)
-                            </h2>
-
-                            {/* Financial Summary Cards */}
-                            <FinancialSummaryCards summary={legacyProps.summary} />
-
-                            {/* Pending Actions Widget */}
-                            <PendingActionsWidget actions={legacyProps.actions} />
-
-                            {/* Quick Actions and Upcoming Payments Row */}
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                {/* Quick Actions Panel */}
-                                <QuickActionsPanel />
-
-                                {/* Upcoming Payments */}
-                                <UpcomingPayments payments={legacyProps.upcomingPayments} />
-                            </div>
-
-                            {/* Recent Disbursements */}
-                            {legacyProps.recentDisbursements && legacyProps.recentDisbursements.length > 0 && (
-                                <RecentDisbursements disbursements={legacyProps.recentDisbursements} />
-                            )}
-                        </div>
-                    )}
                 </div>
             </DashboardFilterProvider>
         </AppLayout>
