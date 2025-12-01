@@ -1,6 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card.js';
 import { Button } from '@/components/ui/button.js';
-import { Building, Eye, ShoppingCart } from 'lucide-react';
+import { Building, Eye } from 'lucide-react';
 import { formatDate } from 'date-fns';
 
 export default function VendorProjects({projects}){
