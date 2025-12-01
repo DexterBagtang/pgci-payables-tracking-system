@@ -119,6 +119,16 @@ export default function CreateDisbursementForm({ checkRequisitions, filters }) {
         }).format(amount);
     };
 
+    // Format date to YYYY-MM-DD in local timezone (avoids UTC conversion issues)
+    const formatDateForInput = (date) => {
+        if (!date) return '';
+        const d = new Date(date);
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+
     const calculateTotals = () => {
         const selectedData = data.filter((cr) => selectedCheckReqs.includes(cr.id));
         const totalAmount = selectedData.reduce((sum, cr) => sum + parseFloat(cr.php_amount || 0), 0);
@@ -319,10 +329,7 @@ export default function CreateDisbursementForm({ checkRequisitions, filters }) {
                                     label="Date Check Scheduled"
                                     value={formData.date_check_scheduled}
                                     onChange={(date) => {
-                                        const formattedDate = date
-                                            ? new Date(date).toISOString().split('T')[0]
-                                            : '';
-                                        setData('date_check_scheduled', formattedDate);
+                                        setData('date_check_scheduled', formatDateForInput(date));
                                     }}
                                     error={errors.date_check_scheduled}
                                     placeholder="Select date"
@@ -332,10 +339,7 @@ export default function CreateDisbursementForm({ checkRequisitions, filters }) {
                                     label="Date Check Printing"
                                     value={formData.date_check_printing}
                                     onChange={(date) => {
-                                        const formattedDate = date
-                                            ? new Date(date).toISOString().split('T')[0]
-                                            : '';
-                                        setData('date_check_printing', formattedDate);
+                                        setData('date_check_printing', formatDateForInput(date));
                                     }}
                                     error={errors.date_check_printing}
                                     placeholder="Select date"
@@ -346,10 +350,7 @@ export default function CreateDisbursementForm({ checkRequisitions, filters }) {
                                         label="Date Check Released to Vendor"
                                         value={formData.date_check_released_to_vendor}
                                         onChange={(date) => {
-                                            const formattedDate = date
-                                                ? new Date(date).toISOString().split('T')[0]
-                                                : '';
-                                            setData('date_check_released_to_vendor', formattedDate);
+                                            setData('date_check_released_to_vendor', formatDateForInput(date));
                                         }}
                                         error={errors.date_check_released_to_vendor}
                                         placeholder="Select date"
