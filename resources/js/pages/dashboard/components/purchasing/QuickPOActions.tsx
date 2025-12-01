@@ -1,33 +1,32 @@
-import { Plus, List, FileText, BarChart3 } from 'lucide-react';
+import { Plus, FileText, Receipt, Users, Briefcase, Zap } from 'lucide-react';
 import DashboardCard from '../shared/DashboardCard';
 import { Link } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
-import { Zap } from 'lucide-react';
 
 export default function QuickPOActions() {
     const actions = [
         {
             label: 'Add PO',
             href: '/purchase-orders/create',
-            icon: Plus,
+            icon: FileText,
             variant: 'default' as const,
         },
         {
-            label: 'View All',
-            href: '/purchase-orders',
-            icon: List,
+            label: 'Add Invoice',
+            href: '/invoices/create',
+            icon: Receipt,
+            variant: 'default' as const,
+        },
+        {
+            label: 'Add Vendor',
+            href: '/vendors/create',
+            icon: Users,
             variant: 'outline' as const,
         },
         {
-            label: 'Drafts',
-            href: '/purchase-orders?status=draft',
-            icon: FileText,
-            variant: 'outline' as const,
-        },
-        {
-            label: 'Reports',
-            href: '/reports/purchase-orders',
-            icon: BarChart3,
+            label: 'Add Project',
+            href: '/projects/create',
+            icon: Briefcase,
             variant: 'outline' as const,
         },
     ];

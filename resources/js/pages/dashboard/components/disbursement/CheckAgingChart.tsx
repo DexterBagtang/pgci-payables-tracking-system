@@ -57,6 +57,7 @@ export default function CheckAgingChart() {
             style: 'currency',
             currency: 'PHP',
             minimumFractionDigits: 0,
+            maximumFractionDigits: 0,
         }).format(value);
     };
 

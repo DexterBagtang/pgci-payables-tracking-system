@@ -56,6 +56,7 @@ export default function POStatusDistribution({ data }: POStatusDistributionProps
             style: 'currency',
             currency: 'PHP',
             minimumFractionDigits: 0,
+            maximumFractionDigits: 0,
         }).format(value);
     };
 

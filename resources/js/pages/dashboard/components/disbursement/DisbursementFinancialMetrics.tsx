@@ -15,6 +15,7 @@ export default function DisbursementFinancialMetrics() {
             style: 'currency',
             currency: 'PHP',
             minimumFractionDigits: 0,
+            maximumFractionDigits: 0,
         }).format(value);
     };
 

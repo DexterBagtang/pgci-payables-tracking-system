@@ -26,6 +26,7 @@ export default function CurrencyBreakdown({ data }: CurrencyBreakdownProps) {
             style: 'currency',
             currency: currency,
             minimumFractionDigits: 0,
+            maximumFractionDigits: 0,
         }).format(value);
     };
 

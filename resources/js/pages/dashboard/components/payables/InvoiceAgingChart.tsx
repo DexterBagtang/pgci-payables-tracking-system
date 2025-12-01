@@ -55,6 +55,7 @@ export default function InvoiceAgingChart() {
             style: 'currency',
             currency: 'PHP',
             minimumFractionDigits: 0,
+            maximumFractionDigits: 0,
         }).format(value);
     };
 
