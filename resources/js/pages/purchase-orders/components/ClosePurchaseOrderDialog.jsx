@@ -11,20 +11,23 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
-import { useForm } from '@inertiajs/react';
+import { useForm, router } from '@inertiajs/react';
 import { AlertCircle, Lock, Upload, X } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export default function ClosePurchaseOrderDialog({ open, onOpenChange, purchaseOrder }) {
     const [selectedFiles, setSelectedFiles] = useState([]);
+    const [showConfirmation, setShowConfirmation] = useState(false);
     const { data, setData, post, processing, errors, reset } = useForm({
         closure_remarks: '',
         files: [],
+        force_close: false,
     });
 
     const handleClose = useCallback(() => {
         reset();
         setSelectedFiles([]);
+        setShowConfirmation(false);
         onOpenChange(false);
     }, [onOpenChange, reset]);
 
@@ -44,6 +47,34 @@ export default function ClosePurchaseOrderDialog({ open, onOpenChange, purchaseO
         e.preventDefault();
 
         post(route('purchase-orders.close', purchaseOrder.id), {
+            preserveScroll: true,
+            onSuccess: () => {
+                handleClose();
+            },
+            onError: (errors) => {
+                // If backend returns warnings and requires confirmation
+                if (errors.requires_confirmation) {
+                    setShowConfirmation(true);
+                }
+            },
+        });
+    };
+
+    const handleForceClose = () => {
+        // Create FormData to properly handle file uploads with force_close flag
+        const formData = new FormData();
+        formData.append('closure_remarks', data.closure_remarks);
+        formData.append('force_close', '1');
+
+        // Append files if any
+        if (data.files && data.files.length > 0) {
+            data.files.forEach((file, index) => {
+                formData.append(`files[${index}]`, file);
+            });
+        }
+
+        // Use router.post for explicit data control
+        router.post(route('purchase-orders.close', purchaseOrder.id), formData, {
             preserveScroll: true,
             onSuccess: () => {
                 handleClose();
@@ -81,13 +112,35 @@ export default function ClosePurchaseOrderDialog({ open, onOpenChange, purchaseO
                 <form onSubmit={handleSubmit} className="overflow-y-auto px-6 py-6 flex-1 bg-gray-50/50">
                     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 space-y-6">
                         {/* Warning Alert */}
-                        <Alert variant="destructive" className="border-red-200 bg-red-50">
-                            <AlertCircle className="h-4 w-4" />
-                            <AlertTitle>Warning</AlertTitle>
-                            <AlertDescription>
-                                This action will permanently close this purchase order. All associated invoices must be in "paid" status before closing.
-                            </AlertDescription>
-                        </Alert>
+                        {!showConfirmation ? (
+                            <Alert className="border-amber-200 bg-amber-50">
+                                <AlertCircle className="h-4 w-4 text-amber-600" />
+                                <AlertTitle className="text-amber-900">Manual Override</AlertTitle>
+                                <AlertDescription className="text-amber-800">
+                                    This action allows you to close a purchase order even if it's not 100% complete.
+                                    The system will display actual financial data (invoiced, paid, outstanding amounts) - no data will be manipulated.
+                                    Use this when you need to force-close a PO that cannot be completed normally.
+                                </AlertDescription>
+                            </Alert>
+                        ) : (
+                            <Alert variant="destructive" className="border-red-200 bg-red-50">
+                                <AlertCircle className="h-4 w-4" />
+                                <AlertTitle>Confirmation Required</AlertTitle>
+                                <AlertDescription>
+                                    <div className="space-y-2 mt-2">
+                                        <p className="font-medium">The following issues were detected:</p>
+                                        <ul className="list-disc list-inside space-y-1 text-sm">
+                                            {errors.warnings?.map((warning, index) => (
+                                                <li key={index}>{warning}</li>
+                                            ))}
+                                        </ul>
+                                        <p className="mt-3 font-medium text-red-900">
+                                            Do you want to proceed with closing this PO anyway?
+                                        </p>
+                                    </div>
+                                </AlertDescription>
+                            </Alert>
+                        )}
 
                         {/* Closure Remarks */}
                         <div className="space-y-2">
@@ -182,22 +235,45 @@ export default function ClosePurchaseOrderDialog({ open, onOpenChange, purchaseO
                 </form>
 
                 <DialogFooter className="shrink-0 px-6 py-4 border-t bg-gray-50/50">
-                    <Button
-                        type="button"
-                        variant="outline"
-                        onClick={handleClose}
-                        disabled={processing}
-                    >
-                        Cancel
-                    </Button>
-                    <Button
-                        type="submit"
-                        variant="destructive"
-                        onClick={handleSubmit}
-                        disabled={processing || !data.closure_remarks.trim()}
-                    >
-                        {processing ? 'Closing...' : 'Close Purchase Order'}
-                    </Button>
+                    {!showConfirmation ? (
+                        <>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={handleClose}
+                                disabled={processing}
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                type="submit"
+                                variant="destructive"
+                                onClick={handleSubmit}
+                                disabled={processing || !data.closure_remarks.trim()}
+                            >
+                                {processing ? 'Closing...' : 'Close Purchase Order'}
+                            </Button>
+                        </>
+                    ) : (
+                        <>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setShowConfirmation(false)}
+                                disabled={processing}
+                            >
+                                Go Back
+                            </Button>
+                            <Button
+                                type="button"
+                                variant="destructive"
+                                onClick={handleForceClose}
+                                disabled={processing}
+                            >
+                                {processing ? 'Force Closing...' : 'Yes, Force Close Anyway'}
+                            </Button>
+                        </>
+                    )}
                 </DialogFooter>
             </DialogContent>
         </Dialog>

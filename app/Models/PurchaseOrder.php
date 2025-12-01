@@ -106,7 +106,7 @@ class PurchaseOrder extends Model
     {
         $messages = [
             'draft->open' => 'Purchase order finalized and activated',
-            'open->closed' => 'Purchase order closed - all invoices settled',
+            'open->closed' => 'Purchase order closed',
             'open->cancelled' => 'Purchase order cancelled',
             'draft->cancelled' => 'Draft purchase order cancelled',
         ];

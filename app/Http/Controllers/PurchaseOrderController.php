@@ -393,18 +393,21 @@ class PurchaseOrderController extends Controller
 
     /**
      * Close/override a purchase order manually
+     * This allows closing a PO even when not 100% complete, as an override mechanism
+     * Financial data (invoiced, paid, outstanding, completion %) will reflect actual status
      */
     public function close(Request $request, PurchaseOrder $purchaseOrder)
     {
         // Validate request
         $validated = $request->validate([
             'closure_remarks' => 'required|string|max:1000',
+            'force_close' => 'nullable|boolean',
             'files' => 'nullable|array',
             'files.*' => 'file|max:10240', // 10MB max per file
         ]);
 
         // Check if user has purchasing role
-        if (auth()->user()->role !== 'purchasing' && auth()->user()->role !== 'admin') {
+        if (auth()->user()->role->value !== 'purchasing' && auth()->user()->role->value !== 'admin') {
             return back()->withErrors(['error' => 'Only users with Purchasing role can close purchase orders.']);
         }
 
@@ -413,25 +416,50 @@ class PurchaseOrderController extends Controller
             return back()->withErrors(['error' => 'This purchase order is already closed.']);
         }
 
-        // Check if all invoices are paid
-        if (!$purchaseOrder->allInvoicesPaid()) {
-            return back()->withErrors(['error' => 'Cannot close purchase order. All associated invoices must be in "paid" status before closing.']);
+        // Calculate actual financial status
+        $totalInvoiced = $purchaseOrder->invoices()->sum('invoice_amount');
+        $totalNetAmount = $purchaseOrder->invoices()->sum('net_amount');
+        $paidAmount = $purchaseOrder->invoices()->where('invoice_status', 'paid')->sum('net_amount');
+        $unpaidInvoices = $purchaseOrder->invoices()->where('invoice_status', '!=', 'paid')->count();
+        $totalInvoices = $purchaseOrder->invoices()->count();
+
+        // Perform validations but allow override with force_close
+        $warnings = [];
+
+        // Warning: No invoices exist
+        if ($totalInvoices === 0) {
+            $warnings[] = "No invoices have been created for this PO. PO Amount: ₱" . number_format($purchaseOrder->po_amount, 2) . " remains uninvoiced";
         }
 
-        // Validate total invoice amount against PO amount (with 5% tolerance)
-        $totalInvoiced = $purchaseOrder->invoices()->sum('net_amount');
-        $tolerance = $purchaseOrder->po_amount * 0.05; // 5% tolerance
+        // Warning: Not all invoices are paid
+        if ($unpaidInvoices > 0) {
+            $warnings[] = "{$unpaidInvoices} out of {$totalInvoices} invoice(s) are not yet paid. Outstanding amount: ₱" . number_format($totalNetAmount - $paidAmount, 2);
+        }
 
-        if ($totalInvoiced > $purchaseOrder->po_amount + $tolerance) {
+        // Warning: PO not fully invoiced
+        if ($totalInvoices > 0 && $totalInvoiced < $purchaseOrder->po_amount) {
+            $uninvoiced = $purchaseOrder->po_amount - $totalInvoiced;
+            $warnings[] = "PO is not fully invoiced. Uninvoiced amount: ₱" . number_format($uninvoiced, 2) . " (Invoiced: " . number_format(($totalInvoiced / $purchaseOrder->po_amount) * 100, 1) . "%)";
+        }
+
+        // Warning: Total invoiced exceeds PO amount
+        if ($totalInvoiced > $purchaseOrder->po_amount) {
             $overage = $totalInvoiced - $purchaseOrder->po_amount;
-            return back()->withErrors([
-                'error' => "Total invoiced amount (₱" . number_format($totalInvoiced, 2) .
+            $warnings[] = "Total invoiced amount (₱" . number_format($totalInvoiced, 2) .
                           ") exceeds PO amount (₱" . number_format($purchaseOrder->po_amount, 2) .
-                          ") by ₱" . number_format($overage, 2) . ". Please verify invoice amounts before closing."
-            ]);
+                          ") by ₱" . number_format($overage, 2) . " (" . number_format(($overage / $purchaseOrder->po_amount) * 100, 1) . "% over budget)";
+        }
+
+        // If there are warnings and user hasn't confirmed force_close, return with warnings
+        if (!empty($warnings) && !$request->boolean('force_close')) {
+            return back()->withErrors([
+                'warnings' => $warnings,
+                'requires_confirmation' => true
+            ])->withInput();
         }
 
         // Update PO status and closure details
+        // Note: We do NOT manipulate financial data - it stays as actual values
         $oldStatus = $purchaseOrder->po_status;
         $purchaseOrder->update([
             'po_status' => 'closed',
@@ -440,8 +468,36 @@ class PurchaseOrderController extends Controller
             'closure_remarks' => $validated['closure_remarks'],
         ]);
 
-        // Log status change
-        $purchaseOrder->logStatusChange($oldStatus, 'closed');
+        // Log status change - always include financial snapshot for transparency
+        $closureReason = null;
+
+        // Add financial status snapshot at time of closure
+        $financialSnapshot = sprintf(
+            "PO: ₱%s | Invoiced: ₱%s (%.1f%%) | Paid: ₱%s (%.1f%%) | Outstanding: ₱%s",
+            number_format($purchaseOrder->po_amount, 2),
+            number_format($totalInvoiced, 2),
+            $purchaseOrder->po_amount > 0 ? ($totalInvoiced / $purchaseOrder->po_amount * 100) : 0,
+            number_format($paidAmount, 2),
+            $purchaseOrder->po_amount > 0 ? ($paidAmount / $purchaseOrder->po_amount * 100) : 0,
+            number_format($purchaseOrder->po_amount - $paidAmount, 2)
+        );
+
+        // Determine if this was a manual override (warnings exist or force_close was used)
+        if (!empty($warnings) || $request->boolean('force_close')) {
+            // This was a manual override - log it clearly
+            $closureReason = "⚠️ MANUAL OVERRIDE - Force closed by " . auth()->user()->name;
+
+            if (!empty($warnings)) {
+                $closureReason .= "\n\n⚠️ WARNINGS AT TIME OF CLOSURE:\n• " . implode("\n• ", $warnings);
+            }
+
+            $closureReason .= "\n\n📊 Financial Status at Closure:\n" . $financialSnapshot;
+        } else {
+            // Normal closure - all complete
+            $closureReason = "Closed successfully. All invoices settled.\n\n📊 Final Status:\n" . $financialSnapshot;
+        }
+
+        $purchaseOrder->logStatusChange($oldStatus, 'closed', $closureReason);
 
         // Handle file uploads
         if ($request->hasFile('files')) {
