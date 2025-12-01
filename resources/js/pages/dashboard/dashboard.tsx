@@ -66,13 +66,13 @@ export default function Dashboard(props: DashboardData) {
                     )}
 
                     {/* Role-Based Dashboard Content */}
-                    {role === 'purchasing' && <PurchasingDashboard {...(props as any)} />}
+                    {role === 'purchasing' && <PurchasingDashboard />}
 
-                    {role === 'payables' && <PayablesDashboard {...(props as any)} />}
+                    {role === 'payables' && <PayablesDashboard />}
 
-                    {role === 'disbursement' && <DisbursementDashboard {...(props as any)} />}
+                    {role === 'disbursement' && <DisbursementDashboard />}
 
-                    {role === 'admin' && <AdminDashboard {...(props as any)} />}
+                    {role === 'admin' && <AdminDashboard />}
 
                     {/* Legacy Dashboard - No longer needed, all roles have custom dashboards */}
                     {!['purchasing', 'payables', 'disbursement', 'admin'].includes(role) && (

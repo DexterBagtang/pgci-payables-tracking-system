@@ -1,4 +1,3 @@
-import type { AdminDashboardData } from '@/types';
 import { Separator } from '@/components/ui/separator';
 
 // Import all role-specific dashboards
@@ -6,31 +5,7 @@ import PurchasingDashboard from '../purchasing/PurchasingDashboard';
 import PayablesDashboard from '../payables/PayablesDashboard';
 import DisbursementDashboard from '../disbursement/DisbursementDashboard';
 
-export default function AdminDashboard(props: AdminDashboardData) {
-    const { purchasing, payables, disbursement, alerts, timeRange } = props;
-
-    // Transform admin data to match individual dashboard props
-    const purchasingProps = {
-        role: 'purchasing' as const,
-        alerts,
-        timeRange,
-        ...purchasing,
-    };
-
-    const payablesProps = {
-        role: 'payables' as const,
-        alerts,
-        timeRange,
-        ...payables,
-    };
-
-    const disbursementProps = {
-        role: 'disbursement' as const,
-        alerts,
-        timeRange,
-        ...disbursement,
-    };
-
+export default function AdminDashboard() {
     return (
         <div className="space-y-8">
             {/* Purchasing Section */}
@@ -41,7 +16,7 @@ export default function AdminDashboard(props: AdminDashboardData) {
                         Purchase orders, budget tracking, and vendor performance
                     </p>
                 </div>
-                <PurchasingDashboard {...purchasingProps} />
+                <PurchasingDashboard />
             </section>
 
             <Separator className="my-8" />
@@ -54,7 +29,7 @@ export default function AdminDashboard(props: AdminDashboardData) {
                         Invoice review queue, check requisitions, and payment schedule
                     </p>
                 </div>
-                <PayablesDashboard {...payablesProps} />
+                <PayablesDashboard />
             </section>
 
             <Separator className="my-8" />
@@ -67,7 +42,7 @@ export default function AdminDashboard(props: AdminDashboardData) {
                         Check printing, releases, and disbursement tracking
                     </p>
                 </div>
-                <DisbursementDashboard {...disbursementProps} />
+                <DisbursementDashboard />
             </section>
         </div>
     );

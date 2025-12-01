@@ -113,7 +113,7 @@ class PurchaseOrderController extends Controller
                 'sort_direction' => $request->get('sort_direction', 'desc'),
             ],
             'filterOptions' => [
-                'statuses' => ['draft', 'open', 'payable','closed', 'cancelled'],
+                'statuses' => ['draft', 'open', 'closed', 'cancelled'],
                 'vendors' => $vendors,
                 'projects' => $projects,
             ],
@@ -147,14 +147,43 @@ class PurchaseOrderController extends Controller
             'currency' => 'nullable|in:PHP,USD',
             'payment_term' => 'nullable|string',
             'po_date' => $request->po_status === 'draft' ? 'nullable|date' : 'required|date',
-            'expected_delivery_date' => 'nullable|date|after:po_date',
             'description' => 'nullable|string',
             'files' => 'nullable|array',
             'files.*' => 'file|max:10240', // 10MB max per file
         ]);
 
+        // Budget validation: Check if PO amount exceeds project budget
+        if ($request->project_id && $request->po_amount) {
+            $project = Project::find($request->project_id);
+
+            if ($project && $project->total_project_cost) {
+                // Calculate total committed amount from existing POs (draft and open)
+                $existingCommitment = PurchaseOrder::where('project_id', $request->project_id)
+                    ->whereIn('po_status', ['draft', 'open'])
+                    ->sum('po_amount');
+
+                $newTotal = $existingCommitment + $request->po_amount;
+
+                if ($newTotal > $project->total_project_cost) {
+                    $overage = $newTotal - $project->total_project_cost;
+                    return back()->withErrors([
+                        'po_amount' => "This PO would exceed the project budget by ₱" . number_format($overage, 2) . ". " .
+                            "Project Budget: ₱" . number_format($project->total_project_cost, 2) . ", " .
+                            "Already Committed: ₱" . number_format($existingCommitment, 2) . ", " .
+                            "Remaining: ₱" . number_format($project->total_project_cost - $existingCommitment, 2)
+                    ])->withInput();
+                }
+            }
+        }
+
         $validated['po_status'] = $request->po_status;
         $validated['created_by'] = auth()->id();
+
+        // Track finalization if PO is created as 'open'
+        if ($request->po_status === 'open') {
+            $validated['finalized_by'] = auth()->id();
+            $validated['finalized_at'] = now();
+        }
 
         unset($validated['files']);
 
@@ -245,7 +274,7 @@ class PurchaseOrderController extends Controller
      */
     public function edit(PurchaseOrder $purchaseOrder)
     {
-        $purchaseOrder->load(['files']);
+        $purchaseOrder->load(['files', 'project:id,project_title,cer_number', 'vendor:id,name']);
         $vendors = Vendor::where('is_active', true)->orderBy('name')->get();
         $projects = Project::all();
 
@@ -253,6 +282,7 @@ class PurchaseOrderController extends Controller
             'purchaseOrder' => $purchaseOrder,
             'vendors' => $vendors,
             'projects' => $projects,
+            'backUrl' => url()->previous() ?: '/purchase-orders',
         ]);
     }
 
@@ -261,6 +291,13 @@ class PurchaseOrderController extends Controller
      */
     public function update(Request $request, PurchaseOrder $purchaseOrder)
     {
+        // Prevent vendor change if PO has invoices
+        if ($purchaseOrder->invoices()->count() > 0 && $request->vendor_id != $purchaseOrder->vendor_id) {
+            return back()->withErrors([
+                'vendor_id' => 'Cannot change vendor because this PO has associated invoices.'
+            ])->withInput();
+        }
+
         $validated = $request->validate([
             'po_number' => [
                 $request->po_status === 'draft' ? 'nullable' : 'required',
@@ -273,18 +310,46 @@ class PurchaseOrderController extends Controller
             'currency' => 'nullable|in:PHP,USD',
             'payment_term' => 'nullable|string',
             'po_date' => $request->po_status === 'draft' ? 'nullable|date' : 'required|date',
-            'expected_delivery_date' => 'nullable|date|after:po_date',
             'description' => 'nullable|string',
-            'po_status' => 'required|in:draft,open,approved,completed,cancelled',
+            'po_status' => 'required|in:draft,open,closed,cancelled',
         ]);
 
+        // Budget validation: Check if updated PO amount exceeds project budget
+        if ($request->project_id && $request->po_amount) {
+            $project = Project::find($request->project_id);
+
+            if ($project && $project->total_project_cost) {
+                // Calculate total committed amount from existing POs (excluding current PO)
+                $existingCommitment = PurchaseOrder::where('project_id', $request->project_id)
+                    ->whereIn('po_status', ['draft', 'open'])
+                    ->where('id', '!=', $purchaseOrder->id)
+                    ->sum('po_amount');
+
+                $newTotal = $existingCommitment + $request->po_amount;
+
+                if ($newTotal > $project->total_project_cost) {
+                    $overage = $newTotal - $project->total_project_cost;
+                    return back()->withErrors([
+                        'po_amount' => "This PO would exceed the project budget by ₱" . number_format($overage, 2) . ". " .
+                            "Project Budget: ₱" . number_format($project->total_project_cost, 2) . ", " .
+                            "Already Committed: ₱" . number_format($existingCommitment, 2) . ", " .
+                            "Remaining: ₱" . number_format($project->total_project_cost - $existingCommitment, 2)
+                    ])->withInput();
+                }
+            }
+        }
 
 //        $validated['updated_by'] = auth()->id();
 
+        // Track finalization if PO transitions from draft to open
+        $oldStatus = $purchaseOrder->po_status;
+        if ($request->po_status === 'open' && $oldStatus === 'draft') {
+            $validated['finalized_by'] = auth()->id();
+            $validated['finalized_at'] = now();
+        }
 
 //        $purchaseOrder->update($validated);
 //        dd($validated);
-        $oldStatus = $purchaseOrder->po_status;
         $purchaseOrder->fill($validated);
 
 //        dd($purchaseOrder);
@@ -351,6 +416,19 @@ class PurchaseOrderController extends Controller
         // Check if all invoices are paid
         if (!$purchaseOrder->allInvoicesPaid()) {
             return back()->withErrors(['error' => 'Cannot close purchase order. All associated invoices must be in "paid" status before closing.']);
+        }
+
+        // Validate total invoice amount against PO amount (with 5% tolerance)
+        $totalInvoiced = $purchaseOrder->invoices()->sum('net_amount');
+        $tolerance = $purchaseOrder->po_amount * 0.05; // 5% tolerance
+
+        if ($totalInvoiced > $purchaseOrder->po_amount + $tolerance) {
+            $overage = $totalInvoiced - $purchaseOrder->po_amount;
+            return back()->withErrors([
+                'error' => "Total invoiced amount (₱" . number_format($totalInvoiced, 2) .
+                          ") exceeds PO amount (₱" . number_format($purchaseOrder->po_amount, 2) .
+                          ") by ₱" . number_format($overage, 2) . ". Please verify invoice amounts before closing."
+            ]);
         }
 
         // Update PO status and closure details

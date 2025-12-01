@@ -1,5 +1,8 @@
 import { FileSignature } from 'lucide-react';
 import DashboardCard from '../shared/DashboardCard';
+import WidgetSkeleton from '../shared/WidgetSkeleton';
+import WidgetError from '../shared/WidgetError';
+import { useDashboardWidget } from '@/hooks/useDashboardWidget';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { format } from 'date-fns';
@@ -16,11 +19,26 @@ interface CheckRequisition {
     days_pending: number;
 }
 
-interface CRApprovalWidgetProps {
-    data: CheckRequisition[];
-}
+export default function CRApprovalWidget() {
+    const { data, loading, error, refetch } = useDashboardWidget<CheckRequisition[]>({
+        endpoint: '/api/dashboard/payables/cr-approval-queue'
+    });
 
-export default function CRApprovalWidget({ data }: CRApprovalWidgetProps) {
+    if (loading) {
+        return <WidgetSkeleton variant="list" title="CR Approval Queue" />;
+    }
+
+    if (error || !data) {
+        return (
+            <DashboardCard
+                title="CR Approval Queue"
+                description="Check requisitions pending approval"
+                icon={FileSignature}
+            >
+                <WidgetError message={error || 'Failed to load CR queue'} onRetry={refetch} />
+            </DashboardCard>
+        );
+    }
     const formatCurrency = (value: number) => {
         return new Intl.NumberFormat('en-PH', {
             style: 'currency',

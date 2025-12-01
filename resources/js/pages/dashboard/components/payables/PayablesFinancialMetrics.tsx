@@ -1,12 +1,15 @@
 import { DollarSign, FileText, CheckCircle2, Clock } from 'lucide-react';
 import MetricCard from '../shared/MetricCard';
+import WidgetSkeleton from '../shared/WidgetSkeleton';
+import WidgetError from '../shared/WidgetError';
+import { useDashboardWidget } from '@/hooks/useDashboardWidget';
 import type { PayablesFinancialMetrics } from '@/types';
 
-interface PayablesFinancialMetricsProps {
-    data: PayablesFinancialMetrics;
-}
+export default function PayablesFinancialMetrics() {
+    const { data, loading, error, refetch } = useDashboardWidget<PayablesFinancialMetrics>({
+        endpoint: '/api/dashboard/payables/financial-metrics'
+    });
 
-export default function PayablesFinancialMetrics({ data }: PayablesFinancialMetricsProps) {
     const formatCurrency = (value: number) => {
         return new Intl.NumberFormat('en-PH', {
             style: 'currency',
@@ -15,6 +18,14 @@ export default function PayablesFinancialMetrics({ data }: PayablesFinancialMetr
             maximumFractionDigits: 0,
         }).format(value);
     };
+
+    if (loading) {
+        return <WidgetSkeleton variant="metrics" />;
+    }
+
+    if (error || !data) {
+        return <WidgetError message={error || 'Failed to load financial metrics'} onRetry={refetch} />;
+    }
 
     return (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { Users, TrendingUp, FileText, ArrowUpDown } from 'lucide-react';
 import DashboardCard from '../shared/DashboardCard';
+import WidgetSkeleton from '../shared/WidgetSkeleton';
+import WidgetError from '../shared/WidgetError';
+import { useDashboardWidget } from '@/hooks/useDashboardWidget';
 import {
     Table,
     TableBody,
@@ -20,14 +23,29 @@ import {
 import type { VendorPerformanceData } from '@/types';
 import { Label } from '@/components/ui/label';
 
-interface VendorPerformanceWidgetProps {
-    data: VendorPerformanceData[];
-}
-
 type SortOption = 'committed' | 'outstanding' | 'invoiced' | 'paid' | 'invoice_count' | 'active_pos';
 
-export default function VendorPerformanceWidget({ data }: VendorPerformanceWidgetProps) {
+export default function VendorPerformanceWidget() {
     const [sortBy, setSortBy] = useState<SortOption>('committed');
+    const { data, loading, error, refetch } = useDashboardWidget<VendorPerformanceData[]>({
+        endpoint: '/api/dashboard/purchasing/vendor-performance'
+    });
+
+    if (loading) {
+        return <WidgetSkeleton variant="table" title="Top Vendors by Commitment" />;
+    }
+
+    if (error || !data) {
+        return (
+            <DashboardCard
+                title="Top Vendors by Commitment"
+                description="Top 10 vendors by open PO value with invoice details"
+                icon={Users}
+            >
+                <WidgetError message={error || 'Failed to load vendor data'} onRetry={refetch} />
+            </DashboardCard>
+        );
+    }
 
     const formatCurrency = (value: number, currency: string = 'PHP') => {
         return new Intl.NumberFormat('en-PH', {
@@ -47,10 +65,17 @@ export default function VendorPerformanceWidget({ data }: VendorPerformanceWidge
         return value.toString();
     };
 
-    const getOutstandingBadge = (outstanding: number, committed: number) => {
-        const percentage = committed > 0 ? (outstanding / committed) * 100 : 0;
+    const getOutstandingBadge = (vendor: VendorPerformanceData) => {
+        const { outstanding_balance, total_committed, invoice_count, total_invoiced } = vendor;
+        const percentage = total_committed > 0 ? (outstanding_balance / total_committed) * 100 : 0;
 
-        if (outstanding === 0) {
+        // No invoices yet - show pending status
+        if (invoice_count === 0 || total_invoiced === 0) {
+            return <Badge variant="secondary" className="text-xs">Pending</Badge>;
+        }
+
+        // Has invoices but all settled
+        if (outstanding_balance === 0) {
             return <Badge variant="outline" className="text-xs">Settled</Badge>;
         } else if (percentage > 80) {
             return <Badge variant="destructive" className="text-xs">High</Badge>;
@@ -256,7 +281,7 @@ export default function VendorPerformanceWidget({ data }: VendorPerformanceWidge
                                         )}
                                     </TableCell>
                                     <TableCell className="text-center">
-                                        {getOutstandingBadge(vendor.outstanding_balance, vendor.total_committed)}
+                                        {getOutstandingBadge(vendor)}
                                     </TableCell>
                                 </TableRow>
                             ))}

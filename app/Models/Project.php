@@ -93,6 +93,24 @@ class Project extends Model
         };
     }
 
+    public function getBudgetUtilizationAttribute()
+    {
+        $committed = $this->purchaseOrders()
+            ->whereIn('po_status', ['draft', 'open'])
+            ->sum('po_amount');
+
+        $percentage = $this->total_project_cost > 0
+            ? ($committed / $this->total_project_cost) * 100
+            : 0;
+
+        return [
+            'committed' => (float) $committed,
+            'remaining' => (float) ($this->total_project_cost - $committed),
+            'percentage' => round($percentage, 2),
+            'total_budget' => (float) $this->total_project_cost,
+        ];
+    }
+
     public function activityLogs()
     {
         return $this->morphMany(ActivityLog::class, 'loggable');

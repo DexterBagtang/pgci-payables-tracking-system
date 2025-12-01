@@ -1,5 +1,8 @@
 import { FileCheck, AlertCircle } from 'lucide-react';
 import DashboardCard from '../shared/DashboardCard';
+import WidgetSkeleton from '../shared/WidgetSkeleton';
+import WidgetError from '../shared/WidgetError';
+import { useDashboardWidget } from '@/hooks/useDashboardWidget';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { format } from 'date-fns';
@@ -18,11 +21,26 @@ interface Invoice {
     is_overdue: boolean;
 }
 
-interface InvoiceReviewQueueProps {
-    data: Invoice[];
-}
+export default function InvoiceReviewQueue() {
+    const { data, loading, error, refetch } = useDashboardWidget<Invoice[]>({
+        endpoint: '/api/dashboard/payables/invoice-review-queue'
+    });
 
-export default function InvoiceReviewQueue({ data }: InvoiceReviewQueueProps) {
+    if (loading) {
+        return <WidgetSkeleton variant="list" title="Invoice Review Queue" />;
+    }
+
+    if (error || !data) {
+        return (
+            <DashboardCard
+                title="Invoice Review Queue"
+                description="Invoices pending review"
+                icon={FileCheck}
+            >
+                <WidgetError message={error || 'Failed to load invoice queue'} onRetry={refetch} />
+            </DashboardCard>
+        );
+    }
     const formatCurrency = (value: number, currency: string = 'PHP') => {
         return new Intl.NumberFormat('en-PH', {
             style: 'currency',

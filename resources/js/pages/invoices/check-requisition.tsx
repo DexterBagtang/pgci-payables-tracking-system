@@ -5,7 +5,11 @@ import CheckRequisitionFormNew from '@/pages/invoices/components/CheckRequisitio
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
-        title: 'Check Requisition',
+        title: 'Check Requisitions',
+        href: '/check-requisitions',
+    },
+    {
+        title: 'Create',
         href: '/check-requisitions/create',
     },
 ];

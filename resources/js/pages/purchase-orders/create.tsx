@@ -7,8 +7,12 @@ const CreatePOForm = lazy(() => import('@/pages/purchase-orders/components/Creat
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
-        title: 'Create Purchase Order',
-        href: 'create',
+        title: 'Purchase Orders',
+        href: '/purchase-orders',
+    },
+    {
+        title: 'Create',
+        href: '/purchase-orders/create',
     },
 ];
 

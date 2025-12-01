@@ -3,19 +3,23 @@ import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/react';
 import ProjectShow from '@/pages/projects/components/ProjectShow';
 
-const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'Projects',
-        href: 'projects',
-    },
-];
-
 interface ProjectsPageProps {
-    project: unknown[];
+    project: any;
     filters: unknown[];
 }
 
 export default function ProjectsPageShow({ project }: ProjectsPageProps) {
+    const breadcrumbs: BreadcrumbItem[] = [
+        {
+            title: 'Projects',
+            href: '/projects',
+        },
+        {
+            title: project?.project_name || 'Details',
+            href: `/projects/${project?.id}`,
+        },
+    ];
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Projects Details" />

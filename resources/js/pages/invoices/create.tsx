@@ -5,7 +5,11 @@ import CreateInvoice from '@/pages/invoices/components/CreateInvoice';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
-        title: 'Create Invoice',
+        title: 'Invoices',
+        href: '/invoices',
+    },
+    {
+        title: 'Create',
         href: '/invoices/create',
     },
 ];

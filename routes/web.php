@@ -2,6 +2,9 @@
 
 use App\Http\Controllers\CheckRequisitionController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\Dashboard\PurchasingWidgetController;
+use App\Http\Controllers\Dashboard\PayablesWidgetController;
+use App\Http\Controllers\Dashboard\DisbursementWidgetController;
 use App\Http\Controllers\DisbursementController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\ProjectController;
@@ -20,6 +23,36 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('/', [DashboardController::class,'index'])->name('home');
     Route::get('/dashboard', [DashboardController::class,'index'])->name('dashboard');
+
+    // Dashboard Widget API Routes
+    Route::prefix('api/dashboard')->group(function () {
+        // Purchasing Widgets
+        Route::prefix('purchasing')->group(function () {
+            Route::get('financial-commitments', [PurchasingWidgetController::class, 'financialCommitments']);
+            Route::get('vendor-performance', [PurchasingWidgetController::class, 'vendorPerformance']);
+            Route::get('po-status-summary', [PurchasingWidgetController::class, 'poStatusSummary']);
+            Route::get('currency-summary', [PurchasingWidgetController::class, 'currencySummary']);
+            Route::get('recent-invoices', [PurchasingWidgetController::class, 'recentInvoices']);
+        });
+
+        // Payables Widgets
+        Route::prefix('payables')->group(function () {
+            Route::get('financial-metrics', [PayablesWidgetController::class, 'financialMetrics']);
+            Route::get('invoice-review-queue', [PayablesWidgetController::class, 'invoiceReviewQueue']);
+            Route::get('cr-approval-queue', [PayablesWidgetController::class, 'crApprovalQueue']);
+            Route::get('invoice-aging', [PayablesWidgetController::class, 'invoiceAging']);
+            Route::get('payment-schedule', [PayablesWidgetController::class, 'paymentSchedule']);
+        });
+
+        // Disbursement Widgets
+        Route::prefix('disbursement')->group(function () {
+            Route::get('financial-metrics', [DisbursementWidgetController::class, 'financialMetrics']);
+            Route::get('printing-queue', [DisbursementWidgetController::class, 'printingQueue']);
+            Route::get('pending-releases', [DisbursementWidgetController::class, 'pendingReleases']);
+            Route::get('check-schedule', [DisbursementWidgetController::class, 'checkSchedule']);
+            Route::get('check-aging', [DisbursementWidgetController::class, 'checkAging']);
+        });
+    });
 
     Route::resource('vendors', VendorController::class);
     Route::post('vendors/bulk-activate', [VendorController::class, 'bulkActivate'])->name('vendors.bulk-activate');

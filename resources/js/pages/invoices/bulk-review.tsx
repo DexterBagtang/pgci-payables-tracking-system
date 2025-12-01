@@ -5,7 +5,11 @@ import BulkInvoiceReview from '@/pages/invoices/components/BulkInvoiceReview';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
-        title: 'Review Invoices',
+        title: 'Invoices',
+        href: '/invoices',
+    },
+    {
+        title: 'Bulk Review',
         href: '/invoices/bulk-review',
     },
 ];

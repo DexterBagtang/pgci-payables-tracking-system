@@ -2,20 +2,22 @@ import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/react';
 import ShowInvoice from "@/pages/invoices/components/ShowInvoice";
-
-const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'Show Invoice',
-        href: '/invoices/',
-    },
-];
+import { buildInvoiceBreadcrumbs } from '@/lib/breadcrumbs';
 
 interface ShowPageProps{
-    invoice:unknown[];
+    invoice:any;
+    backUrl: string;
 }
 
 
-export default function ShowPoPage({invoice}: ShowPageProps) {
+export default function ShowPoPage({invoice, backUrl}: ShowPageProps) {
+    // Build breadcrumbs based on referrer
+    const breadcrumbs: BreadcrumbItem[] = buildInvoiceBreadcrumbs(
+        invoice,
+        backUrl,
+        'show'
+    );
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Show Invoice" />

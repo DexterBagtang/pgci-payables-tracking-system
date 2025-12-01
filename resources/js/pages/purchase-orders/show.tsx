@@ -2,18 +2,12 @@ import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/react';
 import { lazy, Suspense } from 'react';
+import { buildPurchaseOrderBreadcrumbs } from '@/lib/breadcrumbs';
 
 const PODetails = lazy(() => import('@/pages/purchase-orders/components/PODetails'));
 
-const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'Show Purchase Order',
-        href: 'show',
-    },
-];
-
 interface ShowPageProps{
-    purchaseOrder: unknown[];
+    purchaseOrder: any;
     vendors: unknown[];
     projects: unknown[];
     backUrl: string;
@@ -21,6 +15,13 @@ interface ShowPageProps{
 
 
 export default function CreatePoPage({purchaseOrder,vendors, projects,backUrl}: ShowPageProps) {
+    // Build breadcrumbs based on referrer
+    const breadcrumbs: BreadcrumbItem[] = buildPurchaseOrderBreadcrumbs(
+        purchaseOrder,
+        backUrl,
+        'show'
+    );
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`Purchase Order`} />

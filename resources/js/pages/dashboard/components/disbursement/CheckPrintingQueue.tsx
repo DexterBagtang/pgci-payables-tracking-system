@@ -1,15 +1,37 @@
 import { Printer } from 'lucide-react';
 import DashboardCard from '../shared/DashboardCard';
+import WidgetSkeleton from '../shared/WidgetSkeleton';
+import WidgetError from '../shared/WidgetError';
+import { useDashboardWidget } from '@/hooks/useDashboardWidget';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { format } from 'date-fns';
-import type { DisbursementDashboardData } from '@/types';
 
-interface CheckPrintingQueueProps {
-    data: DisbursementDashboardData['printingQueue'];
+interface PrintingQueueItem {
+    id: number;
+    requisition_number: string;
+    payee_name: string;
+    php_amount: number;
+    date_check_scheduled: string;
+    days_waiting: number;
 }
 
-export default function CheckPrintingQueue({ data }: CheckPrintingQueueProps) {
+export default function CheckPrintingQueue() {
+    const { data, loading, error, refetch } = useDashboardWidget<PrintingQueueItem[]>({
+        endpoint: '/api/dashboard/disbursement/printing-queue'
+    });
+
+    if (loading) {
+        return <WidgetSkeleton variant="list" title="Check Printing Queue" />;
+    }
+
+    if (error || !data) {
+        return (
+            <DashboardCard title="Check Printing Queue" description="Checks ready to print" icon={Printer}>
+                <WidgetError message={error || 'Failed to load printing queue'} onRetry={refetch} />
+            </DashboardCard>
+        );
+    }
     const formatCurrency = (value: number) => {
         return new Intl.NumberFormat('en-PH', {
             style: 'currency',

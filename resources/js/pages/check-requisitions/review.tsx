@@ -3,21 +3,25 @@ import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/react';
 import ReviewCheckRequisition from '@/pages/check-requisitions/components/ReviewCheckRequisition';
 
-const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'Show Check Requisition',
-        href: '/check-requisitions',
-    },
-];
-
 interface PageProps {
-    checkRequisition: unknown[];
+    checkRequisition: any;
     invoices: unknown[];
     files: unknown[];
     activityLogs: unknown[];
 }
 
 export default function ReviewInvoicesPage({ checkRequisition, invoices, files, activityLogs }: PageProps) {
+    const breadcrumbs: BreadcrumbItem[] = [
+        {
+            title: 'Check Requisitions',
+            href: '/check-requisitions',
+        },
+        {
+            title: checkRequisition?.requisition_number || 'Review',
+            href: `/check-requisitions/${checkRequisition?.id}/review`,
+        },
+    ];
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Check Requisition Details" />
