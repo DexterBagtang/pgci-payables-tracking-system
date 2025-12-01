@@ -10,8 +10,6 @@ use App\Models\PurchaseOrder;
 use App\Models\Vendor;
 use DB;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Spatie\Browsershot\Browsershot;
@@ -672,11 +670,6 @@ class CheckRequisitionController extends Controller
                 'processed_by' => auth()->id(),
             ]);
 
-            // Update related invoices status
-//            $checkRequisition->invoices()->update([
-//                'invoice_status' => 'approved_for_payment'
-//            ]);
-
             // Create activity log
             $logNotes = $validated['notes'] ?? 'Check requisition approved';
             if ($filename) {
@@ -710,7 +703,6 @@ class CheckRequisitionController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             \Log::error('Check requisition approval error: ' . $e->getMessage());
-//            return back()->with('error', 'Failed to approve check requisition');
             throw new \Exception($e->getMessage());
         }
     }

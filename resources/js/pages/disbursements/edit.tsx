@@ -3,17 +3,6 @@ import { type BreadcrumbItem, type Disbursement, type CheckRequisition, type Pag
 import { Head } from '@inertiajs/react';
 import EditDisbursementForm from './components/EditDisbursementForm';
 
-const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'Disbursements',
-        href: '/disbursements',
-    },
-    {
-        title: 'Edit',
-        href: '',
-    },
-];
-
 interface PageProps {
     disbursement: Disbursement;
     currentCheckRequisitions: CheckRequisition[];

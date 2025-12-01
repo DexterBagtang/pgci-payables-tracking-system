@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Head, Link, router, useForm } from '@inertiajs/react';
+import { Link, router, useForm } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Head, Link, router } from '@inertiajs/react';
+import { Link, router } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -48,7 +48,6 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
-import { getStatusBadge } from '@/components/custom/helpers.jsx';
 import StatusBadge from '@/components/custom/StatusBadge.jsx';
 import PaginationServerSide from '@/components/custom/Pagination.jsx';
 
