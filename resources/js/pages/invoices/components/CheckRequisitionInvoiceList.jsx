@@ -177,26 +177,6 @@ export default function CheckRequisitionInvoiceList({
     useEffect(() => {
         const newInvoices = invoices.data || [];
 
-        // Debug logging
-        console.group('🔍 CheckRequisitionInvoiceList - Data Update');
-        console.log('Initial invoices.data length:', newInvoices.length);
-        console.log('Pagination total from server:', invoices.total);
-        console.log('Current page:', invoices.current_page);
-        console.log('Last page:', invoices.last_page);
-        console.log('Per page:', invoices.per_page);
-        
-        // Calculate expected total based on pagination
-        const calculatedTotal = ((invoices.last_page - 1) * (invoices.per_page || 30)) + newInvoices.length;
-        console.log('Calculated total based on pagination:', calculatedTotal);
-        
-        if (calculatedTotal !== invoices.total) {
-            console.warn('⚠️ MISMATCH DETECTED!');
-            console.warn('Server says total:', invoices.total);
-            console.warn('But calculated total should be:', calculatedTotal);
-            console.warn('Difference:', invoices.total - calculatedTotal, 'invoices');
-        }
-        console.groupEnd();
-
         // In edit mode, always include original invoices even if they don't match filters
         let combinedInvoices = newInvoices;
         if (isEdit && originalInvoicesRef.current.size > 0) {
@@ -249,29 +229,9 @@ export default function CheckRequisitionInvoiceList({
             const newInvoices = response.data.invoices.data || [];
             const lastPage = response.data.invoices.last_page;
             const total = response.data.invoices.total || 0;
-            
-            // Debug logging for API calls
-            console.group('🔍 Infinite Scroll - Load More');
-            console.log('Loading page:', nextPage);
-            console.log('New invoices received:', newInvoices.length);
-            console.log('Server total:', total);
-            console.log('Last page:', lastPage);
-            if (response.data.debug) {
-                console.log('Debug info from server:', response.data.debug);
-            }
-            console.groupEnd();
 
             const updatedInvoices = [...accumulatedInvoices, ...newInvoices];
-            
-            // Check for duplicates
-            const uniqueIds = new Set(updatedInvoices.map(inv => inv.id));
-            if (uniqueIds.size !== updatedInvoices.length) {
-                console.warn('⚠️ DUPLICATES DETECTED in accumulated invoices!');
-                console.warn('Total invoices:', updatedInvoices.length);
-                console.warn('Unique IDs:', uniqueIds.size);
-                console.warn('Duplicates:', updatedInvoices.length - uniqueIds.size);
-            }
-            
+
             setAccumulatedInvoices(updatedInvoices);
             setCurrentPage(nextPage);
             setHasMore(nextPage < lastPage);

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, Suspense, lazy, useMemo } from 'react';
+import { useEffect, useState, Suspense, lazy, useMemo } from 'react';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import {
     Table,
@@ -384,18 +384,10 @@ export default function PurchaseOrderTable({ purchaseOrders, filters, filterOpti
                                     <Download className="mr-2 h-4 w-4" />
                                     Export
                                 </Button>
-                                {/*<Button asChild size="sm">*/}
-                                {/*    <Link href='/purchase-orders/create' prefetch>*/}
-                                {/*        <Plus className="mr-2 h-4 w-4" />*/}
-                                {/*        Create PO*/}
-                                {/*    </Link>*/}
-                                {/*</Button>*/}
-
                                 <Button onClick={()=>setCreateOpen(true)} size="sm">
                                     <Plus className="mr-2 h-4 w-4" />
                                     Add PO
                                 </Button>
-
                             </div>
                         </div>
                     </CardHeader>
@@ -857,17 +849,6 @@ export default function PurchaseOrderTable({ purchaseOrders, filters, filterOpti
                                                     <TableCell>
                                                         <div className="flex flex-col space-y-2">
                                                             <StatusBadge status={po.po_status} className="text-xs font-medium"  />
-                                                            {/*{daysUntilDelivery !== null && po.po_status !== 'closed' && po.po_status !== 'cancelled' && (*/}
-                                                            {/*    <Badge*/}
-                                                            {/*        variant="outline"*/}
-                                                            {/*        className={`${getDeliveryBadgeColor(daysUntilDelivery)} justify-center text-xs`}*/}
-                                                            {/*    >*/}
-                                                            {/*        <Calendar className="mr-1 h-3 w-3" />*/}
-                                                            {/*        {daysUntilDelivery < 0*/}
-                                                            {/*            ? `${Math.abs(daysUntilDelivery)}d overdue`*/}
-                                                            {/*            : `${daysUntilDelivery}d until delivery`}*/}
-                                                            {/*    </Badge>*/}
-                                                            {/*)}*/}
                                                         </div>
                                                     </TableCell>
 

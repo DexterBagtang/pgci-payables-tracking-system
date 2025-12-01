@@ -218,10 +218,6 @@ const InvoicesTable = ({ invoices, filters, filterOptions, statusCounts, current
                                 <CardDescription>AP Invoice Processing & Tracking System</CardDescription>
                             </div>
                             <div className="flex items-center space-x-3">
-                                {/*<Button variant="outline" size="sm">*/}
-                                {/*    <Download className="mr-2 h-4 w-4" />*/}
-                                {/*    Export*/}
-                                {/*</Button>*/}
                                 <Link href="/invoices/create" prefetch>
                                     <Button size="sm">
                                         <Plus className="mr-2 h-4 w-4" />
@@ -682,9 +678,6 @@ const InvoicesTable = ({ invoices, filters, filterOptions, statusCounts, current
                                                                     variant="outline"
                                                                 />
                                                             </div>
-                                                            {/*<Badge variant="outline" className="w-fit text-xs">*/}
-                                                            {/*    {invoice.purchase_order.vendor.category}*/}
-                                                            {/*</Badge>*/}
                                                             <div className="mt-1 text-xs text-gray-600">
                                                                 {invoice.purchase_order.project.project_title}
                                                             </div>
@@ -722,24 +715,6 @@ const InvoicesTable = ({ invoices, filters, filterOptions, statusCounts, current
                                                     </TableCell>
 
                                                     {/* Status & Aging */}
-                                                    {/*<TableCell>*/}
-                                                    {/*    <div className="flex flex-col space-y-2">*/}
-                                                    {/*        <Badge className={`${statusConfig.color} justify-center text-xs font-medium`}>*/}
-                                                    {/*            {statusConfig.icon}*/}
-                                                    {/*            {statusConfig.label}*/}
-                                                    {/*        </Badge>*/}
-                                                    {/*        <Badge variant="outline" className={`${getAgingBadgeColor(agingDays)} justify-center text-xs`}>*/}
-                                                    {/*            <Clock className="mr-1 h-3 w-3" />*/}
-                                                    {/*            {agingDays}d aging*/}
-                                                    {/*        </Badge>*/}
-                                                    {/*        {overdueFlag && (*/}
-                                                    {/*            <Badge variant="destructive" className="justify-center text-xs">*/}
-                                                    {/*                <AlertCircle className="mr-1 h-3 w-3" />*/}
-                                                    {/*                {differenceInDays(new Date(), new Date(invoice.due_date))}d overdue*/}
-                                                    {/*            </Badge>*/}
-                                                    {/*        )}*/}
-                                                    {/*    </div>*/}
-                                                    {/*</TableCell>*/}
                                                     <TableCell>
                                                         <div className="flex flex-col space-y-2">
                                                             {/* Basic Usage */}

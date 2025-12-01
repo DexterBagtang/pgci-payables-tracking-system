@@ -417,14 +417,6 @@ const BulkInvoiceReview = ({ invoices, filters, filterOptions }) => {
                         hasSelection={selectedInvoices.size > 0}
                     />
 
-                    {/*/!* Filter Presets *!/*/}
-                    {/*<div className="mb-1.5">*/}
-                    {/*    <InvoiceFilterPresets*/}
-                    {/*        currentFilters={filters}*/}
-                    {/*        onApplyPreset={handleApplyPreset}*/}
-                    {/*    />*/}
-                    {/*</div>*/}
-
                     {/* Active Filters */}
                     <InvoiceActiveFilters
                         vendorFilter={vendorFilter}
