@@ -7,6 +7,7 @@ use App\Models\CheckRequisition;
 use App\Models\Disbursement;
 use App\Models\File;
 use App\Models\Invoice;
+use App\Models\PurchaseOrder;
 use DB;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -448,6 +449,9 @@ class DisbursementController extends Controller
                 CheckRequisition::whereIn('id', $checkReqIds)
                     ->update(['requisition_status' => 'paid']);
                 Invoice::whereIn('id', $invoiceIds)->update(['invoice_status' => 'paid']);
+
+                // Check and close purchase orders if all invoices are paid
+                $this->checkAndClosePurchaseOrders($invoiceIds);
             } else {
                 // Check not yet released - mark invoices as pending_disbursement (CRs already 'processed')
                 Invoice::whereIn('id', $invoiceIds)->update(['invoice_status' => 'pending_disbursement']);
@@ -660,6 +664,9 @@ class DisbursementController extends Controller
                     ->toArray();
 
                 Invoice::whereIn('id', $newInvoiceIds)->update(['invoice_status' => 'paid']);
+
+                // Check and close purchase orders if all invoices are paid
+                $this->checkAndClosePurchaseOrders($newInvoiceIds);
             } else {
                 // Check not yet released - mark CRs as 'processed'
                 CheckRequisition::whereIn('id', $checkReqIds)
@@ -807,6 +814,64 @@ class DisbursementController extends Controller
             DB::rollBack();
             \Log::error('Disbursement deletion error: ' . $e->getMessage());
             return back()->with('error', 'Failed to delete disbursement');
+        }
+    }
+
+    /**
+     * Check and close purchase orders if all their invoices are paid
+     *
+     * @param array $invoiceIds
+     * @return void
+     */
+    private function checkAndClosePurchaseOrders(array $invoiceIds): void
+    {
+        if (empty($invoiceIds)) {
+            return;
+        }
+
+        // Get all unique purchase order IDs from the invoices
+        $purchaseOrderIds = Invoice::whereIn('id', $invoiceIds)
+            ->distinct()
+            ->pluck('purchase_order_id')
+            ->filter()
+            ->toArray();
+
+        if (empty($purchaseOrderIds)) {
+            return;
+        }
+
+        // For each purchase order, check if all invoices are paid
+        foreach ($purchaseOrderIds as $poId) {
+            $purchaseOrder = PurchaseOrder::find($poId);
+
+            if (!$purchaseOrder) {
+                continue;
+            }
+
+            // Skip if already closed or cancelled
+            if (in_array($purchaseOrder->po_status, ['closed', 'cancelled'])) {
+                continue;
+            }
+
+            // Check if all invoices are paid
+            if ($purchaseOrder->allInvoicesPaid()) {
+                $purchaseOrder->update([
+                    'po_status' => 'closed',
+                    'closed_by' => auth()->id(),
+                    'closed_at' => now(),
+                    'closure_remarks' => 'Automatically closed - all invoices paid'
+                ]);
+
+                // Log the closure
+                ActivityLog::create([
+                    'loggable_type' => PurchaseOrder::class,
+                    'loggable_id' => $purchaseOrder->id,
+                    'action' => 'status_changed',
+                    'notes' => "Purchase order automatically closed after all invoices were paid via disbursement",
+                    'user_id' => auth()->id(),
+                    'ip_address' => request()->ip(),
+                ]);
+            }
         }
     }
 }

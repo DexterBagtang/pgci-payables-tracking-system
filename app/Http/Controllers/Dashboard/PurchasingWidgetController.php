@@ -58,6 +58,60 @@ class PurchasingWidgetController extends Controller
         );
     }
 
+    public function actionableItems(Request $request)
+    {
+        [$start, $end] = $this->getDateRange($request);
+
+        return response()->json(
+            $this->service->getActionableItems($start, $end)
+        );
+    }
+
+    public function poStatusOverview(Request $request)
+    {
+        [$start, $end] = $this->getDateRange($request);
+
+        return response()->json(
+            $this->service->getPOStatusOverview($start, $end)
+        );
+    }
+
+    public function invoiceStatusTracking(Request $request)
+    {
+        [$start, $end] = $this->getDateRange($request);
+
+        return response()->json(
+            $this->service->getInvoiceStatusTracking($start, $end)
+        );
+    }
+
+    public function vendorMetrics(Request $request)
+    {
+        [$start, $end] = $this->getDateRange($request);
+
+        return response()->json(
+            $this->service->getVendorMetrics($start, $end)
+        );
+    }
+
+    public function projectMetrics(Request $request)
+    {
+        [$start, $end] = $this->getDateRange($request);
+
+        return response()->json(
+            $this->service->getProjectMetrics($start, $end)
+        );
+    }
+
+    public function activityTimeline(Request $request)
+    {
+        [$start, $end] = $this->getDateRange($request);
+
+        return response()->json(
+            $this->service->getActivityTimeline($start, $end)
+        );
+    }
+
     private function getDateRange(Request $request): array
     {
         $start = $request->input('start') ? Carbon::parse($request->input('start')) : null;

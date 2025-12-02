@@ -33,6 +33,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get('po-status-summary', [PurchasingWidgetController::class, 'poStatusSummary']);
             Route::get('currency-summary', [PurchasingWidgetController::class, 'currencySummary']);
             Route::get('recent-invoices', [PurchasingWidgetController::class, 'recentInvoices']);
+            // New widget endpoints
+            Route::get('actionable-items', [PurchasingWidgetController::class, 'actionableItems']);
+            Route::get('po-status-overview', [PurchasingWidgetController::class, 'poStatusOverview']);
+            Route::get('invoice-status-tracking', [PurchasingWidgetController::class, 'invoiceStatusTracking']);
+            Route::get('vendor-metrics', [PurchasingWidgetController::class, 'vendorMetrics']);
+            Route::get('project-metrics', [PurchasingWidgetController::class, 'projectMetrics']);
+            Route::get('activity-timeline', [PurchasingWidgetController::class, 'activityTimeline']);
         });
 
         // Payables Widgets
@@ -42,6 +49,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get('cr-approval-queue', [PayablesWidgetController::class, 'crApprovalQueue']);
             Route::get('invoice-aging', [PayablesWidgetController::class, 'invoiceAging']);
             Route::get('payment-schedule', [PayablesWidgetController::class, 'paymentSchedule']);
+            // New widget endpoints
+            Route::get('actionable-items', [PayablesWidgetController::class, 'actionableItems']);
+            Route::get('invoice-status-pipeline', [PayablesWidgetController::class, 'invoiceStatusPipeline']);
+            Route::get('activity-timeline', [PayablesWidgetController::class, 'activityTimeline']);
         });
 
         // Disbursement Widgets
@@ -51,6 +62,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get('pending-releases', [DisbursementWidgetController::class, 'pendingReleases']);
             Route::get('check-schedule', [DisbursementWidgetController::class, 'checkSchedule']);
             Route::get('check-aging', [DisbursementWidgetController::class, 'checkAging']);
+            // New widget endpoints
+            Route::get('actionable-items', [DisbursementWidgetController::class, 'actionableItems']);
+            Route::get('check-status-pipeline', [DisbursementWidgetController::class, 'checkStatusPipeline']);
+            Route::get('activity-timeline', [DisbursementWidgetController::class, 'activityTimeline']);
         });
     });
 

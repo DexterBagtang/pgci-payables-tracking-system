@@ -181,6 +181,123 @@ class DisbursementMetricsService
             ->toArray();
     }
 
+    public function getActionableItems(?Carbon $start, ?Carbon $end): array
+    {
+        // Overdue for printing (scheduled but past scheduled date)
+        $overduePrinting = Disbursement::scheduled()
+            ->whereNull('date_check_printing')
+            ->where('date_check_scheduled', '<', Carbon::now())
+            ->inDateRange($start, $end)
+            ->count();
+
+        // Delayed releases (printed >7 days ago but not released)
+        $delayedReleases = Disbursement::pendingRelease()
+            ->whereNotNull('date_check_printing')
+            ->where('date_check_printing', '<', Carbon::now()->subDays(7))
+            ->when($start && $end, fn($q) => $q->whereBetween('date_check_printing', [$start, $end]))
+            ->count();
+
+        // Scheduled for today
+        $scheduledToday = Disbursement::scheduled()
+            ->whereNull('date_check_printing')
+            ->whereDate('date_check_scheduled', Carbon::today())
+            ->count();
+
+        return [
+            'overdue_printing' => $overduePrinting,
+            'delayed_releases' => $delayedReleases,
+            'scheduled_today' => $scheduledToday,
+        ];
+    }
+
+    public function getCheckStatusPipeline(?Carbon $start, ?Carbon $end): array
+    {
+        $scheduled = Disbursement::scheduled()
+            ->whereNull('date_check_printing')
+            ->inDateRange($start, $end)
+            ->count();
+
+        $printed = Disbursement::pendingRelease()
+            ->when($start && $end, fn($q) => $q->whereBetween('date_check_printing', [$start, $end]))
+            ->count();
+
+        $released = Disbursement::released()
+            ->inDateRange($start, $end)
+            ->count();
+
+        $voided = Disbursement::where('disbursement_status', 'voided')
+            ->inDateRange($start, $end)
+            ->count();
+
+        $total = Disbursement::inDateRange($start, $end)->count();
+
+        // Total amount (all disbursements in range)
+        $totalAmount = Disbursement::with('checkRequisitions')
+            ->inDateRange($start, $end)
+            ->get()
+            ->sum(function($disbursement) {
+                return $disbursement->checkRequisitions->sum('php_amount');
+            });
+
+        // Pending amount (scheduled + printed but not released)
+        $pendingAmount = Disbursement::with('checkRequisitions')
+            ->whereNull('date_check_released_to_vendor')
+            ->whereIn('disbursement_status', ['scheduled', 'pending_printing', 'pending_release'])
+            ->inDateRange($start, $end)
+            ->get()
+            ->sum(function($disbursement) {
+                return $disbursement->checkRequisitions->sum('php_amount');
+            });
+
+        return [
+            'scheduled' => $scheduled,
+            'printed' => $printed,
+            'released' => $released,
+            'voided' => $voided,
+            'total' => $total,
+            'total_amount' => (float) $totalAmount,
+            'pending_amount' => (float) $pendingAmount,
+        ];
+    }
+
+    public function getActivityTimeline(?Carbon $start, ?Carbon $end, int $limit = 10): array
+    {
+        return \App\Models\ActivityLog::with(['user:id,name'])
+            ->where('loggable_type', 'App\\Models\\Disbursement')
+            ->when($start && $end, fn($q) => $q->whereBetween('created_at', [$start, $end]))
+            ->orderBy('created_at', 'desc')
+            ->limit($limit)
+            ->get()
+            ->map(function($log) {
+                $entityName = 'Unknown';
+                $metadata = [];
+
+                if ($log->loggable) {
+                    $entityName = $log->loggable->check_voucher_number ?? 'Unknown Check';
+                    $metadata['status'] = $log->loggable->disbursement_status;
+                    $metadata['check_number'] = $log->loggable->check_voucher_number;
+
+                    // Get total amount from check requisitions
+                    $totalAmount = $log->loggable->checkRequisitions->sum('php_amount');
+                    if ($totalAmount > 0) {
+                        $metadata['amount'] = (float) $totalAmount;
+                    }
+                }
+
+                return [
+                    'id' => $log->id,
+                    'action' => $log->action,
+                    'entity_type' => 'disbursement',
+                    'entity_id' => $log->loggable_id,
+                    'entity_name' => $entityName,
+                    'user_name' => $log->user->name ?? 'System',
+                    'created_at' => $log->created_at->toISOString(),
+                    'metadata' => count($metadata) > 0 ? $metadata : null,
+                ];
+            })
+            ->toArray();
+    }
+
     private function getMonthRange(?Carbon $start, ?Carbon $end): array
     {
         return ($start && $end)

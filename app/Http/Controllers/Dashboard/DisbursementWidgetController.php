@@ -58,6 +58,33 @@ class DisbursementWidgetController extends Controller
         );
     }
 
+    public function actionableItems(Request $request)
+    {
+        [$start, $end] = $this->getDateRange($request);
+
+        return response()->json(
+            $this->service->getActionableItems($start, $end)
+        );
+    }
+
+    public function checkStatusPipeline(Request $request)
+    {
+        [$start, $end] = $this->getDateRange($request);
+
+        return response()->json(
+            $this->service->getCheckStatusPipeline($start, $end)
+        );
+    }
+
+    public function activityTimeline(Request $request)
+    {
+        [$start, $end] = $this->getDateRange($request);
+
+        return response()->json(
+            $this->service->getActivityTimeline($start, $end)
+        );
+    }
+
     private function getDateRange(Request $request): array
     {
         $start = $request->input('start') ? Carbon::parse($request->input('start')) : null;

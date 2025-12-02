@@ -1,49 +1,83 @@
-import { Separator } from '@/components/ui/separator';
+import { lazy, Suspense } from 'react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ShoppingCart, FileText, Wallet, Loader2 } from 'lucide-react';
 
-// Import all role-specific dashboards
+// Eager load Purchasing Dashboard (default tab)
 import PurchasingDashboard from '../purchasing/PurchasingDashboard';
-import PayablesDashboard from '../payables/PayablesDashboard';
-import DisbursementDashboard from '../disbursement/DisbursementDashboard';
+
+// Lazy load other dashboards (only when tabs are clicked)
+const PayablesDashboard = lazy(() => import('../payables/PayablesDashboard'));
+const DisbursementDashboard = lazy(() => import('../disbursement/DisbursementDashboard'));
+
+// Loading component for lazy-loaded dashboards
+function DashboardLoader() {
+    return (
+        <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+    );
+}
 
 export default function AdminDashboard() {
     return (
-        <div className="space-y-8">
-            {/* Purchasing Section */}
-            <section>
-                <div className="mb-6">
-                    <h2 className="text-2xl font-bold tracking-tight">Purchasing Overview</h2>
-                    <p className="text-sm text-muted-foreground">
-                        Purchase orders, budget tracking, and vendor performance
-                    </p>
-                </div>
+        <Tabs defaultValue="purchasing" className="space-y-8">
+            <TabsList className="inline-flex h-auto w-full items-center justify-start gap-2 rounded-lg bg-muted/50 p-1.5">
+                <TabsTrigger
+                    value="purchasing"
+                    className="flex items-center gap-2.5 rounded-md px-6 py-3 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm"
+                >
+                    <ShoppingCart className="h-4 w-4" />
+                    <div className="flex flex-col items-start">
+                        <span>Purchasing</span>
+                        <span className="text-xs font-normal text-muted-foreground">
+                            Orders & Budget
+                        </span>
+                    </div>
+                </TabsTrigger>
+                <TabsTrigger
+                    value="payables"
+                    className="flex items-center gap-2.5 rounded-md px-6 py-3 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm"
+                >
+                    <FileText className="h-4 w-4" />
+                    <div className="flex flex-col items-start">
+                        <span>Payables</span>
+                        <span className="text-xs font-normal text-muted-foreground">
+                            Invoices & Checks
+                        </span>
+                    </div>
+                </TabsTrigger>
+                <TabsTrigger
+                    value="disbursement"
+                    className="flex items-center gap-2.5 rounded-md px-6 py-3 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm"
+                >
+                    <Wallet className="h-4 w-4" />
+                    <div className="flex flex-col items-start">
+                        <span>Disbursement</span>
+                        <span className="text-xs font-normal text-muted-foreground">
+                            Releases & Tracking
+                        </span>
+                    </div>
+                </TabsTrigger>
+            </TabsList>
+
+            {/* Purchasing Tab - Default, eagerly loaded */}
+            <TabsContent value="purchasing" className="mt-0 space-y-4">
                 <PurchasingDashboard />
-            </section>
+            </TabsContent>
 
-            <Separator className="my-8" />
+            {/* Payables Tab - Lazy loaded */}
+            <TabsContent value="payables" className="mt-0 space-y-4">
+                <Suspense fallback={<DashboardLoader />}>
+                    <PayablesDashboard />
+                </Suspense>
+            </TabsContent>
 
-            {/* Payables Section */}
-            <section>
-                <div className="mb-6">
-                    <h2 className="text-2xl font-bold tracking-tight">Payables Overview</h2>
-                    <p className="text-sm text-muted-foreground">
-                        Invoice review queue, check requisitions, and payment schedule
-                    </p>
-                </div>
-                <PayablesDashboard />
-            </section>
-
-            <Separator className="my-8" />
-
-            {/* Disbursement Section */}
-            <section>
-                <div className="mb-6">
-                    <h2 className="text-2xl font-bold tracking-tight">Disbursement Overview</h2>
-                    <p className="text-sm text-muted-foreground">
-                        Check printing, releases, and disbursement tracking
-                    </p>
-                </div>
-                <DisbursementDashboard />
-            </section>
-        </div>
+            {/* Disbursement Tab - Lazy loaded */}
+            <TabsContent value="disbursement" className="mt-0 space-y-4">
+                <Suspense fallback={<DashboardLoader />}>
+                    <DisbursementDashboard />
+                </Suspense>
+            </TabsContent>
+        </Tabs>
     );
 }
