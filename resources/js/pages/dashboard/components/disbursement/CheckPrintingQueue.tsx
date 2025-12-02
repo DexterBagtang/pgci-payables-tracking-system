@@ -17,8 +17,9 @@ interface PrintingQueueItem {
 }
 
 export default function CheckPrintingQueue() {
-    const { data, loading, error, refetch } = useDashboardWidget<PrintingQueueItem[]>({
-        endpoint: '/api/dashboard/disbursement/printing-queue'
+    const { data, loading, error, refetch, isRefetching } = useDashboardWidget<PrintingQueueItem[]>({
+        endpoint: '/api/dashboard/disbursement/printing-queue',
+        staleTime: 3 * 60 * 1000, // 3 minutes - checks are time-sensitive
     });
 
     if (loading) {
@@ -58,6 +59,7 @@ export default function CheckPrintingQueue() {
             title="Check Printing Queue"
             description={`${data.length} check(s) ready to print • Total: ${formatCurrency(totalAmount)}`}
             icon={Printer}
+            isRefreshing={isRefetching}
         >
             {isEmpty ? (
                 <div className="flex items-center justify-center h-64 text-muted-foreground">

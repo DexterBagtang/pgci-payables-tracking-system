@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useDashboardFilter } from '@/contexts/DashboardFilterContext';
 
 interface UseDashboardWidgetOptions {
     endpoint: string;
     enabled?: boolean;
+    staleTime?: number;
 }
 
 interface UseDashboardWidgetReturn<T> {
@@ -11,57 +12,67 @@ interface UseDashboardWidgetReturn<T> {
     loading: boolean;
     error: string | null;
     refetch: () => void;
+    isRefetching: boolean;
+    isFetching: boolean;
 }
 
 export function useDashboardWidget<T = any>({
     endpoint,
-    enabled = true
+    enabled = true,
+    staleTime = 5 * 60 * 1000, // 5 minutes default
 }: UseDashboardWidgetOptions): UseDashboardWidgetReturn<T> {
     const { timeRange, customDates } = useDashboardFilter();
-    const [data, setData] = useState<T | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const queryClient = useQueryClient();
 
-    const fetchData = async () => {
-        if (!enabled) return;
+    // Build query key with all dependencies
+    const queryKey = [
+        endpoint,
+        {
+            start: customDates?.start?.toISOString(),
+            end: customDates?.end?.toISOString(),
+            timeRange,
+        },
+    ];
 
-        setLoading(true);
-        setError(null);
+    const fetchData = async (): Promise<T> => {
+        const params = new URLSearchParams();
 
-        try {
-            const params = new URLSearchParams();
-
-            if (customDates?.start) {
-                params.append('start', customDates.start.toISOString());
-            }
-            if (customDates?.end) {
-                params.append('end', customDates.end.toISOString());
-            }
-
-            const response = await fetch(`${endpoint}?${params.toString()}`);
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const result = await response.json();
-            setData(result);
-        } catch (err) {
-            console.error(`Failed to fetch from ${endpoint}:`, err);
-            setError(err instanceof Error ? err.message : 'Failed to fetch data');
-        } finally {
-            setLoading(false);
+        if (customDates?.start) {
+            params.append('start', customDates.start.toISOString());
         }
+        if (customDates?.end) {
+            params.append('end', customDates.end.toISOString());
+        }
+
+        const response = await fetch(`${endpoint}?${params.toString()}`);
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        return response.json();
     };
 
-    useEffect(() => {
-        fetchData();
-    }, [endpoint, timeRange, customDates, enabled]);
+    const query = useQuery({
+        queryKey,
+        queryFn: fetchData,
+        enabled,
+        staleTime,
+        // Show cached data while fetching fresh data (stale-while-revalidate pattern)
+        placeholderData: (previousData) => previousData,
+    });
+
+    // Manual refetch function that invalidates the query
+    const refetch = () => {
+        queryClient.invalidateQueries({ queryKey });
+    };
 
     return {
-        data,
-        loading,
-        error,
-        refetch: fetchData
+        data: query.data ?? null,
+        loading: query.isLoading,
+        error: query.error?.message ?? null,
+        refetch,
+        isRefetching: query.isRefetching,
+        isFetching: query.isFetching,
     };
 }

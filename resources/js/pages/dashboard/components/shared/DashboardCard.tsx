@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface DashboardCardProps {
@@ -11,6 +12,7 @@ interface DashboardCardProps {
     children: ReactNode;
     actions?: ReactNode;
     loading?: boolean;
+    isRefreshing?: boolean;
     className?: string;
     contentClassName?: string;
 }
@@ -22,6 +24,7 @@ export default function DashboardCard({
     children,
     actions,
     loading = false,
+    isRefreshing = false,
     className,
     contentClassName,
 }: DashboardCardProps) {
@@ -35,7 +38,12 @@ export default function DashboardCard({
                         </div>
                     )}
                     <div>
-                        <CardTitle className="text-base font-semibold">{title}</CardTitle>
+                        <CardTitle className="text-base font-semibold flex items-center gap-2">
+                            {title}
+                            {isRefreshing && (
+                                <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                            )}
+                        </CardTitle>
                         {description && (
                             <CardDescription className="text-sm">
                                 {description}

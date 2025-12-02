@@ -22,8 +22,9 @@ interface Invoice {
 }
 
 export default function InvoiceReviewQueue() {
-    const { data, loading, error, refetch } = useDashboardWidget<Invoice[]>({
-        endpoint: '/api/dashboard/payables/invoice-review-queue'
+    const { data, loading, error, refetch, isRefetching } = useDashboardWidget<Invoice[]>({
+        endpoint: '/api/dashboard/payables/invoice-review-queue',
+        staleTime: 3 * 60 * 1000, // 3 minutes - invoices are time-sensitive
     });
 
     if (loading) {
@@ -65,6 +66,7 @@ export default function InvoiceReviewQueue() {
             title="Invoice Review Queue"
             description={`${data.length} invoice(s) pending review`}
             icon={FileCheck}
+            isRefreshing={isRefetching}
         >
             {isEmpty ? (
                 <div className="flex items-center justify-center h-64 text-muted-foreground">
