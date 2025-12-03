@@ -880,15 +880,14 @@ class DisbursementController extends Controller
 
             // Check if all invoices are paid
             if ($purchaseOrder->allInvoicesPaid()) {
-                // Calculate paid amount and outstanding balance
-                $paidAmount = $purchaseOrder->invoices()
-                    ->where('invoice_status', 'paid')
-                    ->sum('net_amount');
+                // Ensure financials are synced (in case observer hasn't run yet)
+                $purchaseOrder->syncFinancials();
 
-                $outstandingAmount = $purchaseOrder->po_amount - $paidAmount;
+                // Refresh to get updated values
+                $purchaseOrder->refresh();
 
                 // Only close if there's no outstanding amount
-                if ($outstandingAmount <= 0) {
+                if ($purchaseOrder->outstanding_amount <= 0) {
                     $purchaseOrder->update([
                         'po_status' => 'closed',
                         'closed_by' => auth()->id(),

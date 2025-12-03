@@ -51,6 +51,10 @@ erDiagram
         int project_id FK
         int vendor_id FK
         numeric po_amount
+        numeric total_invoiced "Sum of all invoice amounts"
+        numeric total_paid "Sum of net_amount from paid invoices"
+        numeric outstanding_amount "po_amount - total_paid"
+        datetime financials_updated_at "Last time financial summary was synced"
         enum currency "PHP, USD"
         enum po_status "draft, open, closed, cancelled"
         varchar payment_term

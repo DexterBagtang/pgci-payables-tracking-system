@@ -27,6 +27,9 @@ class InvoiceObserver
             'ip_address' => $request?->ip(),
             'user_agent' => $request?->userAgent(),
         ]);
+
+        // Sync purchase order financials
+        $this->syncPurchaseOrderFinancials($invoice);
     }
 
     /**
@@ -40,7 +43,7 @@ class InvoiceObserver
         // Get only changed fields (excluding timestamps)
         $changes = [];
         foreach ($invoice->getChanges() as $field => $newValue) {
-            if (!in_array($field, ['updated_at'])) {
+            if (!in_array($field, ['updated_at', 'financials_updated_at'])) {
                 $changes[$field] = [
                     'old' => $original[$field] ?? null,
                     'new' => $newValue
@@ -63,6 +66,15 @@ class InvoiceObserver
                 'user_agent' => $request?->userAgent(),
             ]);
         }
+
+        // Sync purchase order financials
+        $this->syncPurchaseOrderFinancials($invoice);
+
+        // If invoice was moved to a different PO, sync the old PO too
+        if ($invoice->isDirty('purchase_order_id') && $original['purchase_order_id']) {
+            $oldPo = \App\Models\PurchaseOrder::find($original['purchase_order_id']);
+            $oldPo?->syncFinancials();
+        }
     }
 
     /**
@@ -82,5 +94,19 @@ class InvoiceObserver
             'ip_address' => $request?->ip(),
             'user_agent' => $request?->userAgent(),
         ]);
+
+        // Sync purchase order financials
+        $this->syncPurchaseOrderFinancials($invoice);
+    }
+
+    /**
+     * Sync the purchase order's financial summary
+     * Called after any invoice change (create/update/delete)
+     */
+    private function syncPurchaseOrderFinancials(Invoice $invoice): void
+    {
+        if ($invoice->purchaseOrder) {
+            $invoice->purchaseOrder->syncFinancials();
+        }
     }
 }

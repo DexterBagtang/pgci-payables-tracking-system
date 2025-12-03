@@ -416,10 +416,14 @@ class PurchaseOrderController extends Controller
             return back()->withErrors(['error' => 'This purchase order is already closed.']);
         }
 
-        // Calculate actual financial status
-        $totalInvoiced = $purchaseOrder->invoices()->sum('invoice_amount');
+        // Ensure financial summary is up-to-date
+        $purchaseOrder->syncFinancials();
+        $purchaseOrder->refresh();
+
+        // Get financial status from stored columns
+        $totalInvoiced = $purchaseOrder->total_invoiced;
         $totalNetAmount = $purchaseOrder->invoices()->sum('net_amount');
-        $paidAmount = $purchaseOrder->invoices()->where('invoice_status', 'paid')->sum('net_amount');
+        $paidAmount = $purchaseOrder->total_paid;
         $unpaidInvoices = $purchaseOrder->invoices()->where('invoice_status', '!=', 'paid')->count();
         $totalInvoices = $purchaseOrder->invoices()->count();
 

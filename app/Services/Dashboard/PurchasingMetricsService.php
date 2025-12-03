@@ -46,6 +46,87 @@ class PurchasingMetricsService
         ];
     }
 
+    /**
+     * Get PO-level financial summary using stored columns
+     * This provides fast aggregation of financial data across all POs
+     */
+    public function getPOFinancialSummary(?Carbon $start, ?Carbon $end): array
+    {
+        // Get open POs in date range
+        $openPOs = PurchaseOrder::open()
+            ->inDateRange($start, $end)
+            ->get();
+
+        // Calculate totals using stored columns (blazing fast!)
+        $totalCommitted = $openPOs->sum('po_amount');
+        $totalInvoiced = $openPOs->sum('total_invoiced');
+        $totalPaid = $openPOs->sum('total_paid');
+        $totalOutstanding = $openPOs->sum('outstanding_amount');
+
+        // Calculate completion percentages
+        $invoicedPercentage = $totalCommitted > 0
+            ? ($totalInvoiced / $totalCommitted) * 100
+            : 0;
+
+        $paidPercentage = $totalCommitted > 0
+            ? ($totalPaid / $totalCommitted) * 100
+            : 0;
+
+        $outstandingPercentage = $totalCommitted > 0
+            ? ($totalOutstanding / $totalCommitted) * 100
+            : 0;
+
+        // Get breakdown by status
+        $statusBreakdown = [
+            'fully_paid' => $openPOs->filter(fn($po) => $po->outstanding_amount <= 0)->count(),
+            'partially_paid' => $openPOs->filter(fn($po) => $po->total_paid > 0 && $po->outstanding_amount > 0)->count(),
+            'not_invoiced' => $openPOs->filter(fn($po) => $po->total_invoiced == 0)->count(),
+            'invoiced_unpaid' => $openPOs->filter(fn($po) => $po->total_invoiced > 0 && $po->total_paid == 0)->count(),
+        ];
+
+        // Calculate average days to payment (for POs with payments)
+        $paidPOs = $openPOs->filter(fn($po) => $po->total_paid > 0);
+        $avgDaysToPayment = 0;
+        if ($paidPOs->count() > 0) {
+            $avgDaysToPayment = $paidPOs->avg(function($po) {
+                if ($po->finalized_at && $po->financials_updated_at) {
+                    return \Carbon\Carbon::parse($po->finalized_at)
+                        ->diffInDays(\Carbon\Carbon::parse($po->financials_updated_at));
+                }
+                return 0;
+            });
+        }
+
+        return [
+            // Totals (using stored columns)
+            'total_po_committed' => (float) $totalCommitted,
+            'total_po_invoiced' => (float) $totalInvoiced,
+            'total_po_paid' => (float) $totalPaid,
+            'total_po_outstanding' => (float) $totalOutstanding,
+
+            // Percentages
+            'invoiced_percentage' => round($invoicedPercentage, 2),
+            'paid_percentage' => round($paidPercentage, 2),
+            'outstanding_percentage' => round($outstandingPercentage, 2),
+
+            // Counts
+            'total_open_pos' => $openPOs->count(),
+            'fully_paid_pos' => $statusBreakdown['fully_paid'],
+            'partially_paid_pos' => $statusBreakdown['partially_paid'],
+            'not_invoiced_pos' => $statusBreakdown['not_invoiced'],
+            'invoiced_unpaid_pos' => $statusBreakdown['invoiced_unpaid'],
+
+            // Metrics
+            'average_days_to_payment' => round($avgDaysToPayment, 1),
+            'average_po_size' => $openPOs->count() > 0 ? round($totalCommitted / $openPOs->count(), 2) : 0,
+            'average_outstanding_per_po' => $openPOs->count() > 0 ? round($totalOutstanding / $openPOs->count(), 2) : 0,
+
+            // Health indicators
+            'payment_efficiency' => round($paidPercentage, 2), // Higher is better
+            'invoicing_progress' => round($invoicedPercentage, 2), // Higher is better
+        ];
+    }
+
     public function getVendorPerformance(?Carbon $start, ?Carbon $end, int $limit = 10): array
     {
         // Get vendor-level PO aggregates
@@ -66,10 +147,10 @@ class PurchasingMetricsService
             $vendorPOs = PurchaseOrder::where('vendor_id', $data->vendor_id)
                 ->open()
                 ->inDateRange($start, $end)
-                ->pluck('id');
+                ->get();
 
-            // Get invoice data for these POs
-            $invoices = \App\Models\Invoice::whereIn('purchase_order_id', $vendorPOs)->get();
+            // Count invoices for this vendor's POs
+            $invoiceCount = \App\Models\Invoice::whereIn('purchase_order_id', $vendorPOs->pluck('id'))->count();
 
             // Get vendor name
             $vendor = \App\Models\Vendor::find($data->vendor_id);
@@ -79,12 +160,10 @@ class PurchasingMetricsService
                 'vendor_name' => $vendor->name ?? 'Unknown',
                 'active_pos' => $data->active_pos,
                 'total_committed' => (float) $data->total_committed,
-                'total_invoiced' => (float) $invoices->sum('net_amount'),
-                'total_paid' => (float) $invoices->where('invoice_status', 'paid')->sum('net_amount'),
-                'outstanding_balance' => (float) $invoices
-                    ->whereNotIn('invoice_status', ['paid', 'rejected', 'cancelled'])
-                    ->sum('net_amount'),
-                'invoice_count' => $invoices->count(),
+                'total_invoiced' => (float) $vendorPOs->sum('total_invoiced'),
+                'total_paid' => (float) $vendorPOs->sum('total_paid'),
+                'outstanding_balance' => (float) $vendorPOs->sum('outstanding_amount'),
+                'invoice_count' => $invoiceCount,
                 'currency' => $data->currency ?? 'PHP',
             ];
         })->toArray();

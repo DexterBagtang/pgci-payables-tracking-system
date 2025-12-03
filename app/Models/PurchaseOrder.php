@@ -69,6 +69,96 @@ class PurchaseOrder extends Model
     }
 
     /**
+     * Sync financial summary columns from invoices
+     * This calculates and updates total_invoiced, total_paid, and outstanding_amount
+     */
+    public function syncFinancials(): void
+    {
+        $totalInvoiced = $this->invoices()->sum('invoice_amount');
+        $totalPaid = $this->invoices()
+            ->where('invoice_status', 'paid')
+            ->sum('net_amount');
+
+        $this->update([
+            'total_invoiced' => $totalInvoiced,
+            'total_paid' => $totalPaid,
+            'outstanding_amount' => $this->po_amount - $totalPaid,
+            'financials_updated_at' => now(),
+        ]);
+    }
+
+    /**
+     * Get calculated outstanding (for verification purposes)
+     * This computes the value on-the-fly without using stored column
+     */
+    public function getCalculatedOutstandingAttribute(): float
+    {
+        return $this->po_amount - $this->invoices()
+            ->where('invoice_status', 'paid')
+            ->sum('net_amount');
+    }
+
+    /**
+     * Get calculated total paid (for verification purposes)
+     */
+    public function getCalculatedTotalPaidAttribute(): float
+    {
+        return $this->invoices()
+            ->where('invoice_status', 'paid')
+            ->sum('net_amount');
+    }
+
+    /**
+     * Get calculated total invoiced (for verification purposes)
+     */
+    public function getCalculatedTotalInvoicedAttribute(): float
+    {
+        return $this->invoices()->sum('invoice_amount');
+    }
+
+    /**
+     * Verify stored financials match calculated values
+     * Returns array of discrepancies (empty if all match)
+     */
+    public function verifyFinancials(): array
+    {
+        $calculated = [
+            'total_paid' => $this->calculated_total_paid,
+            'total_invoiced' => $this->calculated_total_invoiced,
+            'outstanding' => $this->calculated_outstanding,
+        ];
+
+        $discrepancies = [];
+
+        // Use small tolerance for floating point comparison
+        if (abs($this->total_paid - $calculated['total_paid']) > 0.01) {
+            $discrepancies['total_paid'] = [
+                'stored' => $this->total_paid,
+                'calculated' => $calculated['total_paid'],
+                'difference' => $this->total_paid - $calculated['total_paid'],
+            ];
+        }
+
+        if (abs($this->total_invoiced - $calculated['total_invoiced']) > 0.01) {
+            $discrepancies['total_invoiced'] = [
+                'stored' => $this->total_invoiced,
+                'calculated' => $calculated['total_invoiced'],
+                'difference' => $this->total_invoiced - $calculated['total_invoiced'],
+            ];
+        }
+
+        if (abs($this->outstanding_amount - $calculated['outstanding']) > 0.01) {
+            $discrepancies['outstanding_amount'] = [
+                'stored' => $this->outstanding_amount,
+                'calculated' => $calculated['outstanding'],
+                'difference' => $this->outstanding_amount - $calculated['outstanding'],
+            ];
+        }
+
+        return $discrepancies;
+    }
+
+    /**
      * Query Scopes for Dashboard Widgets
      */
     public function scopeInDateRange($query, $start, $end)
@@ -97,6 +187,27 @@ class PurchaseOrder extends Model
     public function scopeCancelled($query)
     {
         return $query->where('po_status', 'cancelled');
+    }
+
+    public function scopeWithOutstanding($query)
+    {
+        return $query->where('outstanding_amount', '>', 0);
+    }
+
+    public function scopeFullyPaid($query)
+    {
+        return $query->where('outstanding_amount', '<=', 0)
+                     ->where('total_paid', '>', 0);
+    }
+
+    public function scopePartiallyInvoiced($query)
+    {
+        return $query->whereColumn('total_invoiced', '<', 'po_amount');
+    }
+
+    public function scopeFullyInvoiced($query)
+    {
+        return $query->whereColumn('total_invoiced', '>=', 'po_amount');
     }
 
     /**
