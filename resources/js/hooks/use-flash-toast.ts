@@ -39,12 +39,6 @@ export function useFlashToast() {
     );
 
     useEffect(() => {
-        // Early exit if no messages - avoid sessionStorage I/O
-        if (!hasMessages) {
-            previousFlashRef.current = flashValues;
-            return;
-        }
-
         // Get shown messages from sessionStorage
         const getShownMessages = (): Set<string> => {
             try {
@@ -78,6 +72,14 @@ export function useFlashToast() {
                 shownMessages.delete(messageHash);
             }
         });
+
+        // Early exit if no messages - do this AFTER cleanup
+        if (!hasMessages) {
+            // Save cleaned up messages before exiting
+            saveShownMessages(shownMessages);
+            previousFlashRef.current = flashValues;
+            return;
+        }
 
         // Check if flash message has changed and hasn't been shown yet
         const shouldShow = (key: keyof FlashMessages): boolean => {
