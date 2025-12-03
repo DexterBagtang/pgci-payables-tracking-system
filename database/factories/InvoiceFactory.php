@@ -37,7 +37,6 @@ class InvoiceFactory extends Factory
             'si_number' => 'SI-' . now()->year . '-' . str_pad($this->faker->unique()->numberBetween(1, 999), 3, '0', STR_PAD_LEFT),
             'si_date' => $invoiceDate,
             'si_received_at' => $receivedDate,
-            'received_date' => $receivedDate,
             'payment_type' => $this->faker->randomElement($paymentTypes),
             'invoice_amount' => $invoiceAmount,
             'tax_amount' => $taxAmount,

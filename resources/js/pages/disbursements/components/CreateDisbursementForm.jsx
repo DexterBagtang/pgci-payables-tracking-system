@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { router, useForm } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,20 +21,25 @@ import {
     CardTitle,
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
     Collapsible,
     CollapsibleContent,
     CollapsibleTrigger,
 } from '@/components/ui/collapsible';
-import { ChevronDown, ChevronUp, Search, Calendar } from 'lucide-react';
+import { ChevronDown, ChevronUp, Search, Calendar, CheckCircle2, XCircle, Loader2, AlertTriangle } from 'lucide-react';
 import { DatePicker } from '@/components/custom/DatePicker';
+import SmartGroupingSuggestions from './SmartGroupingSuggestions';
 
 export default function CreateDisbursementForm({ checkRequisitions, filters }) {
     const { data } = checkRequisitions;
     const [selectedCheckReqs, setSelectedCheckReqs] = useState([]);
     const [expandedRows, setExpandedRows] = useState([]);
     const [searchQuery, setSearchQuery] = useState(filters.search || '');
+    const [voucherCheckStatus, setVoucherCheckStatus] = useState(null); // 'checking', 'available', 'unavailable'
+    const [showNoSelectionWarning, setShowNoSelectionWarning] = useState(false);
     const fileInputRef = useRef(null);
+    const voucherCheckTimeout = useRef(null);
 
     const { data: formData, setData, post, processing, errors, reset } = useForm({
         check_voucher_number: '',
@@ -79,8 +84,51 @@ export default function CreateDisbursementForm({ checkRequisitions, filters }) {
         setData('files', files);
     };
 
+    // Real-time uniqueness check for check voucher number
+    useEffect(() => {
+        if (!formData.check_voucher_number) {
+            setVoucherCheckStatus(null);
+            return;
+        }
+
+        // Clear existing timeout
+        if (voucherCheckTimeout.current) {
+            clearTimeout(voucherCheckTimeout.current);
+        }
+
+        setVoucherCheckStatus('checking');
+
+        // Debounce API call
+        voucherCheckTimeout.current = setTimeout(async () => {
+            try {
+                const response = await fetch(
+                    `/api/disbursements/check-voucher-unique?voucher_number=${encodeURIComponent(formData.check_voucher_number)}`
+                );
+                const data = await response.json();
+                setVoucherCheckStatus(data.available ? 'available' : 'unavailable');
+            } catch (error) {
+                console.error('Error checking voucher uniqueness:', error);
+                setVoucherCheckStatus(null);
+            }
+        }, 500);
+
+        return () => {
+            if (voucherCheckTimeout.current) {
+                clearTimeout(voucherCheckTimeout.current);
+            }
+        };
+    }, [formData.check_voucher_number]);
+
     const handleSubmit = (e) => {
         e.preventDefault();
+
+        // Check if CRs are selected
+        if (selectedCheckReqs.length === 0) {
+            setShowNoSelectionWarning(true);
+            return;
+        }
+
+        setShowNoSelectionWarning(false);
 
         post('/disbursements', {
             forceFormData: true,
@@ -142,8 +190,22 @@ export default function CreateDisbursementForm({ checkRequisitions, filters }) {
 
     const totals = calculateTotals();
 
+    const handleApplySuggestion = (suggestion) => {
+        const crIds = suggestion.check_requisition_ids;
+        setSelectedCheckReqs(crIds);
+        setData('check_requisition_ids', crIds);
+
+        // Optionally set the suggested date
+        if (suggestion.suggested_date) {
+            setData('date_check_scheduled', suggestion.suggested_date);
+        }
+    };
+
     return (
         <div className="space-y-6">
+            {/* Smart Grouping Suggestions */}
+            <SmartGroupingSuggestions onApplySuggestion={handleApplySuggestion} />
+
             {/* Selection Card */}
             <Card>
                 <CardHeader>
@@ -300,6 +362,16 @@ export default function CreateDisbursementForm({ checkRequisitions, filters }) {
                 </CardContent>
             </Card>
 
+            {/* No Selection Warning */}
+            {showNoSelectionWarning && (
+                <Alert variant="destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertDescription>
+                        Please select at least one check requisition before creating a disbursement.
+                    </AlertDescription>
+                </Alert>
+            )}
+
             {/* Disbursement Form */}
             {selectedCheckReqs.length > 0 && (
                 <Card>
@@ -312,16 +384,42 @@ export default function CreateDisbursementForm({ checkRequisitions, filters }) {
                             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                                 <div className="space-y-2">
                                     <Label htmlFor="check_voucher_number">
-                                        Check Voucher Number <span className="text-red-500">*</span>
+                                        Check Voucher Number (Optional)
                                     </Label>
-                                    <Input
-                                        id="check_voucher_number"
-                                        value={formData.check_voucher_number}
-                                        onChange={(e) => setData('check_voucher_number', e.target.value)}
-                                        required
-                                    />
+                                    <div className="relative">
+                                        <Input
+                                            id="check_voucher_number"
+                                            value={formData.check_voucher_number}
+                                            onChange={(e) => setData('check_voucher_number', e.target.value)}
+                                            placeholder="Enter check voucher number"
+                                            className={`${
+                                                voucherCheckStatus === 'unavailable' ? 'pr-10 border-red-500' :
+                                                voucherCheckStatus === 'available' ? 'pr-10 border-green-500' :
+                                                voucherCheckStatus === 'checking' ? 'pr-10' : ''
+                                            }`}
+                                        />
+                                        {voucherCheckStatus && (
+                                            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                                {voucherCheckStatus === 'checking' && (
+                                                    <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+                                                )}
+                                                {voucherCheckStatus === 'available' && (
+                                                    <CheckCircle2 className="h-4 w-4 text-green-500" />
+                                                )}
+                                                {voucherCheckStatus === 'unavailable' && (
+                                                    <XCircle className="h-4 w-4 text-red-500" />
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
                                     {errors.check_voucher_number && (
                                         <p className="text-sm text-red-500">{errors.check_voucher_number}</p>
+                                    )}
+                                    {voucherCheckStatus === 'unavailable' && (
+                                        <p className="text-sm text-red-500">This voucher number is already in use</p>
+                                    )}
+                                    {voucherCheckStatus === 'available' && (
+                                        <p className="text-sm text-green-600">Voucher number is available</p>
                                     )}
                                 </div>
 
@@ -396,7 +494,14 @@ export default function CreateDisbursementForm({ checkRequisitions, filters }) {
                                 >
                                     Cancel
                                 </Button>
-                                <Button type="submit" disabled={processing}>
+                                <Button
+                                    type="submit"
+                                    disabled={
+                                        processing ||
+                                        voucherCheckStatus === 'unavailable' ||
+                                        voucherCheckStatus === 'checking'
+                                    }
+                                >
                                     {processing ? 'Creating...' : 'Create Disbursement'}
                                 </Button>
                             </div>

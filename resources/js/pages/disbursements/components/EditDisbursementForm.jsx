@@ -45,7 +45,7 @@ export default function EditDisbursementForm({
     const fileInputRef = useRef(null);
 
     const { data: formData, setData, post, processing, errors } = useForm({
-        check_voucher_number: disbursement.check_voucher_number,
+        check_voucher_number: disbursement.check_voucher_number || '',
         date_check_scheduled: disbursement.date_check_scheduled || '',
         date_check_released_to_vendor: disbursement.date_check_released_to_vendor || '',
         date_check_printing: disbursement.date_check_printing || '',
@@ -377,13 +377,13 @@ export default function EditDisbursementForm({
                             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                                 <div className="space-y-2">
                                     <Label htmlFor="check_voucher_number">
-                                        Check Voucher Number <span className="text-red-500">*</span>
+                                        Check Voucher Number (Optional)
                                     </Label>
                                     <Input
                                         id="check_voucher_number"
                                         value={formData.check_voucher_number}
                                         onChange={(e) => setData('check_voucher_number', e.target.value)}
-                                        required
+                                        placeholder="Enter check voucher number"
                                     />
                                     {errors.check_voucher_number && (
                                         <p className="text-sm text-red-500">{errors.check_voucher_number}</p>

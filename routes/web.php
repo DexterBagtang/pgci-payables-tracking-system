@@ -109,6 +109,22 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('disbursements', DisbursementController::class)->except(['update']);
     Route::post('disbursements/{disbursement}', [DisbursementController::class, 'update'])
         ->name('disbursements.update');
+    Route::get('/api/disbursements/check-voucher-unique', [DisbursementController::class, 'checkVoucherUnique'])
+        ->name('disbursements.check-voucher-unique');
+
+    // New disbursement API endpoints
+    Route::post('/api/disbursements/{disbursement}/quick-release', [DisbursementController::class, 'quickRelease'])
+        ->name('disbursements.quick-release');
+    Route::post('/api/disbursements/bulk-release', [DisbursementController::class, 'bulkRelease'])
+        ->name('disbursements.bulk-release');
+    Route::post('/api/disbursements/{disbursement}/undo-release', [DisbursementController::class, 'undoRelease'])
+        ->name('disbursements.undo-release');
+    Route::get('/api/disbursements/smart-grouping', [DisbursementController::class, 'smartGrouping'])
+        ->name('disbursements.smart-grouping');
+    Route::get('/api/disbursements/calendar-data', [DisbursementController::class, 'calendarData'])
+        ->name('disbursements.calendar-data');
+    Route::get('/api/disbursements/kanban-data', [DisbursementController::class, 'kanbanData'])
+        ->name('disbursements.kanban-data');
 
     Route::resource('remarks',RemarksController::class);
 

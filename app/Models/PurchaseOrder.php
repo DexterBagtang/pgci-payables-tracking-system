@@ -47,16 +47,25 @@ class PurchaseOrder extends Model
 
     /**
      * Check if all associated invoices are paid
+     * Excludes rejected invoices from the check - they shouldn't prevent PO closure
      */
     public function allInvoicesPaid(): bool
     {
-        // If no invoices exist, cannot close PO
-        if ($this->invoices()->count() === 0) {
+        // Get count of non-rejected invoices (valid invoices)
+        $nonRejectedCount = $this->invoices()
+            ->where('invoice_status', '!=', 'rejected')
+            ->count();
+
+        // If no valid invoices exist, cannot close PO
+        if ($nonRejectedCount === 0) {
             return false;
         }
 
-        // All invoices must have 'paid' status
-        return $this->invoices()->where('invoice_status', '!=', 'paid')->count() === 0;
+        // Check if all non-rejected invoices are paid
+        // Returns true only when there are no invoices that are neither paid nor rejected
+        return $this->invoices()
+            ->whereNotIn('invoice_status', ['paid', 'rejected'])
+            ->count() === 0;
     }
 
     /**

@@ -8,6 +8,7 @@ use App\Models\Disbursement;
 use App\Models\File;
 use App\Models\Invoice;
 use App\Models\PurchaseOrder;
+use Carbon\Carbon;
 use DB;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -255,7 +256,7 @@ class DisbursementController extends Controller
                     // Calculate aging
                     if ($invoice->si_received_at) {
                         $endDate = $disbursement->date_check_released_to_vendor ?? now();
-                        $agingDays->push($endDate->diffInDays($invoice->si_received_at));
+                        $agingDays->push(Carbon::parse($invoice->si_received_at)->diffInDays($endDate));
                     }
                 }
             }
@@ -366,7 +367,7 @@ class DisbursementController extends Controller
             // Calculate aging for each invoice
             $invoices->transform(function ($invoice) {
                 if ($invoice->si_received_at) {
-                    $invoice->aging_days = now()->diffInDays($invoice->si_received_at);
+                    $invoice->aging_days = Carbon::parse($invoice->si_received_at)->diffInDays(now());
                 } else {
                     $invoice->aging_days = null;
                 }
@@ -396,7 +397,7 @@ class DisbursementController extends Controller
         ]);
 
         $validated = $request->validate([
-            'check_voucher_number' => 'required|string|unique:disbursements,check_voucher_number',
+            'check_voucher_number' => 'nullable|string|unique:disbursements,check_voucher_number',
             'date_check_scheduled' => 'nullable|date',
             'date_check_released_to_vendor' => 'nullable|date',
             'date_check_printing' => 'nullable|date',
@@ -537,10 +538,10 @@ class DisbursementController extends Controller
                 if ($invoice->si_received_at) {
                     // If check was released, calculate aging up to release date
                     if ($disbursement->date_check_released_to_vendor) {
-                        $invoice->aging_days = $disbursement->date_check_released_to_vendor->diffInDays($invoice->si_received_at);
+                        $invoice->aging_days = Carbon::parse($invoice->si_received_at)->diffInDays($disbursement->date_check_released_to_vendor);
                     } else {
                         // Otherwise, calculate current aging
-                        $invoice->aging_days = now()->diffInDays($invoice->si_received_at);
+                        $invoice->aging_days = Carbon::parse($invoice->si_received_at)->diffInDays(now());
                     }
                 } else {
                     $invoice->aging_days = null;
@@ -597,7 +598,7 @@ class DisbursementController extends Controller
         $disbursement = Disbursement::findOrFail($id);
 
         $validated = $request->validate([
-            'check_voucher_number' => 'required|string|unique:disbursements,check_voucher_number,' . $disbursement->id,
+            'check_voucher_number' => 'nullable|string|unique:disbursements,check_voucher_number,' . $disbursement->id,
             'date_check_scheduled' => 'nullable|date',
             'date_check_released_to_vendor' => 'nullable|date',
             'date_check_printing' => 'nullable|date',
@@ -818,6 +819,30 @@ class DisbursementController extends Controller
     }
 
     /**
+     * Check if a check voucher number is unique
+     */
+    public function checkVoucherUnique(Request $request)
+    {
+        $voucherNumber = $request->get('voucher_number');
+        $disbursementId = $request->get('disbursement_id'); // For edit mode
+
+        if (empty($voucherNumber)) {
+            return response()->json(['available' => true]);
+        }
+
+        $query = Disbursement::where('check_voucher_number', $voucherNumber);
+
+        // Exclude current disbursement if editing
+        if ($disbursementId) {
+            $query->where('id', '!=', $disbursementId);
+        }
+
+        $exists = $query->exists();
+
+        return response()->json(['available' => !$exists]);
+    }
+
+    /**
      * Check and close purchase orders if all their invoices are paid
      *
      * @param array $invoiceIds
@@ -855,23 +880,509 @@ class DisbursementController extends Controller
 
             // Check if all invoices are paid
             if ($purchaseOrder->allInvoicesPaid()) {
-                $purchaseOrder->update([
-                    'po_status' => 'closed',
-                    'closed_by' => auth()->id(),
-                    'closed_at' => now(),
-                    'closure_remarks' => 'Automatically closed - all invoices paid'
-                ]);
+                // Calculate paid amount and outstanding balance
+                $paidAmount = $purchaseOrder->invoices()
+                    ->where('invoice_status', 'paid')
+                    ->sum('net_amount');
 
-                // Log the closure
-                ActivityLog::create([
-                    'loggable_type' => PurchaseOrder::class,
-                    'loggable_id' => $purchaseOrder->id,
-                    'action' => 'status_changed',
-                    'notes' => "Purchase order automatically closed after all invoices were paid via disbursement",
-                    'user_id' => auth()->id(),
-                    'ip_address' => request()->ip(),
-                ]);
+                $outstandingAmount = $purchaseOrder->po_amount - $paidAmount;
+
+                // Only close if there's no outstanding amount
+                if ($outstandingAmount <= 0) {
+                    $purchaseOrder->update([
+                        'po_status' => 'closed',
+                        'closed_by' => auth()->id(),
+                        'closed_at' => now(),
+                        'closure_remarks' => 'Automatically closed - all invoices paid'
+                    ]);
+
+                    // Log the closure
+                    ActivityLog::create([
+                        'loggable_type' => PurchaseOrder::class,
+                        'loggable_id' => $purchaseOrder->id,
+                        'action' => 'status_changed',
+                        'notes' => "Purchase order automatically closed after all invoices were paid via disbursement",
+                        'user_id' => auth()->id(),
+                        'ip_address' => request()->ip(),
+                    ]);
+                }
             }
         }
+    }
+
+    /**
+     * Quick release a disbursement
+     */
+    public function quickRelease(Request $request, $id)
+    {
+        $disbursement = Disbursement::findOrFail($id);
+
+        $validated = $request->validate([
+            'date_check_released_to_vendor' => 'required|date',
+            'release_notes' => 'nullable|string|max:500',
+        ]);
+
+        DB::beginTransaction();
+        try {
+            $disbursement->update([
+                'date_check_released_to_vendor' => $validated['date_check_released_to_vendor'],
+            ]);
+
+            // Get check requisition IDs
+            $checkReqIds = $disbursement->checkRequisitions()->pluck('check_requisitions.id')->toArray();
+
+            // Mark all CRs as paid
+            CheckRequisition::whereIn('id', $checkReqIds)
+                ->update(['requisition_status' => 'paid']);
+
+            // Get all invoices and mark as paid
+            $invoiceIds = CheckRequisition::whereIn('id', $checkReqIds)
+                ->with('invoices')
+                ->get()
+                ->pluck('invoices')
+                ->flatten()
+                ->pluck('id')
+                ->unique()
+                ->toArray();
+
+            Invoice::whereIn('id', $invoiceIds)->update(['invoice_status' => 'paid']);
+
+            // Check and close purchase orders if all invoices are paid
+            $this->checkAndClosePurchaseOrders($invoiceIds);
+
+            // Log the quick release
+            ActivityLog::create([
+                'loggable_type' => Disbursement::class,
+                'loggable_id' => $disbursement->id,
+                'action' => 'quick_released',
+                'notes' => $validated['release_notes'] ?? 'Check released via quick release action',
+                'user_id' => auth()->id(),
+                'ip_address' => $request->ip(),
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Disbursement released successfully',
+                'disbursement' => $disbursement->fresh(),
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Quick release error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to release disbursement: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Bulk release multiple disbursements
+     */
+    public function bulkRelease(Request $request)
+    {
+        $validated = $request->validate([
+            'disbursement_ids' => 'required|array',
+            'disbursement_ids.*' => 'exists:disbursements,id',
+            'date_check_released_to_vendor' => 'required|date',
+            'release_notes' => 'nullable|string|max:500',
+        ]);
+
+        DB::beginTransaction();
+        try {
+            $disbursements = Disbursement::whereIn('id', $validated['disbursement_ids'])
+                ->whereNull('date_check_released_to_vendor')
+                ->get();
+
+            $releasedCount = 0;
+            $totalAmount = 0;
+
+            foreach ($disbursements as $disbursement) {
+                $disbursement->update([
+                    'date_check_released_to_vendor' => $validated['date_check_released_to_vendor'],
+                ]);
+
+                // Get check requisition IDs
+                $checkReqIds = $disbursement->checkRequisitions()->pluck('check_requisitions.id')->toArray();
+
+                // Mark all CRs as paid
+                CheckRequisition::whereIn('id', $checkReqIds)
+                    ->update(['requisition_status' => 'paid']);
+
+                // Get all invoices and mark as paid
+                $invoiceIds = CheckRequisition::whereIn('id', $checkReqIds)
+                    ->with('invoices')
+                    ->get()
+                    ->pluck('invoices')
+                    ->flatten()
+                    ->pluck('id')
+                    ->unique()
+                    ->toArray();
+
+                Invoice::whereIn('id', $invoiceIds)->update(['invoice_status' => 'paid']);
+
+                // Check and close purchase orders if all invoices are paid
+                $this->checkAndClosePurchaseOrders($invoiceIds);
+
+                // Calculate total amount
+                $totalAmount += $disbursement->checkRequisitions()->sum('php_amount');
+
+                // Log the release
+                ActivityLog::create([
+                    'loggable_type' => Disbursement::class,
+                    'loggable_id' => $disbursement->id,
+                    'action' => 'bulk_released',
+                    'notes' => $validated['release_notes'] ?? 'Check released via bulk release action',
+                    'user_id' => auth()->id(),
+                    'ip_address' => $request->ip(),
+                ]);
+
+                $releasedCount++;
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => "Successfully released {$releasedCount} disbursement(s)",
+                'released_count' => $releasedCount,
+                'total_amount' => $totalAmount,
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Bulk release error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to release disbursements: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Undo release of a disbursement
+     */
+    public function undoRelease(Request $request, $id)
+    {
+        $disbursement = Disbursement::findOrFail($id);
+
+        if (!$disbursement->date_check_released_to_vendor) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Disbursement is not released',
+            ], 400);
+        }
+
+        DB::beginTransaction();
+        try {
+            $disbursement->update([
+                'date_check_released_to_vendor' => null,
+            ]);
+
+            // Get check requisition IDs
+            $checkReqIds = $disbursement->checkRequisitions()->pluck('check_requisitions.id')->toArray();
+
+            // Revert CRs to processed
+            CheckRequisition::whereIn('id', $checkReqIds)
+                ->update(['requisition_status' => 'processed']);
+
+            // Get all invoices and revert to pending_disbursement
+            $invoiceIds = CheckRequisition::whereIn('id', $checkReqIds)
+                ->with('invoices')
+                ->get()
+                ->pluck('invoices')
+                ->flatten()
+                ->pluck('id')
+                ->unique()
+                ->toArray();
+
+            Invoice::whereIn('id', $invoiceIds)->update(['invoice_status' => 'pending_disbursement']);
+
+            // Log the undo
+            ActivityLog::create([
+                'loggable_type' => Disbursement::class,
+                'loggable_id' => $disbursement->id,
+                'action' => 'release_undone',
+                'notes' => 'Check release was undone',
+                'user_id' => auth()->id(),
+                'ip_address' => $request->ip(),
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Disbursement release undone successfully',
+                'disbursement' => $disbursement->fresh(),
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Undo release error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to undo release: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Get smart grouping suggestions for creating disbursements
+     */
+    public function smartGrouping(Request $request)
+    {
+        $query = CheckRequisition::query()
+            ->with(['invoices.purchaseOrder.vendor', 'invoices.purchaseOrder.project'])
+            ->where('requisition_status', 'approved');
+
+        $checkRequisitions = $query->get();
+
+        $suggestions = [];
+
+        // Group by vendor
+        $vendorGroups = $checkRequisitions->groupBy(function ($cr) {
+            return $cr->invoices->first()?->purchaseOrder?->vendor?->id;
+        })->filter(function ($group, $key) {
+            return $key !== null && $group->count() > 1;
+        });
+
+        foreach ($vendorGroups as $vendorId => $crs) {
+            $vendor = $crs->first()->invoices->first()->purchaseOrder->vendor;
+            $totalAmount = $crs->sum('php_amount');
+
+            // Calculate max aging
+            $maxAging = 0;
+            foreach ($crs as $cr) {
+                foreach ($cr->invoices as $invoice) {
+                    if ($invoice->si_received_at) {
+                        $aging = Carbon::parse($invoice->si_received_at)->diffInDays(now());
+                        if ($aging > $maxAging) {
+                            $maxAging = $aging;
+                        }
+                    }
+                }
+            }
+
+            $suggestions[] = [
+                'type' => 'same_vendor',
+                'title' => "Same Vendor - {$vendor->name}",
+                'description' => "{$crs->count()} CRs · " . number_format($totalAmount, 2) . " PHP",
+                'check_requisition_ids' => $crs->pluck('id')->toArray(),
+                'count' => $crs->count(),
+                'total_amount' => $totalAmount,
+                'vendor_name' => $vendor->name,
+                'max_aging' => $maxAging,
+                'priority' => ($maxAging > 60 ? 'high' : ($maxAging > 30 ? 'medium' : 'low')),
+                'suggested_date' => ($maxAging > 60 ? now()->toDateString() : now()->addDays(3)->toDateString()),
+            ];
+        }
+
+        // Group by project
+        $projectGroups = $checkRequisitions->groupBy(function ($cr) {
+            return $cr->invoices->first()?->purchaseOrder?->project?->id;
+        })->filter(function ($group, $key) {
+            return $key !== null && $group->count() > 1;
+        });
+
+        foreach ($projectGroups as $projectId => $crs) {
+            $project = $crs->first()->invoices->first()->purchaseOrder->project;
+            $totalAmount = $crs->sum('php_amount');
+
+            // Calculate max aging
+            $maxAging = 0;
+            foreach ($crs as $cr) {
+                foreach ($cr->invoices as $invoice) {
+                    if ($invoice->si_received_at) {
+                        $aging = Carbon::parse($invoice->si_received_at)->diffInDays(now());
+                        if ($aging > $maxAging) {
+                            $maxAging = $aging;
+                        }
+                    }
+                }
+            }
+
+            $suggestions[] = [
+                'type' => 'same_project',
+                'title' => "Same Project - {$project->cer_number}",
+                'description' => "{$crs->count()} CRs · " . number_format($totalAmount, 2) . " PHP",
+                'check_requisition_ids' => $crs->pluck('id')->toArray(),
+                'count' => $crs->count(),
+                'total_amount' => $totalAmount,
+                'project_name' => $project->project_title,
+                'max_aging' => $maxAging,
+                'priority' => ($maxAging > 60 ? 'high' : ($maxAging > 30 ? 'medium' : 'low')),
+                'suggested_date' => now()->addDays(5)->toDateString(),
+            ];
+        }
+
+        // Find urgent aging items
+        $urgentCrs = $checkRequisitions->filter(function ($cr) {
+            foreach ($cr->invoices as $invoice) {
+                if ($invoice->si_received_at) {
+                    $aging = Carbon::parse($invoice->si_received_at)->diffInDays(now());
+                    if ($aging > 60) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        });
+
+        if ($urgentCrs->count() > 0) {
+            $totalAmount = $urgentCrs->sum('php_amount');
+            $suggestions[] = [
+                'type' => 'urgent_aging',
+                'title' => "Urgent - Invoices >60 Days Aging",
+                'description' => "{$urgentCrs->count()} CRs · " . number_format($totalAmount, 2) . " PHP",
+                'check_requisition_ids' => $urgentCrs->pluck('id')->toArray(),
+                'count' => $urgentCrs->count(),
+                'total_amount' => $totalAmount,
+                'max_aging' => 60,
+                'priority' => 'high',
+                'suggested_date' => now()->toDateString(),
+            ];
+        }
+
+        // Sort by priority
+        usort($suggestions, function ($a, $b) {
+            $priority = ['high' => 0, 'medium' => 1, 'low' => 2];
+            return $priority[$a['priority']] - $priority[$b['priority']];
+        });
+
+        return response()->json([
+            'suggestions' => array_slice($suggestions, 0, 5), // Top 5 suggestions
+        ]);
+    }
+
+    /**
+     * Get calendar data for disbursements
+     */
+    public function calendarData(Request $request)
+    {
+        $startDate = $request->get('start', now()->startOfMonth()->toDateString());
+        $endDate = $request->get('end', now()->endOfMonth()->toDateString());
+
+        $disbursements = Disbursement::query()
+            ->with(['checkRequisitions'])
+            ->whereBetween('date_check_scheduled', [$startDate, $endDate])
+            ->get();
+
+        $calendarEvents = $disbursements->map(function ($disbursement) {
+            $totalAmount = $disbursement->checkRequisitions->sum('php_amount');
+            $isReleased = $disbursement->date_check_released_to_vendor !== null;
+
+            return [
+                'id' => $disbursement->id,
+                'title' => $disbursement->check_voucher_number,
+                'start' => $disbursement->date_check_scheduled,
+                'amount' => $totalAmount,
+                'cr_count' => $disbursement->checkRequisitions->count(),
+                'is_released' => $isReleased,
+                'status' => $isReleased ? 'released' : 'pending',
+                'color' => $isReleased ? '#10b981' : ($totalAmount > 100000 ? '#ef4444' : ($totalAmount > 50000 ? '#f59e0b' : '#3b82f6')),
+            ];
+        });
+
+        // Group by date for summary
+        $dailySummary = $disbursements->groupBy(function ($disbursement) {
+            return $disbursement->date_check_scheduled;
+        })->map(function ($group, $date) {
+            return [
+                'date' => $date,
+                'count' => $group->count(),
+                'total_amount' => $group->sum(function ($d) {
+                    return $d->checkRequisitions->sum('php_amount');
+                }),
+            ];
+        })->values();
+
+        return response()->json([
+            'events' => $calendarEvents,
+            'daily_summary' => $dailySummary,
+        ]);
+    }
+
+    /**
+     * Get kanban data for aging-aware release queue
+     */
+    public function kanbanData(Request $request)
+    {
+        $disbursements = Disbursement::query()
+            ->with(['checkRequisitions.invoices'])
+            ->get();
+
+        $kanbanColumns = [
+            'overdue' => [],
+            'due_this_week' => [],
+            'scheduled_later' => [],
+            'released' => [],
+        ];
+
+        foreach ($disbursements as $disbursement) {
+            $totalAmount = $disbursement->checkRequisitions->sum('php_amount');
+            $crCount = $disbursement->checkRequisitions->count();
+
+            // Calculate max aging
+            $maxAging = 0;
+            foreach ($disbursement->checkRequisitions as $cr) {
+                foreach ($cr->invoices as $invoice) {
+                    if ($invoice->si_received_at) {
+                        $endDate = $disbursement->date_check_released_to_vendor ?? now();
+                        $aging = Carbon::parse($invoice->si_received_at)->diffInDays($endDate);
+                        if ($aging > $maxAging) {
+                            $maxAging = $aging;
+                        }
+                    }
+                }
+            }
+
+            $card = [
+                'id' => $disbursement->id,
+                'check_voucher_number' => $disbursement->check_voucher_number,
+                'date_check_scheduled' => $disbursement->date_check_scheduled,
+                'date_check_released_to_vendor' => $disbursement->date_check_released_to_vendor,
+                'total_amount' => $totalAmount,
+                'cr_count' => $crCount,
+                'max_aging' => $maxAging,
+                'aging_status' => ($maxAging > 60 ? 'critical' : ($maxAging > 30 ? 'warning' : 'good')),
+            ];
+
+            // Categorize into columns
+            if ($disbursement->date_check_released_to_vendor) {
+                $kanbanColumns['released'][] = $card;
+            } else if ($disbursement->date_check_scheduled && $disbursement->date_check_scheduled < now()->toDateString()) {
+                $kanbanColumns['overdue'][] = $card;
+            } else if ($disbursement->date_check_scheduled && $disbursement->date_check_scheduled <= now()->addDays(7)->toDateString()) {
+                $kanbanColumns['due_this_week'][] = $card;
+            } else {
+                $kanbanColumns['scheduled_later'][] = $card;
+            }
+        }
+
+        // Calculate summary statistics
+        $summary = [
+            'overdue_count' => count($kanbanColumns['overdue']),
+            'overdue_amount' => collect($kanbanColumns['overdue'])->sum('total_amount'),
+            'due_this_week_count' => count($kanbanColumns['due_this_week']),
+            'due_this_week_amount' => collect($kanbanColumns['due_this_week'])->sum('total_amount'),
+            'critical_aging_count' => collect($disbursements)->filter(function ($d) {
+                foreach ($d->checkRequisitions as $cr) {
+                    foreach ($cr->invoices as $invoice) {
+                        if ($invoice->si_received_at) {
+                            $aging = now()->diffInDays($invoice->si_received_at);
+                            if ($aging > 60) return true;
+                        }
+                    }
+                }
+                return false;
+            })->count(),
+        ];
+
+        return response()->json([
+            'columns' => $kanbanColumns,
+            'summary' => $summary,
+        ]);
     }
 }

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, router } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
     Table,
     TableBody,
@@ -37,13 +38,29 @@ import {
     TrendingUp,
     User,
     Package,
+    Zap,
+    List,
+    LayoutGrid,
+    CalendarDays,
 } from 'lucide-react';
 import PaginationServerSide from '@/components/custom/Pagination.jsx';
 import DisbursementSummaryCards from './DisbursementSummaryCards';
+import FilterPresets from '@/components/custom/FilterPresets';
 import { formatCurrency } from '@/components/custom/helpers';
+import QuickReleaseModal from './QuickReleaseModal';
+import BulkReleaseModal from './BulkReleaseModal';
+import KanbanView from './KanbanView';
+import CalendarView from './CalendarView';
 
 export default function DisbursementsTable({ disbursements, filters, filterOptions, statistics }) {
     const { data } = disbursements;
+
+    // New state for view mode and bulk actions
+    const [viewMode, setViewMode] = useState('list'); // 'list', 'kanban', 'calendar'
+    const [selectedIds, setSelectedIds] = useState([]);
+    const [showQuickRelease, setShowQuickRelease] = useState(false);
+    const [showBulkRelease, setShowBulkRelease] = useState(false);
+    const [selectedDisbursement, setSelectedDisbursement] = useState(null);
 
     // State
     const [localFilters, setLocalFilters] = useState({
@@ -185,6 +202,45 @@ export default function DisbursementsTable({ disbursements, filters, filterOptio
         });
     };
 
+    const applyFilterPreset = (presetFilters) => {
+        // Apply all saved filters
+        setLocalFilters({
+            search: presetFilters.search || '',
+            vendor_id: presetFilters.vendor_id || '',
+            purchase_order_id: presetFilters.purchase_order_id || '',
+            check_requisition_id: presetFilters.check_requisition_id || '',
+            project_id: presetFilters.project_id || '',
+            account_code: presetFilters.account_code || '',
+            amount_min: presetFilters.amount_min || '',
+            amount_max: presetFilters.amount_max || '',
+        });
+
+        if (presetFilters.date_from || presetFilters.date_to) {
+            setDateRange({
+                from: presetFilters.date_from ? new Date(presetFilters.date_from) : null,
+                to: presetFilters.date_to ? new Date(presetFilters.date_to) : null,
+            });
+        }
+
+        if (presetFilters.status) {
+            setActiveTab(presetFilters.status);
+        }
+
+        if (presetFilters.date_field) {
+            setDateField(presetFilters.date_field);
+        }
+
+        // Navigate with all filters applied
+        router.get('/disbursements', {
+            ...presetFilters,
+            sort_by: sortBy,
+            sort_order: sortOrder,
+        }, {
+            preserveState: true,
+            replace: true,
+        });
+    };
+
     const handlePageChange = ({ page }) => {
         const params = {
             ...filters,
@@ -222,6 +278,39 @@ export default function DisbursementsTable({ disbursements, filters, filterOptio
         if (days <= 30) return 'bg-green-100 text-green-700';
         if (days <= 60) return 'bg-yellow-100 text-yellow-700';
         return 'bg-red-100 text-red-700';
+    };
+
+    // Bulk action handlers
+    const handleSelectAll = (checked) => {
+        if (checked) {
+            // Only select pending disbursements
+            const pendingIds = data.filter(d => !d.date_check_released_to_vendor).map(d => d.id);
+            setSelectedIds(pendingIds);
+        } else {
+            setSelectedIds([]);
+        }
+    };
+
+    const handleSelectRow = (id, checked) => {
+        if (checked) {
+            setSelectedIds([...selectedIds, id]);
+        } else {
+            setSelectedIds(selectedIds.filter(selectedId => selectedId !== id));
+        }
+    };
+
+    const handleQuickRelease = (disbursement) => {
+        setSelectedDisbursement(disbursement);
+        setShowQuickRelease(true);
+    };
+
+    const handleBulkReleaseClick = () => {
+        const selected = data.filter(d => selectedIds.includes(d.id));
+        setShowBulkRelease(true);
+    };
+
+    const getSelectedDisbursements = () => {
+        return data.filter(d => selectedIds.includes(d.id));
     };
 
     // Status tabs configuration
@@ -286,6 +375,31 @@ export default function DisbursementsTable({ disbursements, filters, filterOptio
                                 <CardDescription>Check Disbursement Processing & Tracking System</CardDescription>
                             </div>
                             <div className="flex items-center space-x-3">
+                                {/* View Mode Switcher */}
+                                <div className="flex gap-1 rounded-lg border p-1">
+                                    <Button
+                                        variant={viewMode === 'list' ? 'default' : 'ghost'}
+                                        size="sm"
+                                        onClick={() => setViewMode('list')}
+                                    >
+                                        <List className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                        variant={viewMode === 'kanban' ? 'default' : 'ghost'}
+                                        size="sm"
+                                        onClick={() => setViewMode('kanban')}
+                                    >
+                                        <LayoutGrid className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                        variant={viewMode === 'calendar' ? 'default' : 'ghost'}
+                                        size="sm"
+                                        onClick={() => setViewMode('calendar')}
+                                    >
+                                        <CalendarDays className="h-4 w-4" />
+                                    </Button>
+                                </div>
+
                                 <Link href="/disbursements/create">
                                     <Button size="sm">
                                         <Plus className="mr-2 h-4 w-4" />
@@ -297,6 +411,13 @@ export default function DisbursementsTable({ disbursements, filters, filterOptio
                     </CardHeader>
 
                     <CardContent>
+                        {/* Render based on view mode */}
+                        {viewMode === 'kanban' ? (
+                            <KanbanView />
+                        ) : viewMode === 'calendar' ? (
+                            <CalendarView />
+                        ) : (
+                            <>
                         {/* Status Filter Pills */}
                         <div className="mb-6 space-y-3">
                             <div className="flex flex-wrap gap-2">
@@ -441,10 +562,24 @@ export default function DisbursementsTable({ disbursements, filters, filterOptio
 
                                 <button
                                     onClick={clearAllFilters}
-                                    className="ml-auto text-xs font-medium text-blue-600 underline hover:text-blue-800"
+                                    className="text-xs font-medium text-blue-600 underline hover:text-blue-800"
                                 >
                                     Clear All Filters
                                 </button>
+
+                                <div className="ml-auto">
+                                    <FilterPresets
+                                        storageKey="disbursements_filter_presets"
+                                        currentFilters={{
+                                            ...localFilters,
+                                            status: activeTab,
+                                            date_field: dateField,
+                                            date_from: dateRange.from ? dateRange.from.toISOString().split('T')[0] : null,
+                                            date_to: dateRange.to ? dateRange.to.toISOString().split('T')[0] : null,
+                                        }}
+                                        onApplyPreset={applyFilterPreset}
+                                    />
+                                </div>
                             </div>
                         )}
 
@@ -618,6 +753,12 @@ export default function DisbursementsTable({ disbursements, filters, filterOptio
                             <Table>
                                 <TableHeader>
                                     <TableRow className="bg-slate-50">
+                                        <TableHead className="w-[50px]">
+                                            <Checkbox
+                                                checked={selectedIds.length > 0 && selectedIds.length === data.filter(d => !d.date_check_released_to_vendor).length}
+                                                onCheckedChange={handleSelectAll}
+                                            />
+                                        </TableHead>
                                         <TableHead>
                                             <Button
                                                 variant="ghost"
@@ -664,6 +805,16 @@ export default function DisbursementsTable({ disbursements, filters, filterOptio
                                     ) : (
                                         data.map((disbursement) => (
                                             <TableRow key={disbursement.id} className="hover:bg-gray-50">
+                                                {/* Checkbox */}
+                                                <TableCell>
+                                                    {!disbursement.date_check_released_to_vendor && (
+                                                        <Checkbox
+                                                            checked={selectedIds.includes(disbursement.id)}
+                                                            onCheckedChange={(checked) => handleSelectRow(disbursement.id, checked)}
+                                                        />
+                                                    )}
+                                                </TableCell>
+
                                                 {/* Check Voucher Number */}
                                                         <TableCell>
                                                             <TooltipProvider>
@@ -909,23 +1060,43 @@ export default function DisbursementsTable({ disbursements, filters, filterOptio
                                                                 </TooltipProvider>
 
                                                                 {!disbursement.date_check_released_to_vendor && (
-                                                                    <TooltipProvider>
-                                                                        <Tooltip>
-                                                                            <TooltipTrigger asChild>
-                                                                                <Button
-                                                                                    variant="ghost"
-                                                                                    size="icon"
-                                                                                    className="h-8 w-8"
-                                                                                    onClick={() => router.visit(`/disbursements/${disbursement.id}/edit`)}
-                                                                                >
-                                                                                    <Edit className="h-4 w-4" />
-                                                                                </Button>
-                                                                            </TooltipTrigger>
-                                                                            <TooltipContent>
-                                                                                <p>Edit Disbursement</p>
-                                                                            </TooltipContent>
-                                                                        </Tooltip>
-                                                                    </TooltipProvider>
+                                                                    <>
+                                                                        <TooltipProvider>
+                                                                            <Tooltip>
+                                                                                <TooltipTrigger asChild>
+                                                                                    <Button
+                                                                                        variant="default"
+                                                                                        size="icon"
+                                                                                        className="h-8 w-8"
+                                                                                        onClick={() => handleQuickRelease(disbursement)}
+                                                                                    >
+                                                                                        <Zap className="h-4 w-4" />
+                                                                                    </Button>
+                                                                                </TooltipTrigger>
+                                                                                <TooltipContent>
+                                                                                    <p>Quick Release</p>
+                                                                                </TooltipContent>
+                                                                            </Tooltip>
+                                                                        </TooltipProvider>
+
+                                                                        <TooltipProvider>
+                                                                            <Tooltip>
+                                                                                <TooltipTrigger asChild>
+                                                                                    <Button
+                                                                                        variant="ghost"
+                                                                                        size="icon"
+                                                                                        className="h-8 w-8"
+                                                                                        onClick={() => router.visit(`/disbursements/${disbursement.id}/edit`)}
+                                                                                    >
+                                                                                        <Edit className="h-4 w-4" />
+                                                                                    </Button>
+                                                                                </TooltipTrigger>
+                                                                                <TooltipContent>
+                                                                                    <p>Edit Disbursement</p>
+                                                                                </TooltipContent>
+                                                                            </Tooltip>
+                                                                        </TooltipProvider>
+                                                                    </>
                                                                 )}
                                                             </div>
                                                         </TableCell>
@@ -945,8 +1116,73 @@ export default function DisbursementsTable({ disbursements, filters, filterOptio
                                 />
                             </div>
                         )}
+                            </>
+                        )}
                     </CardContent>
                 </Card>
+
+                {/* Bulk Action Floating Bar */}
+                {selectedIds.length > 0 && viewMode === 'list' && (
+                    <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50">
+                        <Card className="shadow-2xl border-2 border-blue-500">
+                            <CardContent className="p-4">
+                                <div className="flex items-center gap-4">
+                                    <div className="flex items-center gap-2">
+                                        <Badge variant="default" className="text-base px-3 py-1">
+                                            {selectedIds.length} selected
+                                        </Badge>
+                                        <span className="text-sm text-gray-600">
+                                            Total: {formatCurrency(getSelectedDisbursements().reduce((sum, d) => sum + (d.total_amount || 0), 0))}
+                                        </span>
+                                    </div>
+                                    <div className="h-6 w-px bg-gray-300"></div>
+                                    <div className="flex gap-2">
+                                        <Button
+                                            variant="default"
+                                            size="sm"
+                                            onClick={handleBulkReleaseClick}
+                                        >
+                                            <Zap className="h-4 w-4 mr-2" />
+                                            Release Selected ({selectedIds.length})
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => setSelectedIds([])}
+                                        >
+                                            Clear Selection
+                                        </Button>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
+                )}
+
+                {/* Quick Release Modal */}
+                {selectedDisbursement && (
+                    <QuickReleaseModal
+                        disbursement={selectedDisbursement}
+                        open={showQuickRelease}
+                        onClose={() => {
+                            setShowQuickRelease(false);
+                            setSelectedDisbursement(null);
+                        }}
+                        onSuccess={() => {
+                            setSelectedIds([]);
+                        }}
+                    />
+                )}
+
+                {/* Bulk Release Modal */}
+                <BulkReleaseModal
+                    selectedDisbursements={getSelectedDisbursements()}
+                    open={showBulkRelease}
+                    onClose={() => setShowBulkRelease(false)}
+                    onSuccess={() => {
+                        setSelectedIds([]);
+                    }}
+                />
             </div>
         </div>
     );

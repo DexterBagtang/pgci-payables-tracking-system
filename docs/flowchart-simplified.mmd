@@ -6,16 +6,16 @@ flowchart TD
     VendorSetup --> VendorDetails[Enter Vendor Details:<br/>Name, Contact, Category,<br/>Payment Terms]
     VendorDetails --> ProjectSetup[Purchasing: Create Project]
     ProjectSetup --> ProjectDetails[Enter Project Details:<br/>Title, CER Number, Type,<br/>Total Costs, Status]
-    
+
     %% Purchase Order Phase
     ProjectDetails --> POCreation[Purchasing: Create Purchase Order]
-    POCreation --> PODetails[Enter PO Details:<br/>• Link Vendor & Project<br/>• PO Number & Amount<br/>• Currency: PHP/USD<br/>• Payment Terms<br/>• Add Line Items]
+    POCreation --> PODetails[Enter PO Details:<br/>• Link Vendor & Project<br/>• PO Number & Amount<br/>• Currency: PHP/USD<br/>• Payment Terms<br/>]
     PODetails --> POFinalize{Finalize PO?}
-    
+
     POFinalize -->|Save as Draft| PODraft[PO Status: Draft]
     PODraft --> MorePO{Create<br/>Another PO?}
     POFinalize -->|Finalize| POOpen[PO Status: Open<br/>Ready for Invoicing]
-    
+
     POOpen --> MorePO
     MorePO -->|Yes| POCreation
     MorePO -->|No| WaitInvoice
@@ -35,15 +35,15 @@ flowchart TD
     MarkReceived --> ReviewOption{Review<br/>Method?}
     ReviewOption -->|Single Invoice| SingleReview[Review Single Invoice]
     ReviewOption -->|Multiple Invoices| BulkReview[Bulk Review:<br/>• Select Multiple Invoices<br/>• Performance Optimized<br/>• Virtual Scrolling]
-    
+
     SingleReview --> ReviewCheck{Details<br/>Correct?}
     BulkReview --> ReviewCheck
-    
+
     ReviewCheck -->|No - Issues| AddRemarks[Add Remarks & Notes]
     AddRemarks --> RejectInvoice[Status: Rejected]
     RejectInvoice --> NotifyPurchasing[Notify Purchasing]
     NotifyPurchasing --> InvoiceDetails
-    
+
     ReviewCheck -->|Yes - Approved| ApproveInvoice[Approve Invoice:<br/>Status → Approved<br/>Record Reviewer & Date]
 
     %% Check Requisition Phase
@@ -51,25 +51,25 @@ flowchart TD
     CheckReqCreation --> SelectInvoices[Select Approved Invoices:<br/>• Single or Multiple<br/>• Same Vendor/Project<br/>• Paginated List]
     SelectInvoices --> CheckReqDetails[Enter Check Requisition:<br/>• Auto-generate Number<br/>• PHP Amount<br/>• Payee Name & Purpose<br/>• PO/CER/SI Numbers<br/>• Account Charge<br/>• Approval Fields]
     CheckReqDetails --> CheckReqStatus{Submit for<br/>Approval?}
-    
-    CheckReqStatus -->|No| SaveDraft[Save as Draft]
+
+%%    CheckReqStatus -->|No| SaveDraft[Save as Draft]
     CheckReqStatus -->|Yes| SubmitApproval[Status: Pending Approval]
-    
+
     %% Check Requisition Approval
     SubmitApproval --> ReviewCR[Management: Review Check Requisition]
     ReviewCR --> CRDecision{Approve?}
-    
+
     CRDecision -->|Reject| RejectCR[Status: Rejected<br/>Add Notes]
     RejectCR --> NotifyAcct[Notify Accounting]
     NotifyAcct --> CheckReqDetails
-    
+
     CRDecision -->|Approve| ApproveCR[Status: Approved<br/>Update Linked Invoices:<br/>Status → Pending Disbursement]
 
     %% Disbursement Phase
     ApproveCR --> CreateDisbursement[Accounting: Create Disbursement]
-    CreateDisbursement --> DisbursementDetails[Enter Disbursement:<br/>• Auto-generate Check Voucher Number<br/>• Link Check Requisitions<br/>• Schedule Check Date<br/>• Add Remarks]
+    CreateDisbursement --> DisbursementDetails[Enter Disbursement:<br/>• Check Voucher Number<br/>• Link Check Requisitions<br/>• Schedule Check Date<br/>• Add Remarks]
     DisbursementDetails --> DisbursementCreated[Disbursement Created]
-    
+
     DisbursementCreated --> PrintCheck[Print Check:<br/>• Record Printing Date<br/>• Status: Processed]
     PrintCheck --> ReleaseCheck[Release Check to Vendor:<br/>• Record Release Date<br/>• Invoice Status → Paid<br/>• STOP Aging Calculation]
 
@@ -77,11 +77,11 @@ flowchart TD
     ReleaseCheck --> CheckAllPaid{All PO<br/>Invoices Paid?}
     CheckAllPaid -->|No| WaitMore[Wait for Remaining Invoices]
     WaitMore --> WaitInvoice
-    
+
     CheckAllPaid -->|Yes| ClosePO[Close Purchase Order:<br/>• Status: Closed<br/>• Record Closed By & Date<br/>• Add Closure Remarks]
 
     ClosePO --> Complete([Process Complete])
-    
+
     %% System Features
     Complete -.-> SystemFeatures[Key System Features:<br/>✓ Multi-currency Support<br/>✓ Bulk Operations<br/>✓ File Version Tracking<br/>✓ Activity Logs<br/>✓ Polymorphic Attachments<br/>✓ Role-based Access]
 
