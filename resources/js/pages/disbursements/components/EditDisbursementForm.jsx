@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { router, useForm } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,7 +22,13 @@ import {
     CardTitle,
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ChevronDown, ChevronUp, Search, AlertTriangle } from 'lucide-react';
+import {
+    Collapsible,
+    CollapsibleContent,
+    CollapsibleTrigger,
+} from '@/components/ui/collapsible';
+import { ChevronDown, ChevronUp, Search, AlertTriangle, Calendar } from 'lucide-react';
+import { DatePicker } from '@/components/custom/DatePicker';
 
 export default function EditDisbursementForm({
     disbursement,
@@ -36,6 +42,7 @@ export default function EditDisbursementForm({
     );
     const [expandedRows, setExpandedRows] = useState([]);
     const [searchQuery, setSearchQuery] = useState(filters.search || '');
+    const fileInputRef = useRef(null);
 
     const { data: formData, setData, post, processing, errors } = useForm({
         check_voucher_number: disbursement.check_voucher_number,
@@ -82,7 +89,7 @@ export default function EditDisbursementForm({
     };
 
     const handleFileChange = (e) => {
-        const files = Array.from(e.target.files);
+        const files = Array.from(e.target.files || []);
         setData('files', files);
     };
 
@@ -93,9 +100,19 @@ export default function EditDisbursementForm({
             forceFormData: true,
             onSuccess: () => {
                 console.log('Disbursement updated successfully');
+                // Reset file input
+                if (fileInputRef.current) {
+                    fileInputRef.current.value = '';
+                }
             },
             onError: (errors) => {
                 console.error('Validation errors:', errors);
+                // Reset file input on error too
+                if (fileInputRef.current) {
+                    fileInputRef.current.value = '';
+                }
+                // Clear files from form data
+                setData('files', []);
             },
         });
     };
@@ -114,6 +131,16 @@ export default function EditDisbursementForm({
             style: 'currency',
             currency: 'PHP',
         }).format(amount);
+    };
+
+    // Format date to YYYY-MM-DD in local timezone (avoids UTC conversion issues)
+    const formatDateForInput = (date) => {
+        if (!date) return '';
+        const d = new Date(date);
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
     };
 
     const calculateTotals = () => {
@@ -363,39 +390,39 @@ export default function EditDisbursementForm({
                                     )}
                                 </div>
 
-                                <div className="space-y-2">
-                                    <Label htmlFor="date_check_scheduled">Date Check Scheduled</Label>
-                                    <Input
-                                        id="date_check_scheduled"
-                                        type="date"
-                                        value={formData.date_check_scheduled}
-                                        onChange={(e) => setData('date_check_scheduled', e.target.value)}
-                                    />
-                                </div>
+                                <DatePicker
+                                    label="Date Check Scheduled"
+                                    value={formData.date_check_scheduled}
+                                    onChange={(date) => {
+                                        setData('date_check_scheduled', formatDateForInput(date));
+                                    }}
+                                    error={errors.date_check_scheduled}
+                                    placeholder="Select date"
+                                />
 
-                                <div className="space-y-2">
-                                    <Label htmlFor="date_check_printing">Date Check Printing</Label>
-                                    <Input
-                                        id="date_check_printing"
-                                        type="date"
-                                        value={formData.date_check_printing}
-                                        onChange={(e) => setData('date_check_printing', e.target.value)}
-                                    />
-                                </div>
+                                <DatePicker
+                                    label="Date Check Printing"
+                                    value={formData.date_check_printing}
+                                    onChange={(date) => {
+                                        setData('date_check_printing', formatDateForInput(date));
+                                    }}
+                                    error={errors.date_check_printing}
+                                    placeholder="Select date"
+                                />
 
-                                <div className="space-y-2">
-                                    <Label htmlFor="date_check_released_to_vendor">
-                                        Date Check Released to Vendor
-                                        <span className="ml-2 text-xs text-gray-500">
-                                            (Stops aging, marks CRs and invoices as paid)
-                                        </span>
-                                    </Label>
-                                    <Input
-                                        id="date_check_released_to_vendor"
-                                        type="date"
+                                <div className="space-y-1">
+                                    <DatePicker
+                                        label="Date Check Released to Vendor"
                                         value={formData.date_check_released_to_vendor}
-                                        onChange={(e) => setData('date_check_released_to_vendor', e.target.value)}
+                                        onChange={(date) => {
+                                            setData('date_check_released_to_vendor', formatDateForInput(date));
+                                        }}
+                                        error={errors.date_check_released_to_vendor}
+                                        placeholder="Select date"
                                     />
+                                    <p className="text-xs text-gray-500">
+                                        (Stops aging, marks invoices as paid)
+                                    </p>
                                 </div>
                             </div>
 
@@ -410,9 +437,20 @@ export default function EditDisbursementForm({
                             </div>
 
                             <div className="space-y-2">
-                                <Label htmlFor="files">Additional Supporting Documents (Optional)</Label>
-                                <Input id="files" type="file" multiple onChange={handleFileChange} />
-                                <p className="text-xs text-gray-500">Upload additional supporting documents (PDF, JPG, PNG)</p>
+                                <Label htmlFor="files">Supporting Documents (Optional)</Label>
+                                <Input
+                                    id="files"
+                                    ref={fileInputRef}
+                                    type="file"
+                                    multiple
+                                    onChange={handleFileChange}
+                                />
+                                {formData.files && formData.files.length > 0 && (
+                                    <p className="text-xs text-blue-600">
+                                        {formData.files.length} file(s) selected
+                                    </p>
+                                )}
+                                <p className="text-xs text-gray-500">Upload supporting documents (PDF, JPG, PNG)</p>
                             </div>
 
                             <div className="flex justify-end gap-2">
