@@ -1,7 +1,7 @@
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem, type Disbursement, type CheckRequisition, type PaginatedData } from '@/types';
 import { Head } from '@inertiajs/react';
-import EditDisbursementForm from './components/EditDisbursementForm';
+import EditDisbursementFormWizard from './components/EditDisbursementFormWizard';
 
 interface PageProps {
     disbursement: Disbursement;
@@ -36,8 +36,8 @@ export default function EditDisbursementPage({
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`Edit Disbursement ${disbursement.check_voucher_number}`} />
-            <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
-                <EditDisbursementForm
+            <div className="flex h-full flex-1 flex-col">
+                <EditDisbursementFormWizard
                     disbursement={disbursement}
                     currentCheckRequisitions={currentCheckRequisitions}
                     availableCheckRequisitions={availableCheckRequisitions}

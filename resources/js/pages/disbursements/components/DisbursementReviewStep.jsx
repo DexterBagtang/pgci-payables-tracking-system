@@ -4,7 +4,17 @@ import { Button } from '@/components/ui/button';
 import { Calendar, Printer, CheckCircle2, Edit, FileText, DollarSign } from 'lucide-react';
 import { format } from 'date-fns';
 
-export default function DisbursementReviewStep({ formData, selectedCheckReqs, allCheckReqs, files, onEdit }) {
+export default function DisbursementReviewStep({
+    formData,
+    selectedCheckReqs,
+    allCheckReqs,
+    files,
+    existingFiles,
+    onEdit,
+    isEditMode = false,
+    removedCount = 0,
+    addedCount = 0
+}) {
     const selectedData = allCheckReqs.filter(cr => selectedCheckReqs.includes(cr.id));
     const totalAmount = selectedData.reduce((sum, cr) => sum + parseFloat(cr.php_amount || 0), 0);
 
@@ -37,9 +47,13 @@ export default function DisbursementReviewStep({ formData, selectedCheckReqs, al
         <div className="space-y-6">
             {/* Header */}
             <div className="text-center">
-                <h2 className="text-2xl font-bold text-slate-900">Review Disbursement</h2>
+                <h2 className="text-2xl font-bold text-slate-900">
+                    {isEditMode ? 'Review Changes' : 'Review Disbursement'}
+                </h2>
                 <p className="mt-2 text-sm text-slate-600">
-                    Please review all details before submitting
+                    {isEditMode
+                        ? 'Review your changes before updating the disbursement'
+                        : 'Please review all details before submitting'}
                 </p>
             </div>
 
@@ -207,12 +221,12 @@ export default function DisbursementReviewStep({ formData, selectedCheckReqs, al
             </Card>
 
             {/* Attached Files */}
-            {files && files.length > 0 && (
+            {((files && files.length > 0) || (existingFiles && existingFiles.length > 0)) && (
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between">
                         <CardTitle className="flex items-center">
                             <FileText className="mr-2 h-5 w-5" />
-                            Attached Files ({files.length})
+                            Supporting Documents
                         </CardTitle>
                         <Button type="button" variant="outline" size="sm" onClick={() => onEdit(2)}>
                             <Edit className="mr-2 h-4 w-4" />
@@ -220,16 +234,43 @@ export default function DisbursementReviewStep({ formData, selectedCheckReqs, al
                         </Button>
                     </CardHeader>
                     <CardContent>
-                        <div className="space-y-2">
-                            {files.map((file, index) => (
-                                <div key={index} className="flex items-center gap-2 rounded border p-2">
-                                    <FileText className="h-4 w-4 text-blue-500" />
-                                    <span className="text-sm">{file.name}</span>
-                                    <span className="text-xs text-slate-500">
-                                        ({(file.size / 1024).toFixed(2)} KB)
-                                    </span>
+                        <div className="space-y-4">
+                            {/* Existing Files */}
+                            {existingFiles && existingFiles.length > 0 && (
+                                <div>
+                                    <div className="mb-2 text-sm font-medium text-slate-700">
+                                        Current Files ({existingFiles.length})
+                                    </div>
+                                    <div className="space-y-2">
+                                        {existingFiles.map((file, index) => (
+                                            <div key={index} className="flex items-center gap-2 rounded border bg-slate-50 p-2">
+                                                <FileText className="h-4 w-4 text-slate-500" />
+                                                <span className="text-sm">{file.filename}</span>
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
-                            ))}
+                            )}
+
+                            {/* New Files */}
+                            {files && files.length > 0 && (
+                                <div>
+                                    <div className="mb-2 text-sm font-medium text-green-700">
+                                        New Files to Upload ({files.length})
+                                    </div>
+                                    <div className="space-y-2">
+                                        {files.map((file, index) => (
+                                            <div key={index} className="flex items-center gap-2 rounded border border-green-200 bg-green-50 p-2">
+                                                <FileText className="h-4 w-4 text-green-600" />
+                                                <span className="text-sm">{file.name}</span>
+                                                <span className="text-xs text-slate-500">
+                                                    ({(file.size / 1024).toFixed(2)} KB)
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </CardContent>
                 </Card>
