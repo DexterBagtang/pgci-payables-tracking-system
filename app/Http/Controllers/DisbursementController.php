@@ -449,13 +449,20 @@ class DisbursementController extends Controller
                 // Check was released - mark CRs as paid and invoices as paid
                 CheckRequisition::whereIn('id', $checkReqIds)
                     ->update(['requisition_status' => 'paid']);
-                Invoice::whereIn('id', $invoiceIds)->update(['invoice_status' => 'paid']);
+
+                // Update invoices individually to trigger observer (syncs PO financials)
+                Invoice::whereIn('id', $invoiceIds)->each(function($invoice) {
+                    $invoice->update(['invoice_status' => 'paid']);
+                });
 
                 // Check and close purchase orders if all invoices are paid
                 $this->checkAndClosePurchaseOrders($invoiceIds);
             } else {
                 // Check not yet released - mark invoices as pending_disbursement (CRs already 'processed')
-                Invoice::whereIn('id', $invoiceIds)->update(['invoice_status' => 'pending_disbursement']);
+                // Update invoices individually to trigger observer (syncs PO financials)
+                Invoice::whereIn('id', $invoiceIds)->each(function($invoice) {
+                    $invoice->update(['invoice_status' => 'pending_disbursement']);
+                });
             }
 
             // Handle file uploads
@@ -608,13 +615,61 @@ class DisbursementController extends Controller
             ->with(['invoices', 'generator'])
             ->get();
 
+        // Add invoice details and aging information to current check requisitions
+        $currentCheckReqs->transform(function ($checkReq) {
+            $invoices = $checkReq->invoices()->with('purchaseOrder.vendor')->get();
+
+            // Calculate aging for each invoice
+            $invoices->transform(function ($invoice) {
+                if ($invoice->si_received_at) {
+                    $invoice->aging_days = Carbon::parse($invoice->si_received_at)->diffInDays(now());
+                } else {
+                    $invoice->aging_days = null;
+                }
+                return $invoice;
+            });
+
+            $checkReq->invoices_with_aging = $invoices;
+            return $checkReq;
+        });
+
         // Get available approved check requisitions that can be added
-        $availableCheckReqs = CheckRequisition::query()
+        $query = CheckRequisition::query()
             ->with(['invoices', 'generator'])
-            ->where('requisition_status', 'approved')
-            ->orWhereIn('id', $currentCheckReqs->pluck('id')) // Include current check reqs
-            ->latest()
-            ->paginate(50);
+            ->where(function ($q) use ($currentCheckReqs) {
+                $q->where('requisition_status', 'approved')
+                    ->orWhereIn('id', $currentCheckReqs->pluck('id')); // Include current check reqs
+            });
+
+        // Search filter
+        if (request()->filled('search')) {
+            $search = request()->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('requisition_number', 'like', "%{$search}%")
+                    ->orWhere('payee_name', 'like', "%{$search}%")
+                    ->orWhere('po_number', 'like', "%{$search}%");
+            });
+        }
+
+        $availableCheckReqs = $query->latest()->paginate(50);
+
+        // Add invoice details and aging information to each check requisition
+        $availableCheckReqs->getCollection()->transform(function ($checkReq) {
+            $invoices = $checkReq->invoices()->with('purchaseOrder.vendor')->get();
+
+            // Calculate aging for each invoice
+            $invoices->transform(function ($invoice) {
+                if ($invoice->si_received_at) {
+                    $invoice->aging_days = Carbon::parse($invoice->si_received_at)->diffInDays(now());
+                } else {
+                    $invoice->aging_days = null;
+                }
+                return $invoice;
+            });
+
+            $checkReq->invoices_with_aging = $invoices;
+            return $checkReq;
+        });
 
         return inertia('disbursements/edit', [
             'disbursement' => $disbursement,
@@ -698,7 +753,10 @@ class DisbursementController extends Controller
                     ->unique()
                     ->toArray();
 
-                Invoice::whereIn('id', $newInvoiceIds)->update(['invoice_status' => 'paid']);
+                // Update invoices individually to trigger observer (syncs PO financials)
+                Invoice::whereIn('id', $newInvoiceIds)->each(function($invoice) {
+                    $invoice->update(['invoice_status' => 'paid']);
+                });
 
                 // Check and close purchase orders if all invoices are paid
                 $this->checkAndClosePurchaseOrders($newInvoiceIds);
@@ -718,7 +776,10 @@ class DisbursementController extends Controller
                     ->unique()
                     ->toArray();
 
-                Invoice::whereIn('id', $newInvoiceIds)->update(['invoice_status' => 'pending_disbursement']);
+                // Update invoices individually to trigger observer (syncs PO financials)
+                Invoice::whereIn('id', $newInvoiceIds)->each(function($invoice) {
+                    $invoice->update(['invoice_status' => 'pending_disbursement']);
+                });
             }
 
             // Handle removed invoices - revert to approved status
@@ -742,8 +803,10 @@ class DisbursementController extends Controller
 
             $removedInvoiceIds = array_diff($oldInvoiceIds, $newInvoiceIds);
             if (!empty($removedInvoiceIds)) {
-                Invoice::whereIn('id', $removedInvoiceIds)
-                    ->update(['invoice_status' => 'approved']);
+                // Update invoices individually to trigger observer (syncs PO financials)
+                Invoice::whereIn('id', $removedInvoiceIds)->each(function($invoice) {
+                    $invoice->update(['invoice_status' => 'approved']);
+                });
             }
 
             // Handle file uploads
@@ -834,7 +897,10 @@ class DisbursementController extends Controller
                 ->toArray();
 
             // Reset invoice statuses back to approved
-            Invoice::whereIn('id', $invoiceIds)->update(['invoice_status' => 'approved']);
+            // Update invoices individually to trigger observer (syncs PO financials)
+            Invoice::whereIn('id', $invoiceIds)->each(function($invoice) {
+                $invoice->update(['invoice_status' => 'approved']);
+            });
 
             // Delete the disbursement (cascade will handle pivot table)
             $disbursement->delete();
@@ -978,7 +1044,10 @@ class DisbursementController extends Controller
                 ->unique()
                 ->toArray();
 
-            Invoice::whereIn('id', $invoiceIds)->update(['invoice_status' => 'paid']);
+            // Update invoices individually to trigger observer (syncs PO financials)
+            Invoice::whereIn('id', $invoiceIds)->each(function($invoice) {
+                $invoice->update(['invoice_status' => 'paid']);
+            });
 
             // Check and close purchase orders if all invoices are paid
             $this->checkAndClosePurchaseOrders($invoiceIds);
@@ -1054,7 +1123,10 @@ class DisbursementController extends Controller
                     ->unique()
                     ->toArray();
 
-                Invoice::whereIn('id', $invoiceIds)->update(['invoice_status' => 'paid']);
+                // Update invoices individually to trigger observer (syncs PO financials)
+                Invoice::whereIn('id', $invoiceIds)->each(function($invoice) {
+                    $invoice->update(['invoice_status' => 'paid']);
+                });
 
                 // Check and close purchase orders if all invoices are paid
                 $this->checkAndClosePurchaseOrders($invoiceIds);
@@ -1131,7 +1203,10 @@ class DisbursementController extends Controller
                 ->unique()
                 ->toArray();
 
-            Invoice::whereIn('id', $invoiceIds)->update(['invoice_status' => 'pending_disbursement']);
+            // Update invoices individually to trigger observer (syncs PO financials)
+            Invoice::whereIn('id', $invoiceIds)->each(function($invoice) {
+                $invoice->update(['invoice_status' => 'pending_disbursement']);
+            });
 
             // Log the undo
             ActivityLog::create([
