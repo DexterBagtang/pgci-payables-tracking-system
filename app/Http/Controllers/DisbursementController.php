@@ -501,7 +501,7 @@ class DisbursementController extends Controller
             DB::commit();
 
             return redirect()
-                ->route('disbursements.show', $disbursement)
+                ->route('disbursements.index')
                 ->with('success', 'Disbursement created successfully');
 
         } catch (\Exception $e) {

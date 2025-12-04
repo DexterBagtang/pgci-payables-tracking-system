@@ -698,7 +698,7 @@ class CheckRequisitionController extends Controller
 
             return redirect()
                 ->route('check-requisitions.index')
-                ->with('success', 'Check requisition approved successfully');
+                ->with('success', "Check requisition $checkRequisition->requisition_number approved successfully");
 
         } catch (\Exception $e) {
             DB::rollBack();
