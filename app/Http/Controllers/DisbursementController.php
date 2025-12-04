@@ -528,6 +528,7 @@ class DisbursementController extends Controller
         $checkRequisitions = $disbursement->checkRequisitions()
             ->with([
                 'invoices.purchaseOrder.vendor',
+                'invoices.purchaseOrder.project',
                 'generator:id,name'
             ])
             ->get();
@@ -555,10 +556,43 @@ class DisbursementController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
+        // Calculate financial metrics
+        $totalAmount = $checkRequisitions->sum('php_amount');
+        $totalInvoices = $checkRequisitions->sum(function ($cr) {
+            return $cr->invoices->count();
+        });
+
+        // Get unique payees with their total amounts
+        $payees = $checkRequisitions->groupBy('payee_name')->map(function ($crs, $payeeName) {
+            return [
+                'name' => $payeeName,
+                'amount' => $crs->sum('php_amount'),
+                'check_requisition_count' => $crs->count(),
+            ];
+        })->values();
+
+        // Get unique projects/accounts
+        $projects = $checkRequisitions->flatMap(function ($cr) {
+            return $cr->invoices->map(function ($invoice) {
+                return $invoice->purchaseOrder->project ?? null;
+            })->filter();
+        })->unique('id')->values();
+
+        $accounts = $checkRequisitions->pluck('account_charge')->filter()->unique()->values();
+
         return inertia('disbursements/show', [
             'disbursement' => $disbursement,
             'checkRequisitions' => $checkRequisitions,
             'files' => $files,
+            'financialMetrics' => [
+                'total_amount' => $totalAmount,
+                'check_requisition_count' => $checkRequisitions->count(),
+                'invoice_count' => $totalInvoices,
+                'payee_count' => $payees->count(),
+            ],
+            'payees' => $payees,
+            'projects' => $projects,
+            'accounts' => $accounts,
         ]);
     }
 
