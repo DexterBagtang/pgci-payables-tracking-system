@@ -100,6 +100,19 @@ export default function QuickReleaseModal({ disbursement, open, onClose, onSucce
         }
     };
 
+    const handleCloseAfterRelease = () => {
+        // Clear the undo timeout
+        if (undoTimeout) clearTimeout(undoTimeout);
+
+        // Close the modal
+        setShowUndo(false);
+        onClose();
+
+        // Trigger success callback and reload
+        if (onSuccess) onSuccess();
+        router.reload({ only: ['disbursements', 'statistics'] });
+    };
+
     const formatDateForInput = (date) => {
         if (!date) return '';
         const d = new Date(date);
@@ -139,7 +152,7 @@ export default function QuickReleaseModal({ disbursement, open, onClose, onSucce
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button variant="outline" onClick={onClose}>
+                        <Button variant="outline" onClick={handleCloseAfterRelease}>
                             Close
                         </Button>
                         <Button variant="destructive" onClick={handleUndo} disabled={loading}>
