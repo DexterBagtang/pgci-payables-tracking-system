@@ -42,6 +42,7 @@ import {
     List,
     LayoutGrid,
     CalendarDays,
+    Printer,
 } from 'lucide-react';
 import PaginationServerSide from '@/components/custom/Pagination.jsx';
 import DisbursementSummaryCards from './DisbursementSummaryCards';
@@ -672,9 +673,9 @@ export default function DisbursementsTable({ disbursements, filters, filterOptio
                                                 <SelectValue />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="date_check_scheduled">Scheduled Date</SelectItem>
-                                                <SelectItem value="date_check_released_to_vendor">Released Date</SelectItem>
-                                                <SelectItem value="date_check_printing">Printing Date</SelectItem>
+                                                <SelectItem value="date_check_printing">Date Check Printing</SelectItem>
+                                                <SelectItem value="date_check_scheduled">Date Scheduled for Release</SelectItem>
+                                                <SelectItem value="date_check_released_to_vendor">Date Released to Vendor</SelectItem>
                                                 <SelectItem value="created_at">Created Date</SelectItem>
                                             </SelectContent>
                                         </Select>
@@ -777,6 +778,15 @@ export default function DisbursementsTable({ disbursements, filters, filterOptio
                                             <Button
                                                 variant="ghost"
                                                 size="sm"
+                                                onClick={() => handleSort('date_check_printing')}
+                                            >
+                                                Printed {getSortIcon('date_check_printing')}
+                                            </Button>
+                                        </TableHead>
+                                        <TableHead>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
                                                 onClick={() => handleSort('date_check_scheduled')}
                                             >
                                                 Scheduled {getSortIcon('date_check_scheduled')}
@@ -798,7 +808,7 @@ export default function DisbursementsTable({ disbursements, filters, filterOptio
                                 <TableBody>
                                     {data.length === 0 ? (
                                         <TableRow>
-                                            <TableCell colSpan={10} className="text-center text-gray-500 py-8">
+                                            <TableCell colSpan={11} className="text-center text-gray-500 py-8">
                                                 No disbursements found
                                             </TableCell>
                                         </TableRow>
@@ -996,17 +1006,31 @@ export default function DisbursementsTable({ disbursements, filters, filterOptio
                                                             )}
                                                         </TableCell>
 
+                                                        {/* Printing Date */}
+                                                        <TableCell>
+                                                            {disbursement.date_check_printing ? (
+                                                                <div className="flex items-center gap-2">
+                                                                    <Printer className="h-4 w-4 text-blue-600" />
+                                                                    <span className="text-sm">
+                                                                        {format(formatDate(disbursement.date_check_printing), 'MMM dd, yyyy')}
+                                                                    </span>
+                                                                </div>
+                                                            ) : (
+                                                                <span className="text-sm text-gray-400">Not printed</span>
+                                                            )}
+                                                        </TableCell>
+
                                                         {/* Scheduled Date */}
                                                         <TableCell>
                                                             {disbursement.date_check_scheduled ? (
                                                                 <div className="flex items-center gap-2">
-                                                                    <CalendarIcon className="h-4 w-4 text-gray-400" />
+                                                                    <CalendarIcon className="h-4 w-4 text-orange-600" />
                                                                     <span className="text-sm">
                                                                         {format(formatDate(disbursement.date_check_scheduled), 'MMM dd, yyyy')}
                                                                     </span>
                                                                 </div>
                                                             ) : (
-                                                                <span className="text-sm text-gray-400">Not set</span>
+                                                                <span className="text-sm text-gray-400">Not scheduled</span>
                                                             )}
                                                         </TableCell>
 

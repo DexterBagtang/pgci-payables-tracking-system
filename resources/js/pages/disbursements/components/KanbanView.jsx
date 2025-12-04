@@ -11,7 +11,8 @@ import {
     CheckCircle2,
     FileText,
     Eye,
-    Zap
+    Zap,
+    Printer
 } from 'lucide-react';
 import { formatCurrency } from '@/components/custom/helpers';
 import { format } from 'date-fns';
@@ -91,9 +92,17 @@ export default function KanbanView() {
                             {formatCurrency(disbursement.total_amount)}
                         </div>
 
+                        {/* Printing Date */}
+                        {disbursement.date_check_printing && (
+                            <div className="flex items-center gap-2 text-xs text-blue-600">
+                                <Printer className="h-3 w-3" />
+                                Printed: {format(new Date(disbursement.date_check_printing), 'MMM dd, yyyy')}
+                            </div>
+                        )}
+
                         {/* Scheduled Date */}
                         {disbursement.date_check_scheduled && (
-                            <div className="flex items-center gap-2 text-xs text-gray-600">
+                            <div className="flex items-center gap-2 text-xs text-orange-600">
                                 <Calendar className="h-3 w-3" />
                                 Scheduled: {format(new Date(disbursement.date_check_scheduled), 'MMM dd, yyyy')}
                             </div>

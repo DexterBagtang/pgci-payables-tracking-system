@@ -423,25 +423,35 @@ export default function CreateDisbursementForm({ checkRequisitions, filters }) {
                                     )}
                                 </div>
 
-                                <DatePicker
-                                    label="Date Check Scheduled"
-                                    value={formData.date_check_scheduled}
-                                    onChange={(date) => {
-                                        setData('date_check_scheduled', formatDateForInput(date));
-                                    }}
-                                    error={errors.date_check_scheduled}
-                                    placeholder="Select date"
-                                />
+                                <div className="space-y-1">
+                                    <DatePicker
+                                        label="Date Check Printing"
+                                        value={formData.date_check_printing}
+                                        onChange={(date) => {
+                                            setData('date_check_printing', formatDateForInput(date));
+                                        }}
+                                        error={errors.date_check_printing}
+                                        placeholder="Select date"
+                                    />
+                                    <p className="text-xs text-gray-500">
+                                        When the physical check is generated and printed
+                                    </p>
+                                </div>
 
-                                <DatePicker
-                                    label="Date Check Printing"
-                                    value={formData.date_check_printing}
-                                    onChange={(date) => {
-                                        setData('date_check_printing', formatDateForInput(date));
-                                    }}
-                                    error={errors.date_check_printing}
-                                    placeholder="Select date"
-                                />
+                                <div className="space-y-1">
+                                    <DatePicker
+                                        label="Date Scheduled for Release"
+                                        value={formData.date_check_scheduled}
+                                        onChange={(date) => {
+                                            setData('date_check_scheduled', formatDateForInput(date));
+                                        }}
+                                        error={errors.date_check_scheduled}
+                                        placeholder="Select date"
+                                    />
+                                    <p className="text-xs text-gray-500">
+                                        When the check is scheduled to be released
+                                    </p>
+                                </div>
 
                                 <div className="space-y-1">
                                     <DatePicker
@@ -454,7 +464,7 @@ export default function CreateDisbursementForm({ checkRequisitions, filters }) {
                                         placeholder="Select date"
                                     />
                                     <p className="text-xs text-gray-500">
-                                        (Stops aging, marks invoices as paid)
+                                        Actual handover of the check (stops aging, marks invoices as paid)
                                     </p>
                                 </div>
                             </div>
