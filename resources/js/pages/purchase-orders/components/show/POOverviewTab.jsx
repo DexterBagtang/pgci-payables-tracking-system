@@ -1,136 +1,224 @@
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import StatusBadge from '@/components/custom/StatusBadge';
-import { Link } from '@inertiajs/react';
-import { FileText, Info, Eye } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Hash, Calendar, Package, Coins, User, Building2 } from 'lucide-react';
 
 /**
- * Overview Tab Content
- * Shows PO details and related information (vendor, project)
- * Principle: Tab-specific content in dedicated component
+ * Overview Tab Content - Compact Grid Design
+ * Shows comprehensive PO information following compact variation layout
  */
-export default function POOverviewTab({ purchaseOrder, formatDate, formatCurrency }) {
+export default function POOverviewTab({ purchaseOrder, formatDate, formatCurrency, invoices }) {
     return (
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            {/* Main PO Details */}
-            <Card>
-                <CardHeader className="pb-4">
-                    <CardTitle className="flex items-center text-lg">
-                        <FileText className="mr-2 h-5 w-5 text-blue-600" />
-                        Purchase Order Details
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    {purchaseOrder.description && (
-                        <div className="border-b pb-4">
-                            <div className="mb-2 text-sm font-medium text-slate-700">Description</div>
-                            <div className="rounded bg-slate-50 p-3 text-sm text-slate-700">
-                                {purchaseOrder.description}
-                            </div>
-                        </div>
-                    )}
+        <div className="space-y-6">
+            {/* Info Grid - Compact 5 columns */}
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+                <div className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+                    <div className="mb-1 flex items-center gap-1 text-xs text-gray-500">
+                        <Hash className="h-3 w-3" />
+                        <span>PO Number</span>
+                    </div>
+                    <div className="font-mono text-sm font-semibold text-gray-900 dark:text-gray-100">
+                        {purchaseOrder.po_number}
+                    </div>
+                </div>
 
-                    <div className="grid grid-cols-1 gap-4 text-sm">
-                        <div>
-                            <div className="text-slate-500">PO Number</div>
-                            <div className="font-medium">{purchaseOrder.po_number || 'N/A'}</div>
+                <div className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+                    <div className="mb-1 flex items-center gap-1 text-xs text-gray-500">
+                        <Calendar className="h-3 w-3" />
+                        <span>PO Date</span>
+                    </div>
+                    <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                        {formatDate(purchaseOrder.po_date)}
+                    </div>
+                </div>
+
+                <div className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+                    <div className="mb-1 flex items-center gap-1 text-xs text-gray-500">
+                        <Package className="h-3 w-3" />
+                        <span>Total Items</span>
+                    </div>
+                    <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                        {purchaseOrder.line_items?.length || 0}
+                    </div>
+                </div>
+
+                <div className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+                    <div className="mb-1 flex items-center gap-1 text-xs text-gray-500">
+                        <Coins className="h-3 w-3" />
+                        <span>Currency</span>
+                    </div>
+                    <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                        {purchaseOrder.currency}
+                    </div>
+                </div>
+
+                <div className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+                    <div className="mb-1 flex items-center gap-1 text-xs text-gray-500">
+                        <User className="h-3 w-3" />
+                        <span>Created By</span>
+                    </div>
+                    <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                        {purchaseOrder.created_by?.name || 'N/A'}
+                    </div>
+                </div>
+            </div>
+
+            {/* Description Section (if available) */}
+            {purchaseOrder.description && (
+                <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+                    <div className="mb-2 text-xs font-medium text-gray-500 dark:text-gray-400">Description</div>
+                    <div className="text-sm text-gray-700 dark:text-gray-300">
+                        {purchaseOrder.description}
+                    </div>
+                </div>
+            )}
+
+            {/* Vendor & Project Details */}
+            <div className="grid gap-4 lg:grid-cols-2">
+                {/* Vendor Information Card */}
+                <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
+                    <div className="border-b border-gray-200 bg-gradient-to-r from-blue-50 to-blue-100 px-4 py-3 dark:border-gray-800 dark:from-blue-950 dark:to-blue-900">
+                        <div className="flex items-center gap-2">
+                            <Building2 className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                            <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-100">Vendor Details</h3>
                         </div>
-                        <div>
-                            <div className="text-slate-500">PO Date</div>
-                            <div className="font-medium">{formatDate(purchaseOrder.po_date)}</div>
-                        </div>
-                        <div>
-                            <div className="text-slate-500">Status</div>
-                            <StatusBadge status={purchaseOrder.po_status} />
-                        </div>
-                        {purchaseOrder.expected_delivery_date && (
+                    </div>
+                    <div className="p-4">
+                        <div className="space-y-3">
                             <div>
-                                <div className="text-slate-500">Expected Delivery</div>
-                                <div className="font-medium">{formatDate(purchaseOrder.expected_delivery_date)}</div>
+                                <div className="text-xs text-gray-500 dark:text-gray-400">Vendor Name</div>
+                                <div className="mt-0.5 text-base font-semibold text-gray-900 dark:text-gray-100">
+                                    {purchaseOrder.vendor?.name || 'N/A'}
+                                </div>
                             </div>
-                        )}
-                        {purchaseOrder.payment_term && (
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <div className="text-xs text-gray-500 dark:text-gray-400">Contact Person</div>
+                                    <div className="mt-0.5 text-sm text-gray-900 dark:text-gray-100">
+                                        {purchaseOrder.vendor?.contact_person || 'N/A'}
+                                    </div>
+                                </div>
+                                <div>
+                                    <div className="text-xs text-gray-500 dark:text-gray-400">Contact Number</div>
+                                    <div className="mt-0.5 text-sm text-gray-900 dark:text-gray-100">
+                                        {purchaseOrder.vendor?.contact_number || 'N/A'}
+                                    </div>
+                                </div>
+                            </div>
                             <div>
-                                <div className="text-slate-500">Payment Terms</div>
-                                <div className="font-medium">{purchaseOrder.payment_term}</div>
+                                <div className="text-xs text-gray-500 dark:text-gray-400">Email</div>
+                                <div className="mt-0.5 text-sm text-gray-900 dark:text-gray-100">
+                                    {purchaseOrder.vendor?.email || 'N/A'}
+                                </div>
+                            </div>
+                            <div>
+                                <div className="text-xs text-gray-500 dark:text-gray-400">Address</div>
+                                <div className="mt-0.5 text-sm text-gray-900 dark:text-gray-100">
+                                    {purchaseOrder.vendor?.address || 'N/A'}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Project Information Card */}
+                <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
+                    <div className="border-b border-gray-200 bg-gradient-to-r from-green-50 to-green-100 px-4 py-3 dark:border-gray-800 dark:from-green-950 dark:to-green-900">
+                        <div className="flex items-center gap-2">
+                            <Package className="h-4 w-4 text-green-600 dark:text-green-400" />
+                            <h3 className="text-sm font-semibold text-green-900 dark:text-green-100">Project Details</h3>
+                        </div>
+                    </div>
+                    <div className="p-4">
+                        <div className="space-y-3">
+                            <div>
+                                <div className="text-xs text-gray-500 dark:text-gray-400">Project Name</div>
+                                <div className="mt-0.5 text-base font-semibold text-gray-900 dark:text-gray-100">
+                                    {purchaseOrder.project?.project_title || 'N/A'}
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <div className="text-xs text-gray-500 dark:text-gray-400">Project Code</div>
+                                    <div className="mt-0.5 font-mono text-sm text-gray-900 dark:text-gray-100">
+                                        {purchaseOrder.project?.code || 'N/A'}
+                                    </div>
+                                </div>
+                                <div>
+                                    <div className="text-xs text-gray-500 dark:text-gray-400">Status</div>
+                                    <div className="mt-0.5 text-sm text-gray-900 dark:text-gray-100">
+                                        {purchaseOrder.project?.status || 'N/A'}
+                                    </div>
+                                </div>
+                            </div>
+                            {purchaseOrder.project?.cer_number && (
+                                <div>
+                                    <div className="text-xs text-gray-500 dark:text-gray-400">CER Number</div>
+                                    <div className="mt-0.5 font-mono text-sm text-gray-900 dark:text-gray-100">
+                                        {purchaseOrder.project.cer_number}
+                                    </div>
+                                </div>
+                            )}
+                            <div>
+                                <div className="text-xs text-gray-500 dark:text-gray-400">Description</div>
+                                <div className="mt-0.5 text-sm text-gray-900 dark:text-gray-100">
+                                    {purchaseOrder.project?.description || 'No description available'}
+                                </div>
+                            </div>
+                            <div>
+                                <div className="text-xs text-gray-500 dark:text-gray-400">Location</div>
+                                <div className="mt-0.5 text-sm text-gray-900 dark:text-gray-100">
+                                    {purchaseOrder.project?.location || 'N/A'}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Recent Invoices Summary */}
+            {invoices && invoices.length > 0 && (
+                <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
+                    <div className="border-b border-gray-200 bg-gradient-to-r from-purple-50 to-purple-100 px-4 py-3 dark:border-gray-800 dark:from-purple-950 dark:to-purple-900">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <Coins className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                                <h3 className="text-sm font-semibold text-purple-900 dark:text-purple-100">Recent Invoices</h3>
+                            </div>
+                            <Badge variant="outline" className="bg-white text-xs dark:bg-gray-900">
+                                {invoices.length} total
+                            </Badge>
+                        </div>
+                    </div>
+                    <div className="divide-y divide-gray-100 dark:divide-gray-800">
+                        {invoices.slice(0, 5).map((invoice) => (
+                            <div key={invoice.id} className="flex items-center justify-between p-3 hover:bg-gray-50 dark:hover:bg-gray-850">
+                                <div className="flex-1">
+                                    <div className="flex items-center gap-2">
+                                        <span className="font-mono text-sm font-semibold text-gray-900 dark:text-gray-100">
+                                            {invoice.invoice_number}
+                                        </span>
+                                        <Badge variant="outline" className="text-xs">
+                                            {invoice.status}
+                                        </Badge>
+                                    </div>
+                                    <div className="mt-0.5 text-xs text-gray-600 dark:text-gray-400">
+                                        {formatDate(invoice.invoice_date)}
+                                    </div>
+                                </div>
+                                <div className="text-right">
+                                    <div className="font-mono text-sm font-semibold text-gray-900 dark:text-gray-100">
+                                        {formatCurrency(invoice.total_amount, purchaseOrder.currency)}
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                        {invoices.length > 5 && (
+                            <div className="bg-gray-50 p-3 text-center text-xs text-gray-600 dark:bg-gray-850 dark:text-gray-400">
+                                +{invoices.length - 5} more invoices
                             </div>
                         )}
                     </div>
-                </CardContent>
-            </Card>
-
-            {/* Related Information */}
-            <Card>
-                <CardHeader className="pb-4">
-                    <CardTitle className="flex items-center text-lg">
-                        <Info className="mr-2 h-5 w-5 text-indigo-600" />
-                        Related Information
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                    {/* Vendor Details */}
-                    {purchaseOrder.vendor && (
-                        <div>
-                            <div className="mb-3 flex items-center justify-between">
-                                <h4 className="font-medium text-slate-800">Vendor Information</h4>
-                                <Link href={`/vendors/${purchaseOrder.vendor.id}`}>
-                                    <Button variant="ghost" size="sm">
-                                        <Eye className="mr-1 h-3 w-3" />
-                                        View
-                                    </Button>
-                                </Link>
-                            </div>
-                            <div className="space-y-2 text-sm">
-                                <div className="flex justify-between">
-                                    <span className="text-slate-500">Name:</span>
-                                    <span className="font-medium">{purchaseOrder.vendor.name}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span className="text-slate-500">Category:</span>
-                                    <span className="font-medium">{purchaseOrder.vendor.category}</span>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Project Details */}
-                    {purchaseOrder.project && (
-                        <div className="border-t pt-4">
-                            <div className="mb-3 flex items-center justify-between">
-                                <h4 className="font-medium text-slate-800">Project Information</h4>
-                                <Link href={`/projects/${purchaseOrder.project.id}`}>
-                                    <Button variant="ghost" size="sm">
-                                        <Eye className="mr-1 h-3 w-3" />
-                                        View
-                                    </Button>
-                                </Link>
-                            </div>
-                            <div className="space-y-2 text-sm">
-                                <div className="flex justify-between">
-                                    <span className="text-slate-500">Title:</span>
-                                    <span className="max-w-[200px] truncate text-right font-medium">
-                                        {purchaseOrder.project.project_title}
-                                    </span>
-                                </div>
-                                {purchaseOrder.project.cer_number && (
-                                    <div className="flex justify-between">
-                                        <span className="text-slate-500">CER Number:</span>
-                                        <span className="font-mono font-medium">{purchaseOrder.project.cer_number}</span>
-                                    </div>
-                                )}
-                                {purchaseOrder.project.total_project_cost && (
-                                    <div className="flex justify-between">
-                                        <span className="text-slate-500">Total Project Cost:</span>
-                                        <span className="font-medium">
-                                            {formatCurrency(purchaseOrder.project.total_project_cost, purchaseOrder.currency)}
-                                        </span>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
+                </div>
+            )}
         </div>
     );
 }

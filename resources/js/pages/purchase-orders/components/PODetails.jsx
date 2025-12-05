@@ -1,7 +1,6 @@
 import { lazy, Suspense, useState } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useRemember, usePage } from '@inertiajs/react';
-import { Loader, Info, DollarSign, Receipt, FileText, Clock } from 'lucide-react';
+import { Loader, Info, DollarSign, Receipt, FileText, Clock, MessageSquare } from 'lucide-react';
 
 // Import custom hooks
 import { usePOFinancials } from '../hooks/usePOFinancials';
@@ -11,7 +10,6 @@ import { usePOFormatters } from '../hooks/usePOFormatters';
 import POHeader from './show/POHeader';
 import POFinancialCards from './show/POFinancialCards';
 import POInvoiceStatusCards from './show/POInvoiceStatusCards';
-import POKeyInformation from './show/POKeyInformation';
 import POOverviewTab from './show/POOverviewTab';
 import POFinancialTab from './show/POFinancialTab';
 import POInvoicesTab from './show/POInvoicesTab';
@@ -43,140 +41,85 @@ export default function PODetails({ purchaseOrder, vendors, projects, backUrl })
     const financialMetrics = usePOFinancials(purchaseOrder, invoices);
     const { formatCurrency, formatDate, formatPercentage } = usePOFormatters();
 
-    // Tab configuration - cleaner approach
+    // Tab configuration - compact style
     const tabs = [
-        {
-            value: 'overview',
-            label: 'Overview',
-            icon: Info,
-            activeClasses: 'border-blue-500 bg-blue-50 shadow-sm',
-            iconActiveClasses: 'text-blue-600',
-            textActiveClasses: 'text-blue-700',
-            indicatorClasses: 'bg-blue-500'
-        },
-        {
-            value: 'financial',
-            label: 'Financial',
-            icon: DollarSign,
-            activeClasses: 'border-green-500 bg-green-50 shadow-sm',
-            iconActiveClasses: 'text-green-600',
-            textActiveClasses: 'text-green-700',
-            indicatorClasses: 'bg-green-500'
-        },
-        {
-            value: 'invoices',
-            label: `Invoices (${invoices?.length || 0})`,
-            icon: Receipt,
-            activeClasses: 'border-orange-500 bg-orange-50 shadow-sm',
-            iconActiveClasses: 'text-orange-600',
-            textActiveClasses: 'text-orange-700',
-            indicatorClasses: 'bg-orange-500'
-        },
-        {
-            value: 'attachments',
-            label: `Attachments (${files?.length || 0})`,
-            icon: FileText,
-            activeClasses: 'border-purple-500 bg-purple-50 shadow-sm',
-            iconActiveClasses: 'text-purple-600',
-            textActiveClasses: 'text-purple-700',
-            indicatorClasses: 'bg-purple-500'
-        },
-        {
-            value: 'remarks',
-            label: `Remarks (${remarks?.length || 0})`,
-            icon: FileText,
-            activeClasses: 'border-indigo-500 bg-indigo-50 shadow-sm',
-            iconActiveClasses: 'text-indigo-600',
-            textActiveClasses: 'text-indigo-700',
-            indicatorClasses: 'bg-indigo-500'
-        },
-        {
-            value: 'timeline',
-            label: 'Activity Logs',
-            icon: Clock,
-            activeClasses: 'border-slate-500 bg-slate-50 shadow-sm',
-            iconActiveClasses: 'text-slate-600',
-            textActiveClasses: 'text-slate-700',
-            indicatorClasses: 'bg-slate-500'
-        },
+        { id: 'overview', label: 'Overview', icon: Info },
+        { id: 'financial', label: 'Financial', icon: DollarSign },
+        { id: 'invoices', label: `Invoices (${invoices?.length || 0})`, icon: Receipt },
+        { id: 'attachments', label: `Files (${files?.length || 0})`, icon: FileText },
+        { id: 'remarks', label: `Notes (${remarks?.length || 0})`, icon: MessageSquare },
+        { id: 'timeline', label: 'History', icon: Clock },
     ];
 
     return (
         <>
-            <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-                <div className="container mx-auto max-w-7xl space-y-6 p-6">
-                    {/* Header Section */}
-                    <POHeader
-                        purchaseOrder={purchaseOrder}
-                        user={user}
-                        financialMetrics={financialMetrics}
-                        formatDate={formatDate}
-                        onCloseClick={() => setShowCloseDialog(true)}
-                    />
+            <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+                {/* Header Section - Full Width */}
+                <div className="border-b border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
+                    <div className="mx-auto max-w-[1800px] px-4 py-6 sm:px-6 lg:px-8">
+                        <POHeader
+                            purchaseOrder={purchaseOrder}
+                            user={user}
+                            financialMetrics={financialMetrics}
+                            formatDate={formatDate}
+                            onCloseClick={() => setShowCloseDialog(true)}
+                        />
+                    </div>
+                </div>
 
-                    {/* Financial Metrics Dashboard */}
-                    <POFinancialCards
-                        financialMetrics={financialMetrics}
-                        currency={purchaseOrder.currency}
-                        formatCurrency={formatCurrency}
-                        formatPercentage={formatPercentage}
-                    />
+                {/* Main Content Area */}
+                <div className="mx-auto max-w-[1800px] px-4 py-6 sm:px-6 lg:px-8">
+                    {/* Compact Tabs - Moved to Top */}
+                    <div className="mb-6 flex gap-2 overflow-x-auto pb-2">
+                        {tabs.map((item) => {
+                            const Icon = item.icon;
+                            const isActive = tab === item.id;
+                            return (
+                                <button
+                                    key={item.id}
+                                    onClick={() => setTab(item.id)}
+                                    className={`flex items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
+                                        isActive
+                                            ? 'bg-gray-900 text-white shadow-sm dark:bg-white dark:text-gray-900'
+                                            : 'bg-white text-gray-700 hover:bg-gray-100 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800'
+                                    }`}
+                                >
+                                    <Icon className="h-3.5 w-3.5" />
+                                    <span>{item.label}</span>
+                                </button>
+                            );
+                        })}
+                    </div>
 
-                    {/* Invoice Status Overview */}
-                    <POInvoiceStatusCards
-                        financialMetrics={financialMetrics}
-                        totalInvoices={invoices?.length || 0}
-                    />
+                    {/* Tab Content */}
+                    {tab === 'overview' && (
+                        <div className="space-y-6">
+                            {/* Financial Metrics Dashboard */}
+                            <POFinancialCards
+                                financialMetrics={financialMetrics}
+                                currency={purchaseOrder.currency}
+                                formatCurrency={formatCurrency}
+                                formatPercentage={formatPercentage}
+                            />
 
-                    {/* Key Information */}
-                    <POKeyInformation
-                        purchaseOrder={purchaseOrder}
-                        formatDate={formatDate}
-                    />
+                            {/* Invoice Status Overview */}
+                            <POInvoiceStatusCards
+                                financialMetrics={financialMetrics}
+                                totalInvoices={invoices?.length || 0}
+                            />
 
-                    {/* Tabbed Content */}
-                    <Tabs value={tab} onValueChange={setTab} className="space-y-4">
-                        {/* Tab Navigation */}
-                        <div className="flex flex-wrap gap-2">
-                            {tabs.map((tabConfig) => {
-                                const Icon = tabConfig.icon;
-                                const isActive = tab === tabConfig.value;
-
-                                return (
-                                    <button
-                                        key={tabConfig.value}
-                                        onClick={() => setTab(tabConfig.value)}
-                                        className={`
-                                            group relative flex items-center gap-2 rounded-lg border-2 px-4 py-2.5 transition-all duration-200
-                                            ${isActive ? tabConfig.activeClasses : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm'}
-                                        `}
-                                    >
-                                        <Icon className={`h-4 w-4 transition-colors ${
-                                            isActive ? tabConfig.iconActiveClasses : 'text-gray-500 group-hover:text-gray-700'
-                                        }`} />
-                                        <span className={`text-sm font-medium transition-colors ${
-                                            isActive ? tabConfig.textActiveClasses : 'text-gray-700 group-hover:text-gray-900'
-                                        }`}>
-                                            {tabConfig.label}
-                                        </span>
-                                        {isActive && (
-                                            <div className={`absolute -bottom-2 left-1/2 h-1 w-3/4 -translate-x-1/2 rounded-full ${tabConfig.indicatorClasses}`} />
-                                        )}
-                                    </button>
-                                );
-                            })}
-                        </div>
-
-                        {/* Tab Content */}
-                        <TabsContent value="overview" className="space-y-6">
+                            {/* Overview Tab Content */}
                             <POOverviewTab
                                 purchaseOrder={purchaseOrder}
                                 formatDate={formatDate}
                                 formatCurrency={formatCurrency}
+                                invoices={invoices}
                             />
-                        </TabsContent>
+                        </div>
+                    )}
 
-                        <TabsContent value="financial" className="space-y-6">
+                    {tab === 'financial' && (
+                        <div className="space-y-6">
                             <POFinancialTab
                                 financialMetrics={financialMetrics}
                                 currency={purchaseOrder.currency}
@@ -185,24 +128,30 @@ export default function PODetails({ purchaseOrder, vendors, projects, backUrl })
                                 formatPercentage={formatPercentage}
                                 onViewInvoicesClick={() => setTab('invoices')}
                             />
-                        </TabsContent>
+                        </div>
+                    )}
 
-                        <TabsContent value="invoices" className="space-y-4">
+                    {tab === 'invoices' && (
+                        <div className="space-y-4">
                             <POInvoicesTab
                                 invoices={invoices}
                                 currency={purchaseOrder.currency}
                                 formatCurrency={formatCurrency}
                                 formatDate={formatDate}
                             />
-                        </TabsContent>
+                        </div>
+                    )}
 
-                        <TabsContent value="attachments" className="space-y-6">
+                    {tab === 'attachments' && (
+                        <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
                             <Suspense fallback={<Loader className="mx-auto h-6 w-6 animate-spin text-blue-600" />}>
                                 <AttachmentViewer files={files || []} />
                             </Suspense>
-                        </TabsContent>
+                        </div>
+                    )}
 
-                        <TabsContent value="remarks" className="space-y-6">
+                    {tab === 'remarks' && (
+                        <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
                             <Suspense fallback={<Loader className="mx-auto animate-spin" />}>
                                 <Remarks
                                     remarks={remarks}
@@ -210,9 +159,11 @@ export default function PODetails({ purchaseOrder, vendors, projects, backUrl })
                                     remarkableId={purchaseOrder.id}
                                 />
                             </Suspense>
-                        </TabsContent>
+                        </div>
+                    )}
 
-                        <TabsContent value="timeline" className="space-y-6">
+                    {tab === 'timeline' && (
+                        <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
                             <Suspense fallback={<Loader className="mx-auto animate-spin" />}>
                                 <ActivityTimeline
                                     activity_logs={activity_logs}
@@ -220,8 +171,8 @@ export default function PODetails({ purchaseOrder, vendors, projects, backUrl })
                                     entityType="Purchase Order"
                                 />
                             </Suspense>
-                        </TabsContent>
-                    </Tabs>
+                        </div>
+                    )}
                 </div>
             </div>
 

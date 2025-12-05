@@ -32,12 +32,16 @@ export function usePOFinancials(purchaseOrder, invoices) {
             if (!inv.due_date || inv.invoice_status === 'paid') return false;
             return new Date(inv.due_date) < new Date();
         }).length || 0;
+        const approvedInvoices = invoices?.filter(inv => inv.status === 'approved' || inv.status === 'Approved').length || 0;
 
         // Days calculations
         const daysSincePO = purchaseOrder.po_date ?
             Math.floor((new Date() - new Date(purchaseOrder.po_date)) / (1000 * 60 * 60 * 24)) : 0;
         const daysToDelivery = purchaseOrder.expected_delivery_date ?
             Math.floor((new Date(purchaseOrder.expected_delivery_date) - new Date()) / (1000 * 60 * 60 * 24)) : null;
+
+        // Utilization calculation
+        const utilizationPercentage = poAmount > 0 ? (totalInvoicedAmount / poAmount) * 100 : 0;
 
         return {
             poAmount,
@@ -51,11 +55,17 @@ export function usePOFinancials(purchaseOrder, invoices) {
             invoicedPercentage,
             paidPercentage,
             completionPercentage,
+            utilizationPercentage,
             paidInvoices,
             pendingInvoices,
             overdueInvoices,
+            approvedInvoicesCount: approvedInvoices,
             daysSincePO,
-            daysToDelivery
+            daysToDelivery,
+            // Aliases for variation component compatibility
+            totalAmount: poAmount,
+            totalInvoiced: totalInvoicedAmount,
+            remainingAmount: outstandingAmount,
         };
     }, [purchaseOrder, invoices]);
 }
