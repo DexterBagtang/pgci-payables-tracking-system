@@ -103,10 +103,10 @@ export default function PendingReleasesWidget() {
                                     </div>
                                     <div className="flex items-center justify-between text-xs text-muted-foreground">
                                         <span>
-                                            Pending: {check.days_pending} day{check.days_pending !== 1 ? 's' : ''}
+                                            Pending Release: {check.days_pending} day{check.days_pending !== 1 ? 's' : ''}
                                         </span>
                                         <span>
-                                            Printed: {format(new Date(check.date_check_printed), 'MMM dd, yyyy')}
+                                            Check Printed: {format(new Date(check.date_check_printed), 'MMM dd, yyyy')}
                                         </span>
                                     </div>
                                 </div>

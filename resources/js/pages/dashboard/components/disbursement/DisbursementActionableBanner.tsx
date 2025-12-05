@@ -32,21 +32,21 @@ export default function DisbursementActionableBanner() {
             label: 'Overdue for Printing',
             count: data.overdue_printing,
             color: 'red' as const,
-            description: 'Checks past scheduled date',
+            description: 'Scheduled for release but not printed',
         },
         {
             icon: Send,
             label: 'Delayed Releases',
             count: data.delayed_releases,
             color: 'orange' as const,
-            description: 'Printed checks >7 days old',
+            description: 'Printed checks awaiting release >7 days',
         },
         {
             icon: Printer,
             label: 'Scheduled Today',
             count: data.scheduled_today,
             color: 'blue' as const,
-            description: 'Checks to print today',
+            description: 'Checks scheduled for release today',
         },
     ];
 

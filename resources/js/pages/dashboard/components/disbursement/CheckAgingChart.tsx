@@ -7,16 +7,16 @@ import { useDashboardWidget } from '@/hooks/useDashboardWidget';
 import type { CheckAgingBucket } from '@/types';
 
 const BUCKET_COLORS: Record<string, string> = {
-    'Overdue for Printing': '#ef4444',        // red-500
-    'Scheduled (Not Printed)': '#f97316',     // orange-500
-    'Printed (0-7 days)': '#22c55e',          // green-500
-    'Printed (8-14 days)': '#eab308',         // yellow-500
-    'Printed (>14 days)': '#dc2626',          // red-600
+    'Overdue for Printing': '#ef4444',                      // red-500
+    'Scheduled for Release (Not Printed)': '#f97316',       // orange-500
+    'Printed (0-7 days)': '#22c55e',                        // green-500
+    'Printed (8-14 days)': '#eab308',                       // yellow-500
+    'Printed (>14 days)': '#dc2626',                        // red-600
 };
 
 const BUCKET_ORDER = [
     'Overdue for Printing',
-    'Scheduled (Not Printed)',
+    'Scheduled for Release (Not Printed)',
     'Printed (0-7 days)',
     'Printed (8-14 days)',
     'Printed (>14 days)'

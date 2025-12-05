@@ -145,7 +145,7 @@ class DisbursementMetricsService
 
         $buckets = [
             'Overdue for Printing' => ['count' => 0, 'total_amount' => 0],
-            'Scheduled (Not Printed)' => ['count' => 0, 'total_amount' => 0],
+            'Scheduled for Release (Not Printed)' => ['count' => 0, 'total_amount' => 0],
             'Printed (0-7 days)' => ['count' => 0, 'total_amount' => 0],
             'Printed (8-14 days)' => ['count' => 0, 'total_amount' => 0],
             'Printed (>14 days)' => ['count' => 0, 'total_amount' => 0],
@@ -154,7 +154,7 @@ class DisbursementMetricsService
         foreach ($disbursements as $disbursement) {
             if ($disbursement->date_check_printing === null) {
                 $scheduledDate = Carbon::parse($disbursement->date_check_scheduled);
-                $bucket = $scheduledDate->isPast() ? 'Overdue for Printing' : 'Scheduled (Not Printed)';
+                $bucket = $scheduledDate->isPast() ? 'Overdue for Printing' : 'Scheduled for Release (Not Printed)';
             } else {
                 $daysSincePrinted = Carbon::parse($disbursement->date_check_printing)->diffInDays(Carbon::now());
                 if ($daysSincePrinted > 14) {

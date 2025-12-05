@@ -88,7 +88,7 @@ export default function CheckSchedule() {
                                                 </div>
                                             </div>
                                             <div className="flex items-center justify-between text-xs text-muted-foreground">
-                                                <span>Scheduled: {format(new Date(check.date_check_scheduled), 'MMM dd, yyyy')}</span>
+                                                <span>Scheduled for Release: {format(new Date(check.date_check_scheduled), 'MMM dd, yyyy')}</span>
                                                 <Badge variant="outline" className="text-xs capitalize">
                                                     {check.payment_method}
                                                 </Badge>

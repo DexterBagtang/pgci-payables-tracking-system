@@ -92,7 +92,7 @@ export default function CheckPrintingQueue() {
                                         Waiting: {check.days_waiting} day{check.days_waiting !== 1 ? 's' : ''}
                                     </span>
                                     <span>
-                                        Scheduled: {format(new Date(check.date_check_scheduled), 'MMM dd, yyyy')}
+                                        Scheduled for Release: {format(new Date(check.date_check_scheduled), 'MMM dd, yyyy')}
                                     </span>
                                 </div>
                             </div>
