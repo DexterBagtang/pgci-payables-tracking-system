@@ -62,6 +62,7 @@ export default function PODetails({ purchaseOrder, vendors, projects, backUrl })
                             user={user}
                             financialMetrics={financialMetrics}
                             formatDate={formatDate}
+                            formatPercentage={formatPercentage}
                             onCloseClick={() => setShowCloseDialog(true)}
                         />
                     </div>
