@@ -1,6 +1,7 @@
 import { lazy, Suspense, useState } from 'react';
 import { useRemember, usePage } from '@inertiajs/react';
 import { Loader, Info, DollarSign, Receipt, FileText, Clock, MessageSquare } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 // Import custom hooks
 import { usePOFinancials } from '../hooks/usePOFinancials';
@@ -12,7 +13,7 @@ import POFinancialCards from './show/POFinancialCards';
 import POInvoiceStatusCards from './show/POInvoiceStatusCards';
 import POOverviewTab from './show/POOverviewTab';
 import POFinancialTab from './show/POFinancialTab';
-import POInvoicesTab from './show/POInvoicesTab';
+import InvoicesList from '@/components/custom/InvoicesList';
 
 // Lazy load heavy components
 const ActivityTimeline = lazy(() => import('@/components/custom/ActivityTimeline.jsx'));
@@ -134,11 +135,31 @@ export default function PODetails({ purchaseOrder, vendors, projects, backUrl })
 
                     {tab === 'invoices' && (
                         <div className="space-y-4">
-                            <POInvoicesTab
-                                invoices={invoices}
-                                currency={purchaseOrder.currency}
+                            <InvoicesList
+                                invoices={(invoices || []).map(invoice => ({
+                                    ...invoice,
+                                    po_number: purchaseOrder.po_number,
+                                    purchase_order_id: purchaseOrder.id,
+                                    vendor_name: purchaseOrder.vendor?.name,
+                                    project_title: purchaseOrder.project?.project_title
+                                }))}
+                                variant="table"
+                                hideColumns={['poNumber', 'vendor', 'project']}
+                                showToolbar={true}
                                 formatCurrency={formatCurrency}
                                 formatDate={formatDate}
+                                emptyStateTitle="No invoices linked"
+                                emptyStateDescription="Invoices will appear once created and associated with this PO"
+                                emptyStateAction={
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => window.location.href = '/invoices/create'}
+                                    >
+                                        <Receipt className="mr-2 h-4 w-4" />
+                                        Create Invoice
+                                    </Button>
+                                }
                             />
                         </div>
                     )}

@@ -47,6 +47,7 @@ import {
 import BackButton from '@/components/custom/BackButton.jsx';
 import { route } from 'ziggy-js';
 import StatusBadge from '@/components/custom/StatusBadge.jsx';
+import InvoicesList from '@/components/custom/InvoicesList.jsx';
 
 const Remarks = lazy(() => import("@/components/custom/Remarks.jsx"));
 const ActivityTimeline = lazy(() => import("@/components/custom/ActivityTimeline.jsx"));
@@ -900,173 +901,26 @@ export default function ProjectShow({ project }) {
 
                         {/* Invoices Tab */}
                         <TabsContent value="invoices" className="mt-6">
-                            <div className="space-y-6">
-                                {/* Invoice Status Summary */}
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                    <Card>
-                                        <CardContent className="p-4">
-                                            <div className="flex items-center justify-between">
-                                                <div>
-                                                    <p className="text-sm text-gray-600">Paid</p>
-                                                    <p className="text-2xl font-bold text-green-600">
-                                                        {financialData.paidInvoices}
-                                                    </p>
-                                                    <p className="text-xs text-gray-500 mt-1">
-                                                        {formatCurrency(financialData.totalPaidAmount)}
-                                                    </p>
-                                                </div>
-                                                <CheckCircle className="h-8 w-8 text-green-600" />
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-
-                                    <Card>
-                                        <CardContent className="p-4">
-                                            <div className="flex items-center justify-between">
-                                                <div>
-                                                    <p className="text-sm text-gray-600">Pending</p>
-                                                    <p className="text-2xl font-bold text-yellow-600">
-                                                        {financialData.pendingInvoices}
-                                                    </p>
-                                                    <p className="text-xs text-gray-500 mt-1">
-                                                        {formatCurrency(
-                                                            purchase_orders?.reduce((sum, po) =>
-                                                                    sum + (po.invoices?.filter(inv =>
-                                                                        ['pending', 'submitted'].includes(inv.invoice_status?.toLowerCase())
-                                                                    ).reduce((s, inv) => s + (parseFloat(inv.net_amount || inv.invoice_amount) || 0), 0) || 0)
-                                                                , 0) || 0
-                                                        )}
-                                                    </p>
-                                                </div>
-                                                <Clock className="h-8 w-8 text-yellow-600" />
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-
-                                    <Card>
-                                        <CardContent className="p-4">
-                                            <div className="flex items-center justify-between">
-                                                <div>
-                                                    <p className="text-sm text-gray-600">Overdue</p>
-                                                    <p className="text-2xl font-bold text-red-600">
-                                                        {financialData.overdueInvoices}
-                                                    </p>
-                                                </div>
-                                                <AlertTriangle className="h-8 w-8 text-red-600" />
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-
-                                    <Card>
-                                        <CardContent className="p-4">
-                                            <div className="flex items-center justify-between">
-                                                <div>
-                                                    <p className="text-sm text-gray-600">Draft</p>
-                                                    <p className="text-2xl font-bold text-gray-600">
-                                                        {financialData.draftInvoices}
-                                                    </p>
-                                                </div>
-                                                <FileText className="h-8 w-8 text-gray-600" />
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-                                </div>
-
-                                {/* Invoice List */}
-                                <Card>
-                                    <CardHeader>
-                                        <CardTitle className="flex items-center gap-2">
-                                            <Receipt className="h-5 w-5" />
-                                            All Invoices
-                                        </CardTitle>
-                                    </CardHeader>
-                                    <CardContent>
-                                        {purchase_orders?.some(po => po.invoices?.length > 0) ? (
-                                            <div className="rounded-md border">
-                                                <Table>
-                                                    <TableHeader>
-                                                        <TableRow>
-                                                            <TableHead>SI Number</TableHead>
-                                                            <TableHead>PO Number</TableHead>
-                                                            <TableHead>Vendor</TableHead>
-                                                            <TableHead>SI Date</TableHead>
-                                                            <TableHead>Due Date</TableHead>
-                                                            <TableHead className="text-right">Amount</TableHead>
-                                                            <TableHead className="text-center">Status</TableHead>
-                                                            <TableHead className="text-right">Actions</TableHead>
-                                                        </TableRow>
-                                                    </TableHeader>
-                                                    <TableBody>
-                                                        {purchase_orders.flatMap(po =>
-                                                            (po.invoices || []).map(invoice => {
-                                                                const isOverdue = invoice.due_date &&
-                                                                    new Date(invoice.due_date) < new Date() &&
-                                                                    invoice.invoice_status?.toLowerCase() !== 'paid';
-
-                                                                return (
-                                                                    <TableRow
-                                                                        key={invoice.id}
-                                                                        className={isOverdue ? 'bg-red-50/50' : ''}
-                                                                    >
-                                                                        <TableCell className="font-medium">
-                                                                            {invoice.si_number || 'N/A'}
-                                                                        </TableCell>
-                                                                        <TableCell>
-                                                                            <Link
-                                                                                href={route('purchase-orders.show', po.id)}
-                                                                                className="text-blue-600 hover:underline"
-                                                                            >
-                                                                                {po.po_number}
-                                                                            </Link>
-                                                                        </TableCell>
-                                                                        <TableCell>
-                                                                            {po.vendor?.name || 'N/A'}
-                                                                        </TableCell>
-                                                                        <TableCell>
-                                                                            {formatDate(invoice.si_date)}
-                                                                        </TableCell>
-                                                                        <TableCell>
-                                                                            <div className="flex items-center gap-2">
-                                                                                {isOverdue && (
-                                                                                    <AlertTriangle className="h-4 w-4 text-red-600" />
-                                                                                )}
-                                                                                {formatDate(invoice.due_date)}
-                                                                            </div>
-                                                                        </TableCell>
-                                                                        <TableCell className="text-right font-semibold">
-                                                                            {formatCurrency(invoice.net_amount || invoice.invoice_amount)}
-                                                                        </TableCell>
-                                                                        <TableCell className="text-center">
-                                                                            <StatusBadge status={invoice.invoice_status} />
-                                                                        </TableCell>
-                                                                        <TableCell className="text-right">
-                                                                            <Button
-                                                                                variant="ghost"
-                                                                                size="sm"
-                                                                                asChild
-                                                                            >
-                                                                                <Link href={route('invoices.show', invoice.id)}>
-                                                                                    View
-                                                                                </Link>
-                                                                            </Button>
-                                                                        </TableCell>
-                                                                    </TableRow>
-                                                                );
-                                                            })
-                                                        )}
-                                                    </TableBody>
-                                                </Table>
-                                            </div>
-                                        ) : (
-                                            <div className="text-center py-12 text-gray-500">
-                                                <Receipt className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                                                <p className="text-lg font-medium mb-2">No Invoices</p>
-                                                <p className="text-sm">Invoices will appear here once they are created for purchase orders</p>
-                                            </div>
-                                        )}
-                                    </CardContent>
-                                </Card>
-                            </div>
+                            <InvoicesList
+                                invoices={purchase_orders?.flatMap(po =>
+                                    (po.invoices || []).map(invoice => ({
+                                        ...invoice,
+                                        po_number: po.po_number,
+                                        purchase_order_id: po.id,
+                                        vendor_name: po.vendor?.name,
+                                        project_title: project.project_title
+                                    }))
+                                ) || []}
+                                variant="table"
+                                hideColumns={['project']}
+                                showSummaryCards
+                                showToolbar
+                                enableOverdueHighlight
+                                formatCurrency={formatCurrency}
+                                formatDate={formatDate}
+                                emptyStateTitle="No Invoices"
+                                emptyStateDescription="Invoices will appear here once they are created for purchase orders"
+                            />
                         </TabsContent>
 
                         {/* Vendors Tab */}

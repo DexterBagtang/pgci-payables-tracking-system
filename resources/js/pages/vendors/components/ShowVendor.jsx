@@ -50,7 +50,7 @@ import { useRemember } from '@inertiajs/react';
 const VendorProjects = lazy(() => import('@/pages/vendors/components/VendorProjects.jsx'));
 const EditVendorDialog = lazy(() => import("@/pages/vendors/components/EditVendorDialog.jsx"));
 const VendorPO = lazy(() => import('@/pages/vendors/components/VendorPO.jsx'));
-const VendorInvoices = lazy(() => import('@/pages/vendors/components/VendorInvoices.jsx'));
+const InvoicesList = lazy(() => import('@/components/custom/InvoicesList.jsx'));
 const Remarks = lazy(() => import("@/components/custom/Remarks.jsx"));
 const ActivityTimeline = lazy(() => import("@/components/custom/ActivityTimeline.jsx"));
 
@@ -634,7 +634,24 @@ export default function ShowVendor({ vendor }) {
                         {/* Invoices Tab */}
                         <TabsContent value="invoices" className="mt-6">
                             <Suspense fallback={<Loader className="animate-spin mx-auto" />}>
-                                <VendorInvoices vendor={vendor} />
+                                <InvoicesList
+                                    invoices={purchase_orders.flatMap(po =>
+                                        (po.invoices || []).map(invoice => ({
+                                            ...invoice,
+                                            po_number: po.po_number,
+                                            purchase_order_id: po.id,
+                                            project_title: po.project?.project_title,
+                                            vendor_name: vendor.name
+                                        }))
+                                    )}
+                                    variant="table"
+                                    hideColumns={['vendor']}
+                                    showSummaryCards
+                                    showToolbar
+                                    enableOverdueHighlight
+                                    formatCurrency={formatCurrency}
+                                    formatDate={formatDate}
+                                />
                             </Suspense>
                         </TabsContent>
 

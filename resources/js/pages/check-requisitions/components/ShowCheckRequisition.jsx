@@ -12,7 +12,7 @@ import CRHeader from './show/CRHeader';
 import CRFinancialCards from './show/CRFinancialCards';
 import CRAmountMismatchAlert from './show/CRAmountMismatchAlert';
 import CRDetailsTab from './show/CRDetailsTab';
-import CRInvoicesTab from './show/CRInvoicesTab';
+import InvoicesList from '@/components/custom/InvoicesList';
 import CRDocumentsTab from './show/CRDocumentsTab';
 import CRDocumentPreview from './show/CRDocumentPreview';
 
@@ -128,12 +128,25 @@ export default function ShowCheckRequisition({ checkRequisition, invoices, files
 
                                     {/* Invoices Tab */}
                                     <TabsContent value="invoices" className="space-y-6">
-                                        <CRInvoicesTab
-                                            invoices={invoices}
-                                            totalInvoicesAmount={financialMetrics.calculatedTotal}
-                                            isAmountMatching={financialMetrics.isBalanced}
-                                            formatDate={formatDate}
+                                        <InvoicesList
+                                            invoices={(invoices || []).map(invoice => ({
+                                                ...invoice,
+                                                po_number: purchaseOrder?.po_number,
+                                                purchase_order_id: purchaseOrder?.id,
+                                                vendor_name: purchaseOrder?.vendor?.name,
+                                                project_title: purchaseOrder?.project?.project_title
+                                            }))}
+                                            variant="table"
+                                            hideColumns={['actions']}
+                                            showToolbar
+                                            showTotalRow
+                                            totalRowLabel="Total"
+                                            expectedTotal={checkRequisition.amount}
+                                            compact
                                             formatCurrency={formatCurrency}
+                                            formatDate={formatDate}
+                                            emptyStateTitle="No invoices associated"
+                                            emptyStateDescription="No invoices are associated with this check requisition"
                                         />
                                     </TabsContent>
 
