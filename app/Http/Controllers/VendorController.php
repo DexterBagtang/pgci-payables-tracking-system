@@ -13,7 +13,7 @@ class VendorController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Vendor::query();
+        $query = Vendor::query()->withCount(['purchaseOrders', 'invoices']);
 
         // Search functionality
         if ($request->filled('search')) {
@@ -32,7 +32,7 @@ class VendorController extends Controller
             $statuses = explode(',', $request->get('status'));
             $query->whereIn('is_active', $statuses);
         }
-        
+
         // Category filter
         if ($request->filled('category')) {
             $categories = explode(',', $request->get('category'));
@@ -44,7 +44,7 @@ class VendorController extends Controller
         $sortDirection = $request->get('sort_direction', 'desc');
 
         // Validate sort field to prevent SQL injection
-        $allowedSortFields = ['name', 'email', 'phone', 'category', 'created_at', 'updated_at'];
+        $allowedSortFields = ['name', 'email', 'phone', 'category', 'created_at', 'updated_at', 'purchase_orders_count', 'invoices_count'];
         if (in_array($sortField, $allowedSortFields)) {
             $query->orderBy($sortField, $sortDirection);
         } else {

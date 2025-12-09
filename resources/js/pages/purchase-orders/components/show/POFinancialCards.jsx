@@ -3,12 +3,12 @@ import { Badge } from '@/components/ui/badge';
 
 /**
  * Financial Metrics Dashboard Cards - Compact Design
- * Displays PO Amount, Invoiced, Paid, Outstanding, and Completion metrics
- * Following compact grid variation's visual design
+ * Displays PO Amount, Invoiced, Paid, and Outstanding metrics
+ * Completion metrics now shown in header only
  */
 export default function POFinancialCards({ financialMetrics, currency, formatCurrency, formatPercentage }) {
     return (
-        <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {/* PO Amount */}
             <div className="rounded-lg border border-gray-200 bg-gradient-to-br from-gray-50 to-white p-4 shadow-sm dark:border-gray-800 dark:from-gray-900 dark:to-gray-950">
                 <div className="text-xs font-medium text-gray-600 dark:text-gray-400">PO Amount</div>
@@ -97,31 +97,6 @@ export default function POFinancialCards({ financialMetrics, currency, formatCur
                     >
                         {financialMetrics.outstandingAmount === 0 ? 'Fully Paid' : 'Pending'}
                     </Badge>
-                </div>
-            </div>
-
-            {/* Completion */}
-            <div className="rounded-lg border border-blue-200 bg-gradient-to-br from-blue-50 to-white p-4 shadow-sm dark:border-blue-900 dark:from-blue-950 dark:to-gray-950">
-                <div className="text-xs font-medium text-blue-700 dark:text-blue-400">Completion</div>
-                <div className="mt-1 font-mono text-xl font-bold text-blue-900 dark:text-blue-300">
-                    {formatPercentage(financialMetrics.completionPercentage)}
-                </div>
-                <div className="mt-2 space-y-1">
-                    <Progress
-                        value={Math.min(financialMetrics.completionPercentage, 100)}
-                        className={`h-1.5 ${
-                            financialMetrics.completionPercentage >= 100 ? '[&>div]:bg-green-600' :
-                            financialMetrics.completionPercentage >= 75 ? '[&>div]:bg-blue-600' :
-                            financialMetrics.completionPercentage >= 50 ? '[&>div]:bg-yellow-600' :
-                            '[&>div]:bg-red-600'
-                        }`}
-                    />
-                    <div className="flex items-center justify-between text-xs">
-                        <span className="text-gray-600 dark:text-gray-400">Invoices:</span>
-                        <span className="font-medium text-gray-900 dark:text-gray-100">
-                            {financialMetrics.paidInvoices + financialMetrics.pendingInvoices}
-                        </span>
-                    </div>
                 </div>
             </div>
         </div>

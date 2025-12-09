@@ -371,6 +371,24 @@ export default function VendorsTable({ vendors, filters = {}, stats = {} }) {
                                     <TableHead>
                                         <Button
                                             variant="ghost"
+                                            onClick={() => handleSort('purchase_orders_count')}
+                                            className="h-auto p-0 font-semibold hover:bg-transparent"
+                                        >
+                                            Purchase Orders {getSortIcon('purchase_orders_count')}
+                                        </Button>
+                                    </TableHead>
+                                    <TableHead>
+                                        <Button
+                                            variant="ghost"
+                                            onClick={() => handleSort('invoices_count')}
+                                            className="h-auto p-0 font-semibold hover:bg-transparent"
+                                        >
+                                            Invoices {getSortIcon('invoices_count')}
+                                        </Button>
+                                    </TableHead>
+                                    <TableHead>
+                                        <Button
+                                            variant="ghost"
                                             onClick={() => handleSort('created_at')}
                                             className="h-auto p-0 font-semibold hover:bg-transparent"
                                         >
@@ -393,7 +411,7 @@ export default function VendorsTable({ vendors, filters = {}, stats = {} }) {
                                     ))
                                 ) : (
                                     <TableRow>
-                                        <TableCell colSpan={9} className="text-center py-8">
+                                        <TableCell colSpan={11} className="text-center py-8">
                                             <div className="flex flex-col items-center gap-2">
                                                 <Users className="h-8 w-8 text-muted-foreground" />
                                                 <p className="text-muted-foreground">

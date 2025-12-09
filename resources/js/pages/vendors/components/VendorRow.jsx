@@ -8,7 +8,9 @@ import {
     Phone,
     Calendar,
     Edit,
-    Eye
+    Eye,
+    ShoppingCart,
+    FileText
 } from 'lucide-react';
 
 export default function VendorRow({ vendor, isSelected, onSelect, onEdit }) {
@@ -135,6 +137,22 @@ export default function VendorRow({ vendor, isSelected, onSelect, onEdit }) {
                         <div className={`h-2 w-2 rounded-full mr-1.5 ${vendor.is_active ? 'bg-green-500' : 'bg-gray-400'}`}></div>
                         {vendor.is_active ? 'Active' : 'Inactive'}
                     </Badge>
+                </div>
+            </td>
+
+            {/* Purchase Orders Count */}
+            <td className="px-3 py-4">
+                <div className="flex items-center text-sm">
+                    <ShoppingCart className="h-3.5 w-3.5 mr-1.5 text-blue-500" />
+                    <span className="font-medium">{vendor.purchase_orders_count || 0}</span>
+                </div>
+            </td>
+
+            {/* Invoices Count */}
+            <td className="px-3 py-4">
+                <div className="flex items-center text-sm">
+                    <FileText className="h-3.5 w-3.5 mr-1.5 text-green-500" />
+                    <span className="font-medium">{vendor.invoices_count || 0}</span>
                 </div>
             </td>
 
