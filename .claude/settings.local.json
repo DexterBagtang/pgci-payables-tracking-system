@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(find:*)",
-      "Bash(php artisan:*)"
+      "Bash(php artisan:*)",
+      "Bash(findstr:*)"
     ],
     "deny": [],
     "ask": []
