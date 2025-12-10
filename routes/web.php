@@ -5,6 +5,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Dashboard\PurchasingWidgetController;
 use App\Http\Controllers\Dashboard\PayablesWidgetController;
 use App\Http\Controllers\Dashboard\DisbursementWidgetController;
+use App\Http\Controllers\Dashboard\UnifiedDashboardController;
 use App\Http\Controllers\DisbursementController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\ProjectController;
@@ -66,6 +67,20 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get('actionable-items', [DisbursementWidgetController::class, 'actionableItems']);
             Route::get('check-status-pipeline', [DisbursementWidgetController::class, 'checkStatusPipeline']);
             Route::get('activity-timeline', [DisbursementWidgetController::class, 'activityTimeline']);
+        });
+
+        // Unified Dashboard Widgets (All Roles)
+        Route::prefix('unified')->group(function () {
+            Route::get('ap-aging', [UnifiedDashboardController::class, 'apAgingSummary']);
+            Route::get('invoice-pipeline', [UnifiedDashboardController::class, 'invoicePipelineStatus']);
+            Route::get('po-utilization', [UnifiedDashboardController::class, 'poUtilizationSnapshot']);
+            Route::get('upcoming-cashout', [UnifiedDashboardController::class, 'upcomingCashOut']);
+            Route::get('top-vendors', [UnifiedDashboardController::class, 'topVendorsByOutstanding']);
+            Route::get('bottlenecks', [UnifiedDashboardController::class, 'processBottleneckIndicators']);
+            Route::get('project-spend', [UnifiedDashboardController::class, 'projectSpendSummary']);
+            Route::get('pending-approvals', [UnifiedDashboardController::class, 'pendingApprovalsByRole']);
+            Route::get('compliance', [UnifiedDashboardController::class, 'complianceMissingDocuments']);
+            Route::get('activity-feed', [UnifiedDashboardController::class, 'recentActivityFeed']);
         });
     });
 

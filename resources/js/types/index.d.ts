@@ -505,3 +505,97 @@ export type DashboardData =
     | PayablesDashboardData
     | DisbursementDashboardData
     | AdminDashboardData;
+
+// Unified Dashboard Widget Data Types
+export interface APAgingSummary {
+    total_outstanding: number;
+    total_overdue: number;
+    aging_buckets: {
+        '0_30': { count: number; amount: number };
+        '31_60': { count: number; amount: number };
+        '61_90': { count: number; amount: number };
+        'over_90': { count: number; amount: number };
+    };
+}
+
+export interface InvoicePipelineStatus {
+    pending: number;
+    received: number;
+    in_progress: number;
+    approved: number;
+    pending_disbursement: number;
+    rejected: number;
+    paid: number;
+    total: number;
+}
+
+export interface POUtilizationSnapshot {
+    total_po_amount: number;
+    total_invoiced: number;
+    total_paid: number;
+    invoiced_percentage: number;
+    paid_percentage: number;
+    remaining: number;
+}
+
+export interface UpcomingCashOut {
+    due_7_days: { count: number; amount: number };
+    due_15_days: { count: number; amount: number };
+    due_30_days: { count: number; amount: number };
+}
+
+export interface TopVendorByOutstanding {
+    vendor_name: string;
+    outstanding_amount: number;
+    invoice_count: number;
+}
+
+export interface ProcessBottleneckIndicators {
+    avg_received_to_reviewed_days: number;
+    avg_reviewed_to_approved_days: number;
+    avg_approved_to_disbursed_days: number;
+    total_in_pipeline: number;
+}
+
+export interface ProjectSpendItem {
+    project_name: string;
+    total_po: number;
+    total_invoiced: number;
+    total_paid: number;
+    remaining: number;
+}
+
+export interface PendingApprovalsByRole {
+    invoices_waiting_review: number;
+    check_requisitions_pending: number;
+    pos_pending_finalization: number;
+    total: number;
+}
+
+export interface ComplianceMissingDocuments {
+    overall_score: number;
+    po_completeness: number;
+    invoice_completeness: number;
+    cr_completeness: number;
+    total_pos: number;
+    pos_with_files: number;
+    total_invoices: number;
+    invoices_with_files: number;
+    total_crs: number;
+    crs_with_files: number;
+    pos_missing_attachments: Array<{ id: number; po_number: string }>;
+    invoices_missing_si: Array<{ id: number; si_number: string }>;
+    crs_missing_docs: Array<{ id: number; requisition_number: string }>;
+}
+
+export interface ActivityFeedItem {
+    id: number;
+    user: string;
+    entity_type: string;
+    entity_id: number;
+    entity_identifier: string;
+    action: string;
+    notes: string | null;
+    created_at: string;
+    created_at_human: string;
+}
