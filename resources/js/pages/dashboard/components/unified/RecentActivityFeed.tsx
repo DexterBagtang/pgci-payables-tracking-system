@@ -29,13 +29,13 @@ export default function RecentActivityFeed() {
         }
     }, [data, customDates]);
 
-    const buildEndpoint = (currentPage: number) => {
+    const buildEndpoint = useCallback((currentPage: number) => {
         const params = new URLSearchParams();
         if (customDates?.start) params.append('start', customDates.start.toISOString());
         if (customDates?.end) params.append('end', customDates.end.toISOString());
         params.append('page', currentPage.toString());
         return `/api/dashboard/unified/activity-feed?${params.toString()}`;
-    };
+    }, [customDates]);
 
     const loadMore = useCallback(async () => {
         if (isLoadingMore || !hasMore) return;
@@ -44,6 +44,11 @@ export default function RecentActivityFeed() {
         try {
             const nextPage = page + 1;
             const response = await fetch(buildEndpoint(nextPage));
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
             const result: ActivityFeedResponse = await response.json();
 
             setAllActivities(prev => [...prev, ...result.data]);
@@ -54,7 +59,7 @@ export default function RecentActivityFeed() {
         } finally {
             setIsLoadingMore(false);
         }
-    }, [page, hasMore, isLoadingMore, customDates]);
+    }, [page, hasMore, isLoadingMore, buildEndpoint]);
 
     // Intersection Observer for infinite scroll
     const handleObserver = useCallback((entries: IntersectionObserverEntry[]) => {
@@ -64,21 +69,42 @@ export default function RecentActivityFeed() {
         }
     }, [hasMore, isLoadingMore, loadMore]);
 
-    // Set up intersection observer
+    // Set up intersection observer - fix the dependencies
     useEffect(() => {
         const element = observerTarget.current;
+        if (!element) return;
+
         const observer = new IntersectionObserver(handleObserver, {
             root: null,
             rootMargin: '20px',
-            threshold: 1.0
+            threshold: 0.1, // Reduced from 1.0 to trigger earlier
         });
 
-        if (element) observer.observe(element);
+        observer.observe(element);
 
         return () => {
-            if (element) observer.unobserve(element);
+            observer.unobserve(element);
         };
-    }, [handleObserver]);
+    }, [handleObserver, hasMore, isLoadingMore]); // Added dependencies
+
+    // Also add a scroll-based fallback
+    useEffect(() => {
+        const handleScroll = () => {
+            if (isLoadingMore || !hasMore || !observerTarget.current) return;
+
+            const element = observerTarget.current;
+            const rect = element.getBoundingClientRect();
+            const isVisible = rect.top <= window.innerHeight && rect.bottom >= 0;
+
+            if (isVisible) {
+                loadMore();
+            }
+        };
+
+        // Add scroll listener as a fallback
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, [isLoadingMore, hasMore, loadMore]);
 
     if (loading) {
         return <WidgetSkeleton variant="list" />;
@@ -200,12 +226,21 @@ export default function RecentActivityFeed() {
                             );
                         })}
 
-                        {/* Infinite scroll trigger */}
+                        {/* Infinite scroll trigger - Fixed positioning */}
                         {hasMore && (
-                            <div ref={observerTarget} className="flex justify-center py-2">
-                                {isLoadingMore && (
-                                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                                )}
+                            <div
+                                ref={observerTarget}
+                                className="flex justify-center items-center py-4 min-h-[40px]"
+                                style={{ visibility: isLoadingMore ? 'visible' : 'hidden' }}
+                            >
+                                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                            </div>
+                        )}
+
+                        {/* Show a message when all items are loaded */}
+                        {!hasMore && allActivities.length > 10 && (
+                            <div className="text-center py-4 text-xs text-muted-foreground">
+                                All activities loaded
                             </div>
                         )}
                     </>
