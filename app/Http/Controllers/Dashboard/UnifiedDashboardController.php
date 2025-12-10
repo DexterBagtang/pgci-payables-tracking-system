@@ -97,9 +97,10 @@ class UnifiedDashboardController extends Controller
     public function recentActivityFeed(Request $request)
     {
         [$start, $end] = $this->getDateRange($request);
+        $page = $request->input('page', 1);
 
         return response()->json(
-            $this->service->getRecentActivityFeed($start, $end)
+            $this->service->getRecentActivityFeed($start, $end, $page)
         );
     }
 

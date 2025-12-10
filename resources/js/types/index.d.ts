@@ -445,3 +445,9 @@ export interface ActivityFeedItem {
     created_at: string;
     created_at_human: string;
 }
+
+export interface ActivityFeedResponse {
+    data: ActivityFeedItem[];
+    hasMore: boolean;
+    currentPage: number;
+}

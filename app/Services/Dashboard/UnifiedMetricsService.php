@@ -402,16 +402,29 @@ class UnifiedMetricsService
 
     /**
      * Widget 10: Recent Activity Feed
-     * Source from activity_logs: last 20 entries with user, entity, action, timestamp
+     * Source from activity_logs: paginated entries with user, entity, action, timestamp
      */
-    public function getRecentActivityFeed(?Carbon $start, ?Carbon $end, int $limit = 20): array
+    public function getRecentActivityFeed(?Carbon $start, ?Carbon $end, int $page = 1, int $perPage = 10): array
     {
+        // Fetch one extra to check if there are more records
+        $offset = ($page - 1) * $perPage;
+
         $activities = ActivityLog::with(['user:id,name'])
             ->when($start && $end, fn($q) => $q->whereBetween('created_at', [$start, $end]))
             ->orderBy('created_at', 'desc')
-            ->limit($limit)
-            ->get()
-            ->map(function ($log) {
+            ->offset($offset)
+            ->limit($perPage + 1)
+            ->get();
+
+        // Check if there are more records
+        $hasMore = $activities->count() > $perPage;
+
+        // Remove the extra record if we fetched it
+        if ($hasMore) {
+            $activities = $activities->take($perPage);
+        }
+
+        $data = $activities->map(function ($log) {
                 // Determine entity type label
                 $entityType = match($log->loggable_type) {
                     'App\\Models\\PurchaseOrder' => 'Purchase Order',
@@ -451,7 +464,11 @@ class UnifiedMetricsService
             })
             ->toArray();
 
-        return $activities;
+        return [
+            'data' => $data,
+            'hasMore' => $hasMore,
+            'currentPage' => $page,
+        ];
     }
 
     /**
