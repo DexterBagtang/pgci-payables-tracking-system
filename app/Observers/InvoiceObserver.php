@@ -10,6 +10,28 @@ use Illuminate\Support\Facades\Auth;
 class InvoiceObserver
 {
     /**
+     * Handle the Invoice "updating" event.
+     */
+    public function updating(Invoice $invoice): void
+    {
+        // Set approved_at timestamp when status changes to approved
+        if ($invoice->isDirty('invoice_status')) {
+            $newStatus = $invoice->invoice_status;
+            $oldStatus = $invoice->getOriginal('invoice_status');
+
+            // Set approved_at when status changes to approved
+            if ($newStatus === 'approved' && $oldStatus !== 'approved') {
+                $invoice->approved_at = now();
+            }
+
+            // Clear approved_at if status is no longer approved
+            if ($oldStatus === 'approved' && !in_array($newStatus, ['approved', 'pending_disbursement', 'paid'])) {
+                $invoice->approved_at = null;
+            }
+        }
+    }
+
+    /**
      * Handle the Invoice "created" event.
      */
     public function created(Invoice $invoice): void
