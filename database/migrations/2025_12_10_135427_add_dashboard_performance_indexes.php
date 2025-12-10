@@ -21,8 +21,7 @@ return new class extends Migration
             // CRITICAL: Composite index for most common query pattern (status + date filtering)
             $table->index(['invoice_status', 'si_received_at'], 'idx_invoices_status_si_received');
 
-            // Bottleneck analysis indexes (Widget 6)
-            $table->index('approved_at', 'idx_invoices_approved_at');
+            // Bottleneck analysis index (Widget 6)
             $table->index('reviewed_at', 'idx_invoices_reviewed_at');
         });
 
@@ -65,7 +64,6 @@ return new class extends Migration
         Schema::table('invoices', function (Blueprint $table) {
             $table->dropIndex('idx_invoices_si_received_at');
             $table->dropIndex('idx_invoices_status_si_received');
-            $table->dropIndex('idx_invoices_approved_at');
             $table->dropIndex('idx_invoices_reviewed_at');
         });
 
