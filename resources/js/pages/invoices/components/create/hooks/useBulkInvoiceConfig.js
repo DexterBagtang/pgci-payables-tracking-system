@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { generateInvoiceSequence, parseInvoiceNumber, formatInvoiceNumber } from '@/pages/invoices/components/create/utils/rangeParser.js';
 
 /**
  * Custom hook to handle bulk invoice configuration and generation
@@ -42,29 +43,30 @@ export function useBulkInvoiceConfig() {
     });
 
     // Create an empty invoice with auto-generated SI number
-    const createEmptyInvoice = useCallback((index = 0) => {
-        // Generate SI number based on input mode
-        let siNumber = '';
+    const createEmptyInvoice = useCallback((index = 0, siNumber = '') => {
+        // Generate SI number based on input mode (if not provided)
+        if (!siNumber) {
+            if (bulkConfig.inputMode === 'manual') {
+                // Manual Mode: Use starting number with optional auto-increment
+                if (bulkConfig.siPrefix) {
+                    if (bulkConfig.autoIncrementEnabled) {
+                        // Parse the starting invoice number (supports alphanumeric like "INV-334" or "0010")
+                        const parsed = parseInvoiceNumber(bulkConfig.siPrefix);
 
-        if (bulkConfig.inputMode === 'range') {
-            // Range Mode: Use range numbers directly as SI numbers (no prefix, no padding)
-            if (bulkConfig.rangeStart) {
-                const rangeStartNum = parseInt(bulkConfig.rangeStart);
-                siNumber = String(rangeStartNum + index);
-            }
-        } else {
-            // Manual Mode: Use starting number with optional auto-increment
-            if (bulkConfig.siPrefix) {
-                if (bulkConfig.autoIncrementEnabled) {
-                    // Increment the actual number while preserving leading zeros
-                    const startingNumber = parseInt(bulkConfig.siPrefix) || 0;
-                    const paddingLength = bulkConfig.siPrefix.length;
-                    const currentNumber = startingNumber + index;
-                    siNumber = String(currentNumber).padStart(paddingLength, '0');
-                } else {
-                    siNumber = bulkConfig.siPrefix;
+                        if (parsed) {
+                            // Increment the numeric part while preserving format
+                            const currentNumber = parsed.numericValue + index;
+                            siNumber = formatInvoiceNumber(parsed.prefix, currentNumber, parsed.padding);
+                        } else {
+                            // Fallback: if parsing fails, use the prefix as-is
+                            siNumber = bulkConfig.siPrefix;
+                        }
+                    } else {
+                        siNumber = bulkConfig.siPrefix;
+                    }
                 }
             }
+            // Range mode will be handled by generateBulkInvoices passing siNumber directly
         }
 
         // Always populate shared values for flexibility, regardless of sharedFields setting
@@ -86,9 +88,20 @@ export function useBulkInvoiceConfig() {
     // Generate bulk invoices based on configuration
     const generateBulkInvoices = useCallback(() => {
         const newInvoices = [];
-        for (let i = 0; i < bulkConfig.count; i++) {
-            newInvoices.push(createEmptyInvoice(i));
+
+        // Generate SI numbers for range mode
+        let siNumbers = [];
+        if (bulkConfig.inputMode === 'range' && bulkConfig.rangeStart && bulkConfig.rangeEnd) {
+            siNumbers = generateInvoiceSequence(bulkConfig.rangeStart, bulkConfig.rangeEnd);
         }
+
+        // Create invoices
+        for (let i = 0; i < bulkConfig.count; i++) {
+            // For range mode, pass the pre-generated SI number
+            const siNumber = bulkConfig.inputMode === 'range' ? siNumbers[i] : '';
+            newInvoices.push(createEmptyInvoice(i, siNumber));
+        }
+
         setBulkInvoices(newInvoices);
         setBulkConfigured(true);
     }, [bulkConfig, createEmptyInvoice]);

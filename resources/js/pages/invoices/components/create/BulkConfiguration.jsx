@@ -15,7 +15,8 @@ import { DatePicker } from '@/components/custom/DatePicker.jsx';
 import { PaymentTermsSelect } from '@/components/custom/PaymentTermsSelect.jsx';
 import { RequiredLabel } from '@/components/custom/RequiredLabel.jsx';
 import { CurrencyToggle } from '@/components/custom/CurrencyToggle.jsx';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { validateRange, generatePreview, parseInvoiceNumber, formatInvoiceNumber } from '@/pages/invoices/components/create/utils/rangeParser.js';
 
 export default function BulkConfiguration({
     bulkConfig,
@@ -28,14 +29,15 @@ export default function BulkConfiguration({
     errors,
 }) {
     const selectedFieldsCount = Object.values(bulkConfig.sharedFields).filter(Boolean).length;
+    const [rangeError, setRangeError] = useState(null);
 
     // Validation: Check if ready to generate based on mode
     const isReadyToGenerate = (() => {
         if (selectedFieldsCount === 0) return false;
 
         if (bulkConfig.inputMode === 'range') {
-            // Range mode: Need valid range values and calculated count
-            return bulkConfig.count > 0 && bulkConfig.rangeStart && bulkConfig.rangeEnd;
+            // Range mode: Need valid range values, calculated count, and no errors
+            return bulkConfig.count > 0 && bulkConfig.rangeStart && bulkConfig.rangeEnd && !rangeError;
         } else {
             // Manual mode: Just need a count > 0
             return bulkConfig.count > 0;
@@ -45,16 +47,25 @@ export default function BulkConfiguration({
     // Auto-calculate count when in range mode
     useEffect(() => {
         if (bulkConfig.inputMode === 'range' && bulkConfig.rangeStart && bulkConfig.rangeEnd) {
-            const start = parseInt(bulkConfig.rangeStart);
-            const end = parseInt(bulkConfig.rangeEnd);
-            if (!isNaN(start) && !isNaN(end) && end >= start) {
-                const calculatedCount = end - start + 1;
+            const validation = validateRange(bulkConfig.rangeStart, bulkConfig.rangeEnd);
+
+            if (validation.valid) {
+                setRangeError(null);
                 setBulkConfig((prev) => ({
                     ...prev,
-                    count: calculatedCount,
+                    count: validation.count,
                     autoIncrementEnabled: true, // Auto-enable increment in range mode
                 }));
+            } else {
+                setRangeError(validation.error);
+                setBulkConfig((prev) => ({
+                    ...prev,
+                    count: 0,
+                }));
             }
+        } else if (bulkConfig.inputMode === 'range') {
+            // Clear error when fields are empty
+            setRangeError(null);
         }
     }, [bulkConfig.inputMode, bulkConfig.rangeStart, bulkConfig.rangeEnd, setBulkConfig]);
 
@@ -133,8 +144,7 @@ export default function BulkConfiguration({
                                         </Label>
                                         <Input
                                             id="rangeStart"
-                                            type="number"
-                                            min="1"
+                                            type="text"
                                             value={bulkConfig.rangeStart}
                                             onChange={(e) =>
                                                 setBulkConfig((prev) => ({
@@ -142,8 +152,8 @@ export default function BulkConfiguration({
                                                     rangeStart: e.target.value,
                                                 }))
                                             }
-                                            placeholder="e.g. 001"
-                                            className="mt-0.5 h-7 text-xs w-24"
+                                            placeholder="0025 or B-345"
+                                            className="mt-0.5 h-7 text-xs w-28 font-mono"
                                         />
                                     </div>
                                     <span className="text-slate-400 mt-5">-</span>
@@ -153,8 +163,7 @@ export default function BulkConfiguration({
                                         </Label>
                                         <Input
                                             id="rangeEnd"
-                                            type="number"
-                                            min="1"
+                                            type="text"
                                             value={bulkConfig.rangeEnd}
                                             onChange={(e) =>
                                                 setBulkConfig((prev) => ({
@@ -162,14 +171,21 @@ export default function BulkConfiguration({
                                                     rangeEnd: e.target.value,
                                                 }))
                                             }
-                                            placeholder="e.g. 050"
-                                            className="mt-0.5 h-7 text-xs w-24"
+                                            placeholder="0030 or B-350"
+                                            className="mt-0.5 h-7 text-xs w-28 font-mono"
                                         />
                                     </div>
-                                    {bulkConfig.rangeStart && bulkConfig.rangeEnd && (
+                                    {bulkConfig.rangeStart && bulkConfig.rangeEnd && !rangeError && (
                                         <div className="mt-5">
                                             <Badge variant="default" className="bg-green-600 text-white">
                                                 {bulkConfig.count} invoices
+                                            </Badge>
+                                        </div>
+                                    )}
+                                    {rangeError && (
+                                        <div className="mt-5">
+                                            <Badge variant="destructive" className="text-xs">
+                                                {rangeError}
                                             </Badge>
                                         </div>
                                     )}
@@ -192,7 +208,7 @@ export default function BulkConfiguration({
                                                 siPrefix: e.target.value,
                                             }))
                                         }
-                                        placeholder="e.g. 1234 or 00067"
+                                        placeholder="e.g. INV-334 or 0010"
                                         className="h-7 font-mono text-xs w-40"
                                     />
                                     {bulkConfig.siPrefix && (
@@ -218,24 +234,31 @@ export default function BulkConfiguration({
                                                     <span className="text-slate-500">Preview:</span>
                                                     {(() => {
                                                         const baseNum = bulkConfig.siPrefix || '';
-                                                        const startingNumber = parseInt(baseNum) || 0;
-                                                        const paddingLength = baseNum.length;
+                                                        const parsed = parseInvoiceNumber(baseNum);
                                                         const previewCount = Math.min(bulkConfig.count, 4);
 
-                                                        return Array.from({ length: previewCount }, (_, i) => {
-                                                            const num = startingNumber + i;
-                                                            const formatted = String(num).padStart(paddingLength, '0');
-                                                            return (
-                                                                <span key={i} className="text-blue-700 font-semibold">
-                                                                    {formatted}
-                                                                    {i < previewCount - 1 && <span className="text-slate-400">, </span>}
-                                                                </span>
-                                                            );
-                                                        });
+                                                        if (!parsed) {
+                                                            return <span className="text-slate-400 italic">Invalid format</span>;
+                                                        }
+
+                                                        return (
+                                                            <>
+                                                                {Array.from({ length: previewCount }, (_, i) => {
+                                                                    const num = parsed.numericValue + i;
+                                                                    const formatted = formatInvoiceNumber(parsed.prefix, num, parsed.padding);
+                                                                    return (
+                                                                        <span key={i} className="text-blue-700 font-semibold">
+                                                                            {formatted}
+                                                                            {i < previewCount - 1 && <span className="text-slate-400">, </span>}
+                                                                        </span>
+                                                                    );
+                                                                })}
+                                                                {bulkConfig.count > 4 && (
+                                                                    <span className="text-slate-500"> ...+{bulkConfig.count - 4}</span>
+                                                                )}
+                                                            </>
+                                                        );
                                                     })()}
-                                                    {bulkConfig.count > 4 && (
-                                                        <span className="text-slate-500">... +{bulkConfig.count - 4} more</span>
-                                                    )}
                                                 </div>
                                             )}
                                         </div>
@@ -244,29 +267,29 @@ export default function BulkConfiguration({
                             )}
 
                             {/* Show preview in Range Mode */}
-                            {bulkConfig.inputMode === 'range' && bulkConfig.rangeStart && bulkConfig.rangeEnd && (
+                            {bulkConfig.inputMode === 'range' && bulkConfig.rangeStart && bulkConfig.rangeEnd && !rangeError && (
                                 <div className="space-y-1.5">
                                     <Label className="text-xs text-slate-600">Preview</Label>
                                     <div className="flex items-center gap-3 rounded-md border border-slate-200 bg-slate-50 px-2 py-1.5">
                                         <div className="flex items-center gap-1 text-xs font-mono">
                                             <span className="text-slate-500">SI Numbers:</span>
                                             {(() => {
-                                                const start = parseInt(bulkConfig.rangeStart);
-                                                const previewCount = Math.min(bulkConfig.count, 3);
+                                                const preview = generatePreview(bulkConfig.rangeStart, bulkConfig.rangeEnd, 3);
 
-                                                return Array.from({ length: previewCount }, (_, i) => {
-                                                    const num = start + i;
-                                                    return (
-                                                        <span key={i} className="text-blue-700 font-semibold">
-                                                            {num}
-                                                            {i < previewCount - 1 && <span className="text-slate-400">,</span>}
-                                                        </span>
-                                                    );
-                                                });
+                                                return (
+                                                    <>
+                                                        {preview.items.map((num, i) => (
+                                                            <span key={i} className="text-blue-700 font-semibold">
+                                                                {num}
+                                                                {i < preview.items.length - 1 && <span className="text-slate-400">, </span>}
+                                                            </span>
+                                                        ))}
+                                                        {preview.hasMore && (
+                                                            <span className="text-slate-500"> ...+{preview.remaining}</span>
+                                                        )}
+                                                    </>
+                                                );
                                             })()}
-                                            {bulkConfig.count > 3 && (
-                                                <span className="text-slate-500">...+{bulkConfig.count - 3}</span>
-                                            )}
                                         </div>
                                     </div>
                                 </div>

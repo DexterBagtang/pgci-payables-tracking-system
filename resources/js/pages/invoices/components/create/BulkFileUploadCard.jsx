@@ -144,11 +144,12 @@ const BulkFileUploadCard = memo(
     },
     // Custom comparison to prevent unnecessary re-renders
     (prevProps, nextProps) => {
-        return (
-            prevProps.invoice.si_number === nextProps.invoice.si_number &&
-            prevProps.invoice.files?.length === nextProps.invoice.files?.length &&
-            prevProps.errors[`bulk_${prevProps.index}_files`] === nextProps.errors[`bulk_${nextProps.index}_files`]
-        );
+        // Return true if props are equal (don't re-render), false if different (re-render)
+        const isSameInvoice = prevProps.invoice.si_number === nextProps.invoice.si_number;
+        const isSameFilesArray = prevProps.invoice.files === nextProps.invoice.files; // Check reference equality
+        const isSameError = prevProps.errors[`bulk_${prevProps.index}_files`] === nextProps.errors[`bulk_${nextProps.index}_files`];
+
+        return isSameInvoice && isSameFilesArray && isSameError;
     }
 );
 

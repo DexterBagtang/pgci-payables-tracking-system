@@ -228,9 +228,12 @@ const CreateInvoice = ({ purchaseOrders = [] }) => {
             alert('Some files were too large (max 20MB per file) and were not selected.');
         }
 
-        updateBulkInvoice(invoiceIndex, 'files', validFiles);
+        // Append new files to existing files instead of replacing them
+        const existingFiles = bulkInvoices[invoiceIndex]?.files || [];
+        const combinedFiles = [...existingFiles, ...validFiles];
+        updateBulkInvoice(invoiceIndex, 'files', combinedFiles);
         e.target.value = '';
-    }, [updateBulkInvoice]);
+    }, [bulkInvoices, updateBulkInvoice]);
 
     // Add function to remove individual invoice files
     const removeBulkInvoiceFile = useCallback(

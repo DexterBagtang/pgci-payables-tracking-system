@@ -3,7 +3,8 @@
     "allow": [
       "Bash(find:*)",
       "Bash(php artisan:*)",
-      "Bash(findstr:*)"
+      "Bash(findstr:*)",
+      "Bash(npm run build:*)"
     ],
     "deny": [],
     "ask": []
