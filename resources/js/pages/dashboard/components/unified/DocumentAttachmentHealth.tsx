@@ -68,6 +68,9 @@ export default function DocumentAttachmentHealth() {
                         data.invoices_missing_si.length +
                         data.crs_missing_docs.length;
 
+    const totalDocuments = data.total_pos + data.total_invoices + data.total_crs;
+    const hasNoData = totalDocuments === 0;
+
     return (
         <DashboardCard
             title="Document Attachment Health"
@@ -80,17 +83,19 @@ export default function DocumentAttachmentHealth() {
                 <div className={`rounded-lg border ${scoreColor.border} ${scoreColor.bg} p-4`}>
                     <div className="flex items-center justify-between mb-2">
                         <span className="text-sm font-medium text-muted-foreground">Overall Completeness</span>
-                        {data.overall_score >= 90 ? (
+                        {!hasNoData && data.overall_score >= 90 ? (
                             <CheckCircle className={`h-5 w-5 ${scoreColor.text}`} />
                         ) : (
                             <XCircle className={`h-5 w-5 ${scoreColor.text}`} />
                         )}
                     </div>
                     <div className={`text-4xl font-bold ${scoreColor.text}`}>
-                        {data.overall_score.toFixed(1)}%
+                        {hasNoData ? '—' : `${data.overall_score.toFixed(1)}%`}
                     </div>
                     <div className="text-xs text-muted-foreground mt-1">
-                        {totalMissing > 0
+                        {hasNoData
+                            ? 'No documents to track yet'
+                            : totalMissing > 0
                             ? `${totalMissing} item${totalMissing !== 1 ? 's' : ''} need${totalMissing === 1 ? 's' : ''} attention`
                             : 'All documents attached!'}
                     </div>
@@ -135,7 +140,11 @@ export default function DocumentAttachmentHealth() {
                 </div>
 
                 {/* Health Status Message */}
-                {data.overall_score >= 90 ? (
+                {hasNoData ? (
+                    <div className="text-center py-2 text-sm text-muted-foreground">
+                        Start creating documents to track compliance
+                    </div>
+                ) : data.overall_score >= 90 ? (
                     <div className="text-center py-2 text-sm text-green-600 font-medium">
                         ✓ Excellent documentation compliance
                     </div>
