@@ -25,7 +25,7 @@ export default function InvoicePipelineStatus() {
     const statuses = [
         { label: 'Pending', key: 'pending', icon: Inbox, color: 'text-gray-600', bgColor: 'bg-gray-100' },
         { label: 'Received', key: 'received', icon: FileText, color: 'text-blue-600', bgColor: 'bg-blue-100' },
-        { label: 'In Progress', key: 'in_progress', icon: Clock, color: 'text-orange-600', bgColor: 'bg-orange-100' },
+        // { label: 'In Progress', key: 'in_progress', icon: Clock, color: 'text-orange-600', bgColor: 'bg-orange-100' },
         { label: 'Approved', key: 'approved', icon: CheckCircle, color: 'text-green-600', bgColor: 'bg-green-100' },
         { label: 'Pending Disbursement', key: 'pending_disbursement', icon: SendHorizontal, color: 'text-purple-600', bgColor: 'bg-purple-100' },
         { label: 'Paid', key: 'paid', icon: Banknote, color: 'text-emerald-600', bgColor: 'bg-emerald-100' },

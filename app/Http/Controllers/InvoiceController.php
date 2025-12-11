@@ -588,10 +588,21 @@ class InvoiceController extends Controller
     public function review(Invoice $invoice, Request $request)
     {
         $oldStatus = $invoice->invoice_status;
+        $now = now();
+        $userId = auth()->id();
 
-        $invoice->fill([
+        $updateData = [
             'invoice_status' => $request->approvalStatus,
-        ])->save();
+        ];
+
+        // Set review timestamps when approved
+        // Note: approved_at is automatically set by InvoiceObserver
+        if ($request->approvalStatus === 'approved') {
+            $updateData['reviewed_by'] = $userId;
+            $updateData['reviewed_at'] = $now;
+        }
+
+        $invoice->fill($updateData)->save();
 
         // Log status change using trait
         $invoice->logStatusChange($oldStatus, $request->approvalStatus, $request->remarks);
@@ -739,6 +750,17 @@ class InvoiceController extends Controller
 
             DB::commit();
 
+            // Sync PurchaseOrder financials for affected invoices
+            // (Observer doesn't fire for bulk updates, so we must do this manually)
+            $invoices = Invoice::whereIn('id', $request->invoice_ids)
+                ->with('purchaseOrder')
+                ->get();
+
+            $affectedPOs = $invoices->pluck('purchaseOrder')->unique('id')->filter();
+            foreach ($affectedPOs as $po) {
+                $po->syncFinancials();
+            }
+
             return redirect()->back()->with('success', "Successfully marked {$updated} invoice(s) as received.");
         } catch (\Exception $e) {
             DB::rollBack();
@@ -777,6 +799,7 @@ class InvoiceController extends Controller
                     'invoice_status' => 'approved',
                     'reviewed_by' => $userId,
                     'reviewed_at' => $now,
+                    'approved_at' => $now,
                     'updated_at' => $now,
                 ]);
 
@@ -803,6 +826,7 @@ class InvoiceController extends Controller
                     'invoice_status' => 'approved',
                     'reviewed_by' => $userId,
                     'reviewed_at' => $now,
+                    'approved_at' => $now,
                 ]),
                 'user_id' => $userId,
                 'ip_address' => $request->ip(),
@@ -814,6 +838,17 @@ class InvoiceController extends Controller
             ActivityLog::insert($activityLogs);
 
             DB::commit();
+
+            // Sync PurchaseOrder financials for affected invoices
+            // (Observer doesn't fire for bulk updates, so we must do this manually)
+            $invoices = Invoice::whereIn('id', $request->invoice_ids)
+                ->with('purchaseOrder')
+                ->get();
+
+            $affectedPOs = $invoices->pluck('purchaseOrder')->unique('id')->filter();
+            foreach ($affectedPOs as $po) {
+                $po->syncFinancials();
+            }
 
             return redirect()->back()->with('success', "Successfully approved {$updated} invoice(s).");
         } catch (\Exception $e) {
@@ -879,6 +914,17 @@ class InvoiceController extends Controller
             ActivityLog::insert($activityLogs);
 
             DB::commit();
+
+            // Sync PurchaseOrder financials for affected invoices
+            // (Observer doesn't fire for bulk updates, so we must do this manually)
+            $invoices = Invoice::whereIn('id', $request->invoice_ids)
+                ->with('purchaseOrder')
+                ->get();
+
+            $affectedPOs = $invoices->pluck('purchaseOrder')->unique('id')->filter();
+            foreach ($affectedPOs as $po) {
+                $po->syncFinancials();
+            }
 
             return redirect()->back()->with('warning', "Rejected {$updated} invoice(s). Reason: {$request->notes}");
         } catch (\Exception $e) {

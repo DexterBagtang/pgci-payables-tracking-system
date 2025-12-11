@@ -79,6 +79,8 @@ export function useBulkInvoiceConfig() {
             terms_of_payment: bulkConfig.sharedValues.terms_of_payment || '',
             other_payment_terms: bulkConfig.sharedValues.other_payment_terms || '',
             due_date: bulkConfig.sharedValues.due_date || '',
+            submitted_at: bulkConfig.sharedValues.submitted_at || '',
+            submitted_to: bulkConfig.sharedValues.submitted_to || '',
             notes: bulkConfig.sharedValues.notes || '',
             files: [],
         };
