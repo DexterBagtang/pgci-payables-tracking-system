@@ -15,8 +15,9 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { Search, AlertTriangle, Loader2, CheckCircle2, XCircle, ArrowLeft, ArrowRight, FileText } from 'lucide-react';
+import { Search, AlertTriangle, Loader2, CheckCircle2, XCircle, ArrowLeft, ArrowRight, FileText, Download, Eye, Paperclip, Calendar, User } from 'lucide-react';
 import { DatePicker } from '@/components/custom/DatePicker';
+import StatusBadge, { AgingBadge } from '@/components/custom/StatusBadge';
 import DisbursementWizardStepper from './DisbursementWizardStepper';
 import DisbursementFinancialPreview from './DisbursementFinancialPreview';
 import FileUploadZone from './FileUploadZone';
@@ -147,6 +148,18 @@ export default function EditDisbursementFormWizard({
         const month = String(d.getMonth() + 1).padStart(2, '0');
         const day = String(d.getDate()).padStart(2, '0');
         return `${year}-${month}-${day}`;
+    };
+
+    // Helper function to get whole number aging days
+    const getAgingDays = (days) => {
+        return days != null ? Math.floor(days) : null;
+    };
+
+    // Helper function to handle file preview
+    const handleFilePreview = (fileUrl) => {
+        if (fileUrl) {
+            window.open(fileUrl, '_blank');
+        }
     };
 
     // Real-time uniqueness check for check voucher number (excluding current disbursement)
@@ -447,91 +460,128 @@ export default function EditDisbursementFormWizard({
                                                         return (
                                                             <Card
                                                                 key={checkReq.id}
-                                                                className={`transition-all ${
+                                                                className={`transition-all duration-200 ${
                                                                     isRemoved
-                                                                        ? 'border-red-500 bg-red-50 shadow-md'
+                                                                        ? 'border-red-500 bg-red-50/50 shadow-md ring-1 ring-red-200'
                                                                         : isAdded
-                                                                        ? 'border-green-500 bg-green-50 shadow-md'
+                                                                        ? 'border-green-500 bg-green-50/50 shadow-md ring-1 ring-green-200'
                                                                         : isSelected
-                                                                        ? 'border-blue-500 bg-blue-50 shadow-md'
+                                                                        ? 'border-blue-500 bg-blue-50/50 shadow-md ring-1 ring-blue-200'
                                                                         : 'hover:border-slate-300 hover:shadow-sm'
                                                                 }`}
                                                             >
-                                                                <CardContent className="p-4">
-                                                                    {/* CR Header */}
-                                                                    <div className="flex items-start gap-4">
-                                                                        <div className="pt-1">
+                                                                <CardContent className="p-3">
+                                                                    <div className="flex items-start gap-3">
+                                                                        {/* Checkbox */}
+                                                                        <div className="pt-0.5">
                                                                             <Checkbox
                                                                                 checked={isSelected}
                                                                                 onCheckedChange={() => toggleCheckReq(checkReq.id)}
-                                                                                className="h-5 w-5"
+                                                                                className="h-4 w-4"
                                                                             />
                                                                         </div>
-                                                                        <div className="flex-1 min-w-0">
-                                                                            {/* Main Info */}
-                                                                            <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
-                                                                                <div className="flex-1 min-w-0">
-                                                                                    <div className="flex items-center gap-2">
-                                                                                        <h3 className="text-lg font-semibold text-blue-600">
-                                                                                            {checkReq.requisition_number}
-                                                                                        </h3>
-                                                                                        {getCRBadge(checkReq.id)}
-                                                                                    </div>
-                                                                                    <p className="text-base font-medium text-slate-900">
-                                                                                        {checkReq.payee_name}
-                                                                                    </p>
-                                                                                    <p className="text-sm text-slate-500">
-                                                                                        Requested: {formatDate(checkReq.request_date)}
-                                                                                    </p>
+
+                                                                        {/* Main Content */}
+                                                                        <div className="flex-1 min-w-0 space-y-2">
+                                                                            {/* Header: CR Number, Status, Amount */}
+                                                                            <div className="flex items-center justify-between gap-3">
+                                                                                <div className="flex items-center gap-2 flex-wrap">
+                                                                                    <h3 className="text-sm font-bold text-blue-600">
+                                                                                        {checkReq.requisition_number}
+                                                                                    </h3>
+                                                                                    <StatusBadge
+                                                                                        status="approved"
+                                                                                        size="sm"
+                                                                                        showIcon={true}
+                                                                                    />
+                                                                                    {getCRBadge(checkReq.id)}
                                                                                 </div>
                                                                                 <div className="text-right">
-                                                                                    <div className="text-2xl font-bold text-green-600">
+                                                                                    <div className="text-lg font-bold text-green-600">
                                                                                         {formatCurrency(checkReq.php_amount)}
                                                                                     </div>
-                                                                                    <Badge variant="outline" className="mt-1">
-                                                                                        {checkReq.invoices_with_aging?.length || 0} invoice{checkReq.invoices_with_aging?.length !== 1 ? 's' : ''}
-                                                                                    </Badge>
                                                                                 </div>
                                                                             </div>
 
-                                                                            {/* Invoices List (Compact) */}
+                                                                            {/* Payee Name */}
+                                                                            <div className="text-sm font-semibold text-slate-900">
+                                                                                {checkReq.payee_name}
+                                                                            </div>
+
+                                                                            {/* Dates and Counts */}
+                                                                            <div className="flex items-center gap-3 flex-wrap text-xs text-slate-600">
+                                                                                <div className="flex items-center gap-1">
+                                                                                    <Calendar className="h-3 w-3" />
+                                                                                    <span>Req: {formatDate(checkReq.request_date)}</span>
+                                                                                </div>
+                                                                                {checkReq.approved_at && (
+                                                                                    <>
+                                                                                        <span className="text-slate-300">•</span>
+                                                                                        <div className="flex items-center gap-1">
+                                                                                            <CheckCircle2 className="h-3 w-3 text-green-600" />
+                                                                                            <span>Approved: {formatDate(checkReq.approved_at)}</span>
+                                                                                        </div>
+                                                                                    </>
+                                                                                )}
+                                                                                <span className="text-slate-300">•</span>
+                                                                                <Badge variant="outline" className="text-xs py-0 px-1.5">
+                                                                                    {checkReq.invoices_with_aging?.length || 0} inv
+                                                                                </Badge>
+                                                                                {checkReq.approval_files && checkReq.approval_files.length > 0 && (
+                                                                                    <>
+                                                                                        <Badge
+                                                                                            variant="outline"
+                                                                                            className="text-xs py-0 px-1.5 cursor-pointer hover:bg-slate-100"
+                                                                                            onClick={() => handleFilePreview(checkReq.approval_files[0]?.file_url)}
+                                                                                        >
+                                                                                            <Paperclip className="h-2.5 w-2.5 mr-0.5" />
+                                                                                            {checkReq.approval_files.length}
+                                                                                        </Badge>
+                                                                                    </>
+                                                                                )}
+                                                                            </div>
+
+                                                                            {/* Invoices List - Compact */}
                                                                             {checkReq.invoices_with_aging && checkReq.invoices_with_aging.length > 0 && (
-                                                                                <div className="mt-3 space-y-2 rounded-lg bg-white p-3 border">
-                                                                                    <div className="text-xs font-semibold uppercase text-slate-600">
+                                                                                <div className="mt-2 space-y-1">
+                                                                                    <div className="text-[10px] font-semibold uppercase text-slate-500 tracking-wide">
                                                                                         Invoices
                                                                                     </div>
-                                                                                    <div className="space-y-2">
-                                                                                        {checkReq.invoices_with_aging.map((invoice) => (
-                                                                                            <div
-                                                                                                key={invoice.id}
-                                                                                                className="flex items-center justify-between rounded border-l-2 border-l-blue-400 bg-slate-50 px-3 py-2"
-                                                                                            >
-                                                                                                <div className="flex-1 min-w-0">
-                                                                                                    <div className="flex items-center gap-2">
-                                                                                                        <span className="text-sm font-medium text-slate-900">
+                                                                                    <div className="space-y-1">
+                                                                                        {checkReq.invoices_with_aging.map((invoice) => {
+                                                                                            const agingDays = getAgingDays(invoice.aging_days);
+                                                                                            return (
+                                                                                                <div
+                                                                                                    key={invoice.id}
+                                                                                                    className="flex items-center justify-between gap-2 rounded bg-white border border-slate-200 px-2 py-1.5 hover:border-slate-300 transition-colors"
+                                                                                                >
+                                                                                                    <div className="flex-1 min-w-0 flex items-center gap-2 flex-wrap">
+                                                                                                        <span className="text-xs font-semibold text-slate-900">
                                                                                                             {invoice.si_number}
                                                                                                         </span>
-                                                                                                        <Badge variant="secondary" className="text-xs">
-                                                                                                            {invoice.invoice_status}
-                                                                                                        </Badge>
-                                                                                                        {invoice.aging_days !== null && (
+                                                                                                        <StatusBadge
+                                                                                                            status={invoice.invoice_status}
+                                                                                                            size="xs"
+                                                                                                            showIcon={false}
+                                                                                                        />
+                                                                                                        {agingDays !== null && (
                                                                                                             <Badge
-                                                                                                                variant={invoice.aging_days > 60 ? 'destructive' : 'outline'}
-                                                                                                                className="text-xs"
+                                                                                                                variant={agingDays > 60 ? 'destructive' : agingDays > 30 ? 'default' : 'outline'}
+                                                                                                                className="text-[10px] py-0 px-1 h-4"
                                                                                                             >
-                                                                                                                {invoice.aging_days}d
+                                                                                                                {agingDays}d
                                                                                                             </Badge>
                                                                                                         )}
+                                                                                                        <span className="text-[10px] text-slate-500 truncate">
+                                                                                                            {invoice.purchase_order?.vendor?.name || 'Unknown'}
+                                                                                                        </span>
                                                                                                     </div>
-                                                                                                    <div className="text-xs text-slate-600">
-                                                                                                        {invoice.purchase_order?.vendor?.name || 'Unknown Vendor'}
+                                                                                                    <div className="text-xs font-bold text-slate-900 whitespace-nowrap">
+                                                                                                        {formatCurrency(invoice.net_amount)}
                                                                                                     </div>
                                                                                                 </div>
-                                                                                                <div className="ml-3 text-sm font-semibold text-slate-900">
-                                                                                                    {formatCurrency(invoice.net_amount)}
-                                                                                                </div>
-                                                                                            </div>
-                                                                                        ))}
+                                                                                            );
+                                                                                        })}
                                                                                     </div>
                                                                                 </div>
                                                                             )}

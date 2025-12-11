@@ -55,7 +55,7 @@ export default function CheckReqFormDetails({ data, setData, errors }) {
                     <div>
                         <Label className="text-xs text-slate-700">Purpose</Label>
                         <Textarea
-                            rows={2}
+                            rows={5}
                             value={data.purpose}
                             onChange={(e) => setData("purpose", e.target.value)}
                             className="text-xs resize-y"
