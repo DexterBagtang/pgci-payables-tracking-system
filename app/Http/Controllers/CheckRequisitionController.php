@@ -443,12 +443,20 @@ class CheckRequisitionController extends Controller
                 Storage::disk('public')->makeDirectory('check_requisitions');
             }
 
-            Browsershot::html($html)
+            $browsershot = Browsershot::html($html)
                 ->noSandbox()
                 ->format('A4')
                 ->showBackground()
-                ->margins(10, 10, 10, 10)
-                ->save(storage_path('app/public/' . $path));
+                ->setOption('args', ['--no-sandbox', '--disable-setuid-sandbox'])
+                ->margins(10, 10, 10, 10);
+
+            if (PHP_OS_FAMILY === 'Linux') {
+                $browsershot->setOption(
+                    'executablePath',
+                    '/var/www/.cache/puppeteer/chrome-headless-shell/linux-141.0.7390.76/chrome-headless-shell-linux64/chrome-headless-shell'
+                );
+            }
+            $browsershot->save(storage_path('app/public/' . $path));
 
             // Create new versioned file record (all versions remain active)
             File::create([
