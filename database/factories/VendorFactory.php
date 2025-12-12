@@ -22,14 +22,14 @@ class VendorFactory extends Factory
 
         return [
             'name' => $name,
-            'email' => $this->faker->optional()->safeEmail(),
-            'phone' => $this->faker->optional()->phoneNumber(),
-            'address' => $this->faker->optional()->address(),
+//            'email' => $this->faker->optional()->safeEmail(),
+//            'phone' => $this->faker->optional()->phoneNumber(),
+//            'address' => $this->faker->optional()->address(),
             'category' => $category,
-            'payment_terms' => $this->faker->optional()->randomElement([
-                'Net 30', 'Net 15', 'Due on Receipt', '2% 10 Net 30'
-            ]),
-            'is_active' => $this->faker->boolean(90), // 90% chance of being active
+//            'payment_terms' => $this->faker->optional()->randomElement([
+//                'Net 30', 'Net 15', 'Due on Receipt', '2% 10 Net 30'
+//            ]),
+            'is_active' => 1, // 90% chance of being active
             'vendor_type' => $vendorType,
             'created_by' => 1, // Assuming you have users with IDs 1–10
         ];
