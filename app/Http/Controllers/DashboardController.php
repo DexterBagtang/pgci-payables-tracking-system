@@ -18,7 +18,7 @@ class DashboardController extends Controller
             'role' => $request->user()->role->value,
             'alerts' => [], // TODO: Implement alert system in future phase
             'timeRange' => [
-                'range' => $request->input('range', '7d'),
+                'range' => $request->input('range', 'all'),
                 'start' => $request->input('start'),
                 'end' => $request->input('end'),
             ],
