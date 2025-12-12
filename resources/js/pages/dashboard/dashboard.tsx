@@ -3,6 +3,10 @@ import { dashboard } from '@/routes';
 import { type BreadcrumbItem, type DashboardData } from '@/types';
 import { Head } from '@inertiajs/react';
 import { DashboardFilterProvider } from '@/contexts/DashboardFilterContext';
+import { useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
+import { RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import TimeRangeFilter from './components/shared/TimeRangeFilter';
 import UnifiedDashboard from './components/unified/UnifiedDashboard';
 // Role-based dashboards (commented out for unified dashboard)
@@ -20,6 +24,19 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 export default function Dashboard(props: DashboardData) {
     const { role, alerts, timeRange } = props;
+    const queryClient = useQueryClient();
+    const [isRefreshing, setIsRefreshing] = useState(false);
+
+    const handleRefresh = async () => {
+        setIsRefreshing(true);
+        await queryClient.invalidateQueries({
+            predicate: (query) => {
+                const queryKey = query.queryKey[0];
+                return typeof queryKey === 'string' && queryKey.startsWith('/api/dashboard/unified');
+            },
+        });
+        setIsRefreshing(false);
+    };
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -33,7 +50,18 @@ export default function Dashboard(props: DashboardData) {
                     {/* Time Range Filter */}
                     <div className="flex items-center justify-between">
                         <h1 className="text-2xl font-semibold">Dashboard</h1>
-                        <TimeRangeFilter />
+                        <div className="flex items-center gap-2">
+                            <Button
+                                onClick={handleRefresh}
+                                disabled={isRefreshing}
+                                variant="ghost"
+                                size="icon"
+                                title={isRefreshing ? 'Refreshing...' : 'Refresh dashboard data'}
+                            >
+                                <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                            </Button>
+                            <TimeRangeFilter />
+                        </div>
                     </div>
 
                     {/* Alert Summary */}
