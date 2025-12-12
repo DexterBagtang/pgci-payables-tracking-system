@@ -18,7 +18,6 @@ const TIME_RANGES: { value: TimeRange; label: string }[] = [
     { value: 'month', label: 'This Month' },
     { value: 'quarter', label: 'This Quarter' },
     { value: 'year', label: 'This Year' },
-    { value: 'fiscal', label: 'Fiscal Year' },
     { value: 'all', label: 'All Time' },
 ];
 
@@ -31,18 +30,7 @@ export default function TimeRangeFilter() {
     });
 
     const handleCustomDateSelect = (range: DateRange | undefined) => {
-        if (!range) {
-            setDateRange(undefined);
-            return;
-        }
-
         setDateRange(range);
-
-        // Only apply when both dates are selected
-        if (range.from && range.to) {
-            setCustomDates({ start: range.from, end: range.to });
-            setIsCustomOpen(false);
-        }
     };
 
     const getCustomLabel = () => {
@@ -83,36 +71,46 @@ export default function TimeRangeFilter() {
                         {getCustomLabel()}
                     </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="end">
-                    <CalendarComponent
-                        mode="range"
-                        selected={dateRange}
-                        onSelect={handleCustomDateSelect}
-                        numberOfMonths={2}
-                        initialFocus
-                    />
-                    <div className="p-3 border-t">
-                        <div className="flex items-center justify-between gap-2">
+                <PopoverContent className="w-auto" align="start">
+                    <div className="space-y-4">
+                        <div>
+                            <CalendarComponent
+                                mode="range"
+                                selected={dateRange}
+                                onSelect={handleCustomDateSelect}
+                                numberOfMonths={2}
+                                captionLayout="dropdown"
+                                fromYear={2020}
+                                toYear={2030}
+                                disableNavigation
+                                className="rounded-md border w-auto"
+                            />
+                        </div>
+                        <div className="flex gap-2">
                             <Button
-                                variant="outline"
                                 size="sm"
+                                variant="outline"
                                 onClick={() => {
                                     setDateRange(undefined);
                                     setCustomDates(null);
                                     setIsCustomOpen(false);
+                                    if (timeRange === 'custom') {
+                                        setTimeRange('all');
+                                    }
                                 }}
                             >
                                 Clear
                             </Button>
                             <Button
                                 size="sm"
-                                disabled={!dateRange?.from || !dateRange?.to}
                                 onClick={() => {
                                     if (dateRange?.from && dateRange?.to) {
                                         setCustomDates({ start: dateRange.from, end: dateRange.to });
+                                        setTimeRange('custom');
                                         setIsCustomOpen(false);
                                     }
                                 }}
+                                disabled={!dateRange?.from || !dateRange?.to}
                             >
                                 Apply
                             </Button>

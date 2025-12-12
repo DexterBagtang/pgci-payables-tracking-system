@@ -218,7 +218,7 @@ export interface Disbursement {
 }
 
 // Dashboard Types
-export type TimeRange = 'today' | 'week' | 'month' | 'quarter' | 'year' | 'fiscal' | 'custom' | 'all';
+export type TimeRange = 'today' | 'week' | 'month' | 'quarter' | 'year' | 'custom' | 'all';
 
 export type AlertPriority = 'urgent' | 'high' | 'medium' | 'low';
 export type AlertCategory = 'invoice' | 'budget' | 'approval' | 'disbursement' | 'po';
