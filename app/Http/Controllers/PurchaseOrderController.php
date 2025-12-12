@@ -401,19 +401,23 @@ class PurchaseOrderController extends Controller
         // Validate request
         $validated = $request->validate([
             'closure_remarks' => 'required|string|max:1000',
-            'force_close' => 'nullable|boolean',
+            'force_close' => 'sometimes', // Allow any value, will be converted to boolean later
             'files' => 'nullable|array',
             'files.*' => 'file|max:10240', // 10MB max per file
         ]);
 
         // Check if user has purchasing role
         if (auth()->user()->role->value !== 'purchasing' && auth()->user()->role->value !== 'admin') {
-            return back()->withErrors(['error' => 'Only users with Purchasing role can close purchase orders.']);
+            return back()->withErrors([
+                'permission_error' => 'Only users with Purchasing role can close purchase orders.'
+            ]);
         }
 
         // Check if PO is already closed
         if ($purchaseOrder->po_status === 'closed') {
-            return back()->withErrors(['error' => 'This purchase order is already closed.']);
+            return back()->withErrors([
+                'status_error' => 'This purchase order is already closed.'
+            ]);
         }
 
         // Ensure financial summary is up-to-date

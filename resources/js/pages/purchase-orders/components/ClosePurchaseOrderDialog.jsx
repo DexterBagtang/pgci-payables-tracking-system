@@ -18,6 +18,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 export default function ClosePurchaseOrderDialog({ open, onOpenChange, purchaseOrder }) {
     const [selectedFiles, setSelectedFiles] = useState([]);
     const [showConfirmation, setShowConfirmation] = useState(false);
+    const [generalError, setGeneralError] = useState(null);
     const { data, setData, post, processing, errors, reset } = useForm({
         closure_remarks: '',
         files: [],
@@ -28,6 +29,7 @@ export default function ClosePurchaseOrderDialog({ open, onOpenChange, purchaseO
         reset();
         setSelectedFiles([]);
         setShowConfirmation(false);
+        setGeneralError(null);
         onOpenChange(false);
     }, [onOpenChange, reset]);
 
@@ -45,6 +47,7 @@ export default function ClosePurchaseOrderDialog({ open, onOpenChange, purchaseO
 
     const handleSubmit = (e) => {
         e.preventDefault();
+        setGeneralError(null);
 
         post(route('purchase-orders.close', purchaseOrder.id), {
             preserveScroll: true,
@@ -52,6 +55,16 @@ export default function ClosePurchaseOrderDialog({ open, onOpenChange, purchaseO
                 handleClose();
             },
             onError: (errors) => {
+                // Handle blocking errors (permission, status)
+                if (errors.permission_error) {
+                    setGeneralError(errors.permission_error);
+                    return;
+                }
+                if (errors.status_error) {
+                    setGeneralError(errors.status_error);
+                    return;
+                }
+
                 // If backend returns warnings and requires confirmation
                 if (errors.requires_confirmation) {
                     setShowConfirmation(true);
@@ -61,6 +74,8 @@ export default function ClosePurchaseOrderDialog({ open, onOpenChange, purchaseO
     };
 
     const handleForceClose = () => {
+        setGeneralError(null);
+
         // Create FormData to properly handle file uploads with force_close flag
         const formData = new FormData();
         formData.append('closure_remarks', data.closure_remarks);
@@ -78,6 +93,19 @@ export default function ClosePurchaseOrderDialog({ open, onOpenChange, purchaseO
             preserveScroll: true,
             onSuccess: () => {
                 handleClose();
+            },
+            onError: (errors) => {
+                // Handle any errors during force close
+                if (errors.permission_error) {
+                    setGeneralError(errors.permission_error);
+                    setShowConfirmation(false);
+                } else if (errors.status_error) {
+                    setGeneralError(errors.status_error);
+                    setShowConfirmation(false);
+                } else {
+                    // Any other error - show generic message
+                    setGeneralError('An error occurred while closing the purchase order. Please try again.');
+                }
             },
         });
     };
@@ -111,8 +139,19 @@ export default function ClosePurchaseOrderDialog({ open, onOpenChange, purchaseO
 
                 <form onSubmit={handleSubmit} className="overflow-y-auto px-6 py-6 flex-1 bg-gray-50/50">
                     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 space-y-6">
+                        {/* General Error Alert */}
+                        {generalError && (
+                            <Alert variant="destructive" className="border-red-300 bg-red-50">
+                                <AlertCircle className="h-4 w-4 text-red-600" />
+                                <AlertTitle className="text-red-900">Error</AlertTitle>
+                                <AlertDescription className="text-red-800">
+                                    {generalError}
+                                </AlertDescription>
+                            </Alert>
+                        )}
+
                         {/* Warning Alert */}
-                        {!showConfirmation ? (
+                        {!showConfirmation && !generalError ? (
                             <Alert className="border-amber-200 bg-amber-50">
                                 <AlertCircle className="h-4 w-4 text-amber-600" />
                                 <AlertTitle className="text-amber-900">Manual Override</AlertTitle>
@@ -122,7 +161,7 @@ export default function ClosePurchaseOrderDialog({ open, onOpenChange, purchaseO
                                     Use this when you need to force-close a PO that cannot be completed normally.
                                 </AlertDescription>
                             </Alert>
-                        ) : (
+                        ) : showConfirmation && !generalError ? (
                             <Alert variant="destructive" className="border-red-200 bg-red-50">
                                 <AlertCircle className="h-4 w-4" />
                                 <AlertTitle>Confirmation Required</AlertTitle>
@@ -130,9 +169,13 @@ export default function ClosePurchaseOrderDialog({ open, onOpenChange, purchaseO
                                     <div className="space-y-2 mt-2">
                                         <p className="font-medium">The following issues were detected:</p>
                                         <ul className="list-disc list-inside space-y-1 text-sm">
-                                            {errors.warnings?.map((warning, index) => (
-                                                <li key={index}>{warning}</li>
-                                            ))}
+                                            {Array.isArray(errors.warnings) ? (
+                                                errors.warnings.map((warning, index) => (
+                                                    <li key={index}>{warning}</li>
+                                                ))
+                                            ) : errors.warnings ? (
+                                                <li>{errors.warnings}</li>
+                                            ) : null}
                                         </ul>
                                         <p className="mt-3 font-medium text-red-900">
                                             Do you want to proceed with closing this PO anyway?
@@ -140,7 +183,7 @@ export default function ClosePurchaseOrderDialog({ open, onOpenChange, purchaseO
                                     </div>
                                 </AlertDescription>
                             </Alert>
-                        )}
+                        ) : null}
 
                         {/* Closure Remarks */}
                         <div className="space-y-2">
@@ -249,7 +292,7 @@ export default function ClosePurchaseOrderDialog({ open, onOpenChange, purchaseO
                                 type="submit"
                                 variant="destructive"
                                 onClick={handleSubmit}
-                                disabled={processing || !data.closure_remarks.trim()}
+                                disabled={processing || !data.closure_remarks.trim() || generalError}
                             >
                                 {processing ? 'Closing...' : 'Close Purchase Order'}
                             </Button>
@@ -259,7 +302,10 @@ export default function ClosePurchaseOrderDialog({ open, onOpenChange, purchaseO
                             <Button
                                 type="button"
                                 variant="outline"
-                                onClick={() => setShowConfirmation(false)}
+                                onClick={() => {
+                                    setShowConfirmation(false);
+                                    setGeneralError(null);
+                                }}
                                 disabled={processing}
                             >
                                 Go Back
@@ -268,7 +314,7 @@ export default function ClosePurchaseOrderDialog({ open, onOpenChange, purchaseO
                                 type="button"
                                 variant="destructive"
                                 onClick={handleForceClose}
-                                disabled={processing}
+                                disabled={processing || generalError}
                             >
                                 {processing ? 'Force Closing...' : 'Yes, Force Close Anyway'}
                             </Button>
