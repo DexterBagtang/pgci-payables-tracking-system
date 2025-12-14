@@ -20,7 +20,7 @@ import { DatePicker } from '@/components/custom/DatePicker';
 import StatusBadge, { AgingBadge } from '@/components/custom/StatusBadge';
 import DisbursementWizardStepper from './DisbursementWizardStepper';
 import DisbursementFinancialPreview from './DisbursementFinancialPreview';
-import FileUploadZone from './FileUploadZone';
+import FileUpload from '@/components/custom/FileUpload';
 import DisbursementReviewStep from './DisbursementReviewStep';
 
 export default function EditDisbursementFormWizard({
@@ -717,16 +717,19 @@ export default function EditDisbursementFormWizard({
                                             </div>
 
                                             <div className="space-y-2">
-                                                <Label>Supporting Documents (Optional)</Label>
-                                                <FileUploadZone
+                                                <FileUpload
                                                     files={formData.files}
                                                     onChange={(files) => setData('files', files)}
+                                                    existingFiles={disbursement.files || []}
+                                                    onDownloadFile={(file) => window.open(`/storage/${file.file_path}`, '_blank')}
+                                                    label="Supporting Documents (Optional)"
+                                                    description="PDF, JPG, PNG (Max 10MB). New files will be added to existing attachments."
+                                                    variant="compact"
+                                                    maxFiles={10}
+                                                    maxSizePerFile={10}
+                                                    accept={['.pdf', '.jpg', '.jpeg', '.png']}
+                                                    error={errors?.files}
                                                 />
-                                                {disbursement.files && disbursement.files.length > 0 && (
-                                                    <p className="text-xs text-blue-600">
-                                                        Note: {disbursement.files.length} existing file(s) will be preserved. New files will be added.
-                                                    </p>
-                                                )}
                                             </div>
                                         </div>
                                     )}

@@ -64,6 +64,7 @@ import { toast } from 'sonner';
 import StatusBadge from '@/components/custom/StatusBadge.jsx';
 import BackButton from '@/components/custom/BackButton.jsx';
 import ActivityTimeline from '@/components/custom/ActivityTimeline.jsx';
+import FileUpload from '@/components/custom/FileUpload';
 
 export default function ReviewCheckRequisition({
                                                    checkRequisition,
@@ -723,25 +724,21 @@ export default function ReviewCheckRequisition({
                     </DialogHeader>
                     <div className="space-y-4 py-4">
                         <div>
-                            <Label>Signed Approval Document (Optional)</Label>
-                            <Input
-                                type="file"
-                                accept=".pdf,.jpg,.jpeg,.png"
-                                onChange={handleApprovalFileChange}
-                                className="mt-1"
+                            <FileUpload
+                                files={approvalFile ? [approvalFile] : []}
+                                onChange={(files) => {
+                                    const file = files[0];
+                                    setApprovalFile(file);
+                                    approvalForm.setData('approval_document', file);
+                                }}
+                                variant="minimal"
+                                label="Signed Approval Document (Optional)"
+                                description="PDF, JPG, PNG (Max 10MB)"
+                                accept={['.pdf', '.jpg', '.jpeg', '.png']}
+                                maxSizePerFile={10}
+                                multiple={false}
+                                dragAndDrop={false}
                             />
-                            {approvalFile && (
-                                <div className="mt-2 p-2 bg-green-50 rounded text-sm flex items-center gap-2">
-                                    <FileText className="h-4 w-4 text-green-600" />
-                                    <span className="flex-1 truncate">{approvalFile.name}</span>
-                                    <span className="text-xs text-green-600">
-                                        {(approvalFile.size / 1024).toFixed(2)} KB
-                                    </span>
-                                </div>
-                            )}
-                            <p className="text-xs text-muted-foreground mt-1">
-                                Accepted formats: PDF, JPG, PNG (Max 10MB)
-                            </p>
                         </div>
                         <div>
                             <Label>Approval Notes (Optional)</Label>
@@ -811,25 +808,21 @@ export default function ReviewCheckRequisition({
                             />
                         </div>
                         <div>
-                            <Label>Signed Rejection Document (Optional)</Label>
-                            <Input
-                                type="file"
-                                accept=".pdf,.jpg,.jpeg,.png"
-                                onChange={handleRejectionFileChange}
-                                className="mt-1"
+                            <FileUpload
+                                files={rejectionFile ? [rejectionFile] : []}
+                                onChange={(files) => {
+                                    const file = files[0];
+                                    setRejectionFile(file);
+                                    rejectionForm.setData('rejection_document', file);
+                                }}
+                                variant="minimal"
+                                label="Signed Rejection Document (Optional)"
+                                description="PDF, JPG, PNG (Max 10MB)"
+                                accept={['.pdf', '.jpg', '.jpeg', '.png']}
+                                maxSizePerFile={10}
+                                multiple={false}
+                                dragAndDrop={false}
                             />
-                            {rejectionFile && (
-                                <div className="mt-2 p-2 bg-red-50 rounded text-sm flex items-center gap-2">
-                                    <FileText className="h-4 w-4 text-red-600" />
-                                    <span className="flex-1 truncate">{rejectionFile.name}</span>
-                                    <span className="text-xs text-red-600">
-                                        {(rejectionFile.size / 1024).toFixed(2)} KB
-                                    </span>
-                                </div>
-                            )}
-                            <p className="text-xs text-muted-foreground mt-1">
-                                Accepted formats: PDF, JPG, PNG (Max 10MB)
-                            </p>
                         </div>
                     </div>
                     <DialogFooter>

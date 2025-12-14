@@ -104,9 +104,22 @@ export const usePOForm = (initialData = null, mode = 'create', onSuccess = null)
 
     /**
      * Handle file selection and update form state
+     * Supports both event-based (e.target.files) and direct array passing
      */
-    const handleFileChange = useCallback((e) => {
-        const selectedFiles = Array.from(e.target.files);
+    const handleFileChange = useCallback((filesOrEvent) => {
+        let selectedFiles;
+
+        // Check if it's an event object or files array
+        if (filesOrEvent?.target?.files) {
+            // Event-based (old behavior)
+            selectedFiles = Array.from(filesOrEvent.target.files);
+        } else if (Array.isArray(filesOrEvent)) {
+            // Direct array (new FileUpload component)
+            selectedFiles = filesOrEvent;
+        } else {
+            selectedFiles = [];
+        }
+
         setFiles(selectedFiles);
         setData('files', selectedFiles);
 

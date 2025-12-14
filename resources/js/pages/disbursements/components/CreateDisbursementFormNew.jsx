@@ -20,7 +20,7 @@ import { DatePicker } from '@/components/custom/DatePicker';
 import StatusBadge, { AgingBadge } from '@/components/custom/StatusBadge';
 import DisbursementWizardStepper from './DisbursementWizardStepper';
 import DisbursementFinancialPreview from './DisbursementFinancialPreview';
-import FileUploadZone from './FileUploadZone';
+import FileUpload from '@/components/custom/FileUpload';
 import DisbursementReviewStep from './DisbursementReviewStep';
 
 export default function CreateDisbursementFormNew({ checkRequisitions, filters }) {
@@ -658,10 +658,16 @@ export default function CreateDisbursementFormNew({ checkRequisitions, filters }
                                             </div>
 
                                             <div className="space-y-2">
-                                                <Label>Supporting Documents (Optional)</Label>
-                                                <FileUploadZone
+                                                <FileUpload
                                                     files={formData.files}
                                                     onChange={(files) => setData('files', files)}
+                                                    label="Supporting Documents (Optional)"
+                                                    description="PDF, JPG, PNG (Max 10MB)"
+                                                    variant="compact"
+                                                    maxFiles={10}
+                                                    maxSizePerFile={10}
+                                                    accept={['.pdf', '.jpg', '.jpeg', '.png']}
+                                                    error={errors?.files}
                                                 />
                                             </div>
                                         </div>

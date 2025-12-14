@@ -477,7 +477,7 @@ class InvoiceController extends Controller
      */
     public function edit(Invoice $invoice)
     {
-        $invoice->load('purchaseOrder.project', 'purchaseOrder.vendor');
+        $invoice->load('purchaseOrder.project', 'purchaseOrder.vendor', 'files');
         return inertia('invoices/edit', [
             'invoice' => $invoice,
             'purchaseOrders' => PurchaseOrder::with(['project', 'vendor'])->get(),
@@ -501,7 +501,7 @@ class InvoiceController extends Controller
             'notes' => 'nullable|string',
             'submitted_at' => 'nullable|date',
             'submitted_to' => 'nullable|string|max:255',
-            'files.*' => 'file|max:20480|mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png',
+            'files.*' => 'file|max:20480|mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png,txt',
         ]);
 
         // Check for duplicate SI number from the same vendor and currency matching
@@ -551,7 +551,7 @@ class InvoiceController extends Controller
         // Log update using trait
         $invoice->logUpdate($changes);
 
-        // Handle new file uploads only (no deletion)
+        // Handle new file uploads only (existing files cannot be deleted)
         if (!empty($fileData)) {
             foreach ($fileData as $file) {
                 $originalName = $file->getClientOriginalName();

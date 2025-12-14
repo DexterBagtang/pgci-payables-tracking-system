@@ -55,12 +55,12 @@ import { DatePicker } from '@/components/custom/DatePicker.jsx';
 import { RequiredLabel } from '@/components/custom/RequiredLabel.jsx';
 import { PaymentTermsSelect } from '@/components/custom/PaymentTermsSelect.jsx';
 import { CurrencyToggle } from '@/components/custom/CurrencyToggle.jsx';
+import FileUpload from '@/components/custom/FileUpload';
 
 const EditInvoice = ({ invoice, purchaseOrders }) => {
     const [poComboboxOpen, setPoComboboxOpen] = useState(false);
     const [selectedFiles, setSelectedFiles] = useState([]);
     const [showConfirmation, setShowConfirmation] = useState(false);
-    const [filesToDelete, setFilesToDelete] = useState([]);
 
     const { data, setData, post, processing, errors, reset } = useForm({
         purchase_order_id: invoice.purchase_order_id?.toString() || '',
@@ -76,7 +76,6 @@ const EditInvoice = ({ invoice, purchaseOrders }) => {
         submitted_at: invoice.submitted_at || '',
         submitted_to: invoice.submitted_to || '',
         files: [],
-        delete_files: [],
     });
 
     // Initialize form with invoice data on mount
@@ -95,7 +94,6 @@ const EditInvoice = ({ invoice, purchaseOrders }) => {
             submitted_at: invoice.submitted_at || '',
             submitted_to: invoice.submitted_to || '',
             files: [],
-            delete_files: [],
         });
     }, [invoice]);
 
@@ -173,20 +171,6 @@ const EditInvoice = ({ invoice, purchaseOrders }) => {
         setData('files', updatedFiles);
     }, [selectedFiles, setData]);
 
-    // Handle existing file deletion
-    const handleDeleteExistingFile = useCallback((fileId) => {
-        const updatedFilesToDelete = [...filesToDelete, fileId];
-        setFilesToDelete(updatedFilesToDelete);
-        setData('delete_files', updatedFilesToDelete);
-    }, [filesToDelete, setData]);
-
-    // Restore deleted file
-    const restoreFile = useCallback((fileId) => {
-        const updatedFilesToDelete = filesToDelete.filter(id => id !== fileId);
-        setFilesToDelete(updatedFilesToDelete);
-        setData('delete_files', updatedFilesToDelete);
-    }, [filesToDelete, setData]);
-
     const handlePreview = (e) => {
         e.preventDefault();
         setShowConfirmation(true);
@@ -208,8 +192,10 @@ const EditInvoice = ({ invoice, purchaseOrders }) => {
     // Error summary for better UX
     const errorCount = Object.keys(errors).length;
 
-    // Existing files that are not marked for deletion
-    const existingFiles = invoice.files?.filter(file => !filesToDelete.includes(file.id)) || [];
+    // Download file handler
+    const downloadFile = useCallback((file) => {
+        window.open(`/storage/${file.file_path}`, '_blank');
+    }, []);
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
@@ -491,121 +477,22 @@ const EditInvoice = ({ invoice, purchaseOrders }) => {
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent>
-                                    <div className="space-y-3">
-                                        {/* Existing Files */}
-                                        {existingFiles.length > 0 && (
-                                            <div className="space-y-2">
-                                                <Label className="text-sm font-medium">Current Files ({existingFiles.length})</Label>
-                                                <div className="space-y-1">
-                                                    {existingFiles.map((file) => (
-                                                        <div
-                                                            key={file.id}
-                                                            className="flex items-center justify-between rounded border bg-slate-50 p-2 text-sm"
-                                                        >
-                                                            <div className="min-w-0 flex-1">
-                                                                <p className="truncate text-xs font-medium text-slate-900">
-                                                                    {file.file_name}
-                                                                </p>
-                                                            </div>
-                                                            <Button
-                                                                type="button"
-                                                                variant="ghost"
-                                                                size="sm"
-                                                                onClick={() => handleDeleteExistingFile(file.id)}
-                                                                className="h-8 w-8 p-0 text-red-600 hover:bg-red-50 hover:text-red-800"
-                                                            >
-                                                                <X className="h-3 w-3" />
-                                                            </Button>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        {/* Files marked for deletion */}
-                                        {filesToDelete.length > 0 && (
-                                            <div className="space-y-2">
-                                                <Label className="text-sm font-medium text-red-600">Files to be Deleted ({filesToDelete.length})</Label>
-                                                <div className="space-y-1">
-                                                    {invoice.files?.filter(file => filesToDelete.includes(file.id)).map((file) => (
-                                                        <div
-                                                            key={file.id}
-                                                            className="flex items-center justify-between rounded border bg-red-50 p-2 text-sm"
-                                                        >
-                                                            <div className="min-w-0 flex-1">
-                                                                <p className="truncate text-xs font-medium text-slate-900 line-through">
-                                                                    {file.file_name}
-                                                                </p>
-                                                                <p className="text-xs text-red-600">
-                                                                    Will be deleted
-                                                                </p>
-                                                            </div>
-                                                            <Button
-                                                                type="button"
-                                                                variant="ghost"
-                                                                size="sm"
-                                                                onClick={() => restoreFile(file.id)}
-                                                                className="h-8 w-8 p-0 text-green-600 hover:bg-green-50 hover:text-green-800"
-                                                            >
-                                                                <Check className="h-3 w-3" />
-                                                            </Button>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        <div>
-                                            <label
-                                                htmlFor="files"
-                                                className="inline-block cursor-pointer rounded bg-blue-50 px-4 py-2 text-sm text-blue-700 hover:bg-blue-100"
-                                            >
-                                                <div className="flex items-center gap-2">
-                                                    <Upload className="h-4 w-4" />
-                                                    <span>Upload Files</span>
-                                                </div>
-                                            </label>
-                                            <input
-                                                id="files"
-                                                type="file"
-                                                multiple
-                                                onChange={handleFileChange}
-                                                accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.txt"
-                                                className="hidden"
-                                            />
-                                            <p className="mt-1 text-xs text-slate-500">PDF, DOC, XLS, JPG, PNG (Max: 20MB per file)</p>
-                                        </div>
-
-                                        {selectedFiles.length > 0 && (
-                                            <div className="space-y-2">
-                                                <Label className="text-sm font-medium">Selected Files ({selectedFiles.length})</Label>
-                                                <div className="space-y-1">
-                                                    {selectedFiles.map((file, index) => (
-                                                        <div
-                                                            key={index}
-                                                            className="flex items-center justify-between rounded border bg-slate-50 p-2 text-sm"
-                                                        >
-                                                            <div className="min-w-0 flex-1">
-                                                                <p className="truncate text-xs font-medium text-slate-900">{file.name}</p>
-                                                                <p className="text-xs text-slate-500">
-                                                                    {(file.size / 1024 / 1024).toFixed(2)} MB
-                                                                </p>
-                                                            </div>
-                                                            <Button
-                                                                type="button"
-                                                                variant="ghost"
-                                                                size="sm"
-                                                                onClick={() => removeFile(index)}
-                                                                className="h-8 w-8 p-0 text-red-600 hover:bg-red-50 hover:text-red-800"
-                                                            >
-                                                                <X className="h-3 w-3" />
-                                                            </Button>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
+                                    <FileUpload
+                                        files={selectedFiles}
+                                        onChange={(newFiles) => {
+                                            setSelectedFiles(newFiles);
+                                            setData('files', newFiles);
+                                        }}
+                                        existingFiles={invoice.files || []}
+                                        onDownloadFile={downloadFile}
+                                        label="Upload Additional Files"
+                                        description="PDF, DOC, DOCX, XLS, XLSX, JPG, PNG, TXT (Max 20MB). New files will be added to existing attachments."
+                                        variant="compact"
+                                        maxFiles={10}
+                                        maxSizePerFile={20}
+                                        accept={['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.jpg', '.jpeg', '.png', '.txt']}
+                                        error={errors?.files}
+                                    />
                                 </CardContent>
                             </Card>
                         </div>
@@ -691,26 +578,18 @@ const EditInvoice = ({ invoice, purchaseOrders }) => {
                                     )}
 
                                     {/* File Changes Summary */}
-                                    {(selectedFiles.length > 0 || filesToDelete.length > 0) && (
+                                    {selectedFiles.length > 0 && (
                                         <div className="p-3 bg-amber-50 border border-amber-200 rounded-md">
                                             <h4 className="text-xs font-medium text-amber-800 mb-2 uppercase tracking-wide">File Changes</h4>
                                             <div className="text-xs text-amber-700 space-y-1">
-                                                {selectedFiles.length > 0 && (
-                                                    <div className="flex justify-between">
-                                                        <span>New files:</span>
-                                                        <span className="font-medium">{selectedFiles.length}</span>
-                                                    </div>
-                                                )}
-                                                {filesToDelete.length > 0 && (
-                                                    <div className="flex justify-between">
-                                                        <span>Files to delete:</span>
-                                                        <span className="font-medium">{filesToDelete.length}</span>
-                                                    </div>
-                                                )}
+                                                <div className="flex justify-between">
+                                                    <span>New files to add:</span>
+                                                    <span className="font-medium">{selectedFiles.length}</span>
+                                                </div>
                                                 <div className="flex justify-between border-t border-amber-300 pt-1">
                                                     <span>Total files after update:</span>
                                                     <span className="font-medium">
-                                                        {(invoice.files?.length || 0) - filesToDelete.length + selectedFiles.length}
+                                                        {(invoice.files?.length || 0) + selectedFiles.length}
                                                     </span>
                                                 </div>
                                             </div>
@@ -843,33 +722,17 @@ const EditInvoice = ({ invoice, purchaseOrders }) => {
                             </div>
 
                             {/* File Changes */}
-                            {(selectedFiles.length > 0 || filesToDelete.length > 0) && (
+                            {selectedFiles.length > 0 && (
                                 <div className="border border-purple-200 rounded-lg p-3 bg-purple-50">
-                                    <h3 className="font-semibold text-slate-800 text-xs uppercase tracking-wide mb-2">File Changes</h3>
-                                    {selectedFiles.length > 0 && (
-                                        <div className="mb-2">
-                                            <div className="text-slate-600 text-xs mb-1">New Files ({selectedFiles.length})</div>
-                                            <ul className="text-xs text-slate-700 space-y-1">
-                                                {selectedFiles.map((file, i) => (
-                                                    <li key={i} className="truncate">
-                                                        📄 {file.name} ({(file.size / 1024 / 1024).toFixed(2)} MB)
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        </div>
-                                    )}
-                                    {filesToDelete.length > 0 && (
-                                        <div>
-                                            <div className="text-red-600 text-xs mb-1">Files to Delete ({filesToDelete.length})</div>
-                                            <ul className="text-xs text-red-700 space-y-1">
-                                                {invoice.files?.filter(file => filesToDelete.includes(file.id)).map((file, i) => (
-                                                    <li key={i} className="truncate line-through">
-                                                        🗑️ {file.file_name}
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        </div>
-                                    )}
+                                    <h3 className="font-semibold text-slate-800 text-xs uppercase tracking-wide mb-2">New Files to Add</h3>
+                                    <div className="text-slate-600 text-xs mb-1">New Files ({selectedFiles.length})</div>
+                                    <ul className="text-xs text-slate-700 space-y-1">
+                                        {selectedFiles.map((file, i) => (
+                                            <li key={i} className="truncate">
+                                                📄 {file.name} ({(file.size / 1024 / 1024).toFixed(2)} MB)
+                                            </li>
+                                        ))}
+                                    </ul>
                                 </div>
                             )}
 
