@@ -185,4 +185,12 @@ class User extends Authenticatable
     {
         return $this->morphMany(ActivityLog::class, 'loggable');
     }
+
+    /**
+     * Get the authentication logs for the user.
+     */
+    public function authLogs()
+    {
+        return $this->hasMany(AuthLog::class);
+    }
 }

@@ -32,6 +32,7 @@ class UserFactory extends Factory
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
+            'permissions' => null, // Default to no permissions (fail-safe)
         ];
     }
 
@@ -82,6 +83,42 @@ class UserFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'role' => UserRole::DISBURSEMENT,
+        ]);
+    }
+
+    /**
+     * Create a user with specific permissions.
+     */
+    public function withPermissions(array $read = [], array $write = []): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'permissions' => [
+                'read' => $read,
+                'write' => $write,
+            ],
+        ]);
+    }
+
+    /**
+     * Create a user with all permissions.
+     */
+    public function withAllPermissions(): static
+    {
+        $modules = [
+            'vendors',
+            'projects',
+            'purchase_orders',
+            'invoices',
+            'invoice_review',
+            'check_requisitions',
+            'disbursements',
+        ];
+
+        return $this->state(fn (array $attributes) => [
+            'permissions' => [
+                'read' => $modules,
+                'write' => $modules,
+            ],
         ]);
     }
 }

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
+use App\Services\AuthLogService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -13,6 +14,10 @@ use Inertia\Response;
 
 class AuthenticatedSessionController extends Controller
 {
+    public function __construct(protected AuthLogService $authLogService)
+    {
+    }
+
     /**
      * Show the login page.
      */
@@ -33,6 +38,13 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
+        // Log successful login
+        $this->authLogService->logLogin(
+            Auth::user(),
+            $request,
+            $request->boolean('remember')
+        );
+
         return redirect()->intended(route('dashboard', absolute: false));
     }
 
@@ -41,6 +53,13 @@ class AuthenticatedSessionController extends Controller
      */
     public function destroy(Request $request): RedirectResponse
     {
+        $user = Auth::user();
+
+        // Log logout before destroying session
+        if ($user) {
+            $this->authLogService->logLogout($user, $request);
+        }
+
         Auth::guard('web')->logout();
 
         $request->session()->invalidate();
