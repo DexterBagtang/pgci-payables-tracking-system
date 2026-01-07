@@ -11,6 +11,8 @@ class ProjectController extends Controller
 {
     public function index(Request $request)
     {
+        abort_unless(auth()->user()->canRead('projects'), 403);
+
         $query = Project::query();
 
         // Search functionality
@@ -83,11 +85,15 @@ class ProjectController extends Controller
 
     public function create()
     {
+        abort_unless(auth()->user()->canWrite('projects'), 403);
+
         return Inertia::render('Projects/Create');
     }
 
     public function store(Request $request)
     {
+        abort_unless(auth()->user()->canWrite('projects'), 403);
+
         $validated = $request->validate([
             'project_title' => 'required|string|max:255',
             'cer_number' => 'required|string|max:255|unique:projects',
@@ -113,6 +119,8 @@ class ProjectController extends Controller
 
     public function show(Project $project)
     {
+        abort_unless(auth()->user()->canRead('projects'), 403);
+
         return Inertia::render('projects/show', [
             'project' => $project->load([
                 'creator:id,name',
@@ -126,6 +134,8 @@ class ProjectController extends Controller
 
     public function edit(Project $project)
     {
+        abort_unless(auth()->user()->canWrite('projects'), 403);
+
         return Inertia::render('Projects/Edit', [
             'project' => $project,
         ]);
@@ -133,6 +143,8 @@ class ProjectController extends Controller
 
     public function update(Request $request, Project $project)
     {
+        abort_unless(auth()->user()->canWrite('projects'), 403);
+
         $validated = $request->validate([
             'project_title' => 'required|string|max:255',
             'cer_number' => [
@@ -172,6 +184,8 @@ class ProjectController extends Controller
 
     public function destroy(Project $project)
     {
+        abort_unless(auth()->user()->canWrite('projects'), 403);
+
         $project->delete();
 
         return redirect()->route('projects.index')->with('success', 'Project deleted successfully.');

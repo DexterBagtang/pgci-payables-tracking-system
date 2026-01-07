@@ -19,6 +19,8 @@ class CheckRequisitionController extends Controller
 {
     public function index(Request $request)
     {
+        abort_unless(auth()->user()->canRead('check_requisitions'), 403);
+
         $query = CheckRequisition::query();
 
         // Search filter
@@ -112,6 +114,8 @@ class CheckRequisitionController extends Controller
 
     public function create(Request $request)
     {
+        abort_unless(auth()->user()->canWrite('check_requisitions'), 403);
+
         $query = Invoice::with(['purchaseOrder.vendor', 'purchaseOrder.project'])
             ->where('invoice_status', 'approved');
 
@@ -165,6 +169,8 @@ class CheckRequisitionController extends Controller
 
     public function store(Request $request)
     {
+        abort_unless(auth()->user()->canWrite('check_requisitions'), 403);
+
         $validated = $request->validate([
             'request_date' => 'required|date',
             'payee_name' => 'required|string',
@@ -274,6 +280,8 @@ class CheckRequisitionController extends Controller
 
     public function show($id)
     {
+        abort_unless(auth()->user()->canRead('check_requisitions'), 403);
+
         $checkRequisition = CheckRequisition::with([
             'generator:id,name',
             'processor:id,name',
@@ -320,6 +328,8 @@ class CheckRequisitionController extends Controller
 
     public function edit(CheckRequisition $checkRequisition)
     {
+        abort_unless(auth()->user()->canWrite('check_requisitions'), 403);
+
         // Only allow editing if status is pending_approval
         if ($checkRequisition->requisition_status == 'approved') {
             return redirect()
@@ -371,6 +381,8 @@ class CheckRequisitionController extends Controller
 
     public function update(Request $request, CheckRequisition $checkRequisition)
     {
+        abort_unless(auth()->user()->canWrite('check_requisitions'), 403);
+
         // Validate the request
         $validated = $request->validate([
             'request_date' => 'required|date',
@@ -492,6 +504,8 @@ class CheckRequisitionController extends Controller
      */
     public function createApi(Request $request)
     {
+        abort_unless(auth()->user()->canWrite('check_requisitions'), 403);
+
         $query = Invoice::with(['purchaseOrder.vendor', 'purchaseOrder.project'])
             ->where('invoice_status', 'approved');
 
@@ -550,6 +564,8 @@ class CheckRequisitionController extends Controller
      */
     public function editApi(Request $request, CheckRequisition $checkRequisition)
     {
+        abort_unless(auth()->user()->canWrite('check_requisitions'), 403);
+
         // Get current invoice IDs
         $currentInvoiceIds = $checkRequisition->invoices()->pluck('invoices.id')->toArray();
 
@@ -622,6 +638,8 @@ class CheckRequisitionController extends Controller
      */
     public function approve(Request $request, CheckRequisition $checkRequisition)
     {
+        abort_unless(auth()->user()->canWrite('check_requisitions'), 403);
+
         // Validate that it's in the correct status
         if ($checkRequisition->requisition_status !== 'pending_approval') {
             return back()->with('error', 'Check requisition cannot be approved in current status');
@@ -720,6 +738,8 @@ class CheckRequisitionController extends Controller
      */
     public function reject(Request $request, CheckRequisition $checkRequisition)
     {
+        abort_unless(auth()->user()->canWrite('check_requisitions'), 403);
+
         // Validate that it's in the correct status
         if ($checkRequisition->requisition_status !== 'pending_approval') {
             return back()->with('error', 'Check requisition cannot be rejected in current status');

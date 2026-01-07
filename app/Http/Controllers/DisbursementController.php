@@ -21,6 +21,8 @@ class DisbursementController extends Controller
      */
     public function index(Request $request)
     {
+        abort_unless(auth()->user()->canRead('disbursements'), 403);
+
         $query = Disbursement::query();
 
         // Search filter
@@ -345,6 +347,8 @@ class DisbursementController extends Controller
      */
     public function create(Request $request)
     {
+        abort_unless(auth()->user()->canWrite('disbursements'), 403);
+
         $query = CheckRequisition::with(['invoices', 'generator'])
             ->where('requisition_status', 'approved');
 
@@ -389,6 +393,8 @@ class DisbursementController extends Controller
      */
     public function store(Request $request)
     {
+        abort_unless(auth()->user()->canWrite('disbursements'), 403);
+
         // Debug logging
         \Log::info('Disbursement store request', [
             'has_files' => $request->hasFile('files'),
@@ -525,6 +531,8 @@ class DisbursementController extends Controller
      */
     public function show($id)
     {
+        abort_unless(auth()->user()->canRead('disbursements'), 403);
+
         $disbursement = Disbursement::with([
             'creator:id,name',
             'activityLogs.user:id,name',
@@ -608,6 +616,8 @@ class DisbursementController extends Controller
      */
     public function edit($id)
     {
+        abort_unless(auth()->user()->canWrite('disbursements'), 403);
+
         $disbursement = Disbursement::with(['checkRequisitions.invoices'])->findOrFail($id);
 
         // Get current check requisitions
@@ -684,6 +694,8 @@ class DisbursementController extends Controller
      */
     public function update(Request $request, $id)
     {
+        abort_unless(auth()->user()->canWrite('disbursements'), 403);
+
         $disbursement = Disbursement::findOrFail($id);
 
         $validated = $request->validate([
@@ -1014,6 +1026,8 @@ class DisbursementController extends Controller
      */
     public function quickRelease(Request $request, $id)
     {
+        abort_unless(auth()->user()->canWrite('disbursements'), 403);
+
         $disbursement = Disbursement::findOrFail($id);
 
         $validated = $request->validate([
@@ -1085,6 +1099,8 @@ class DisbursementController extends Controller
      */
     public function bulkRelease(Request $request)
     {
+        abort_unless(auth()->user()->canWrite('disbursements'), 403);
+
         $validated = $request->validate([
             'disbursement_ids' => 'required|array',
             'disbursement_ids.*' => 'exists:disbursements,id',
@@ -1369,6 +1385,8 @@ class DisbursementController extends Controller
      */
     public function calendarData(Request $request)
     {
+        abort_unless(auth()->user()->canRead('disbursements'), 403);
+
         $startDate = $request->get('start', now()->startOfMonth()->toDateString());
         $endDate = $request->get('end', now()->endOfMonth()->toDateString());
 
@@ -1417,6 +1435,8 @@ class DisbursementController extends Controller
      */
     public function kanbanData(Request $request)
     {
+        abort_unless(auth()->user()->canRead('disbursements'), 403);
+
         $disbursements = Disbursement::query()
             ->with(['checkRequisitions.invoices'])
             ->get();

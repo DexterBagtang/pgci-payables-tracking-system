@@ -13,6 +13,8 @@ class VendorController extends Controller
      */
     public function index(Request $request)
     {
+        abort_unless(auth()->user()->canRead('vendors'), 403);
+
         $query = Vendor::query()->withCount(['purchaseOrders', 'invoices']);
 
         // Search functionality
@@ -97,6 +99,8 @@ class VendorController extends Controller
      */
     public function store(Request $request)
     {
+        abort_unless(auth()->user()->canWrite('vendors'), 403);
+
         $request->validate([
             'name' => 'required|string|max:255|unique:vendors,name',
             'email' => 'nullable|email|max:255',
@@ -129,6 +133,8 @@ class VendorController extends Controller
      */
     public function show(Vendor $vendor)
     {
+        abort_unless(auth()->user()->canRead('vendors'), 403);
+
         $vendor->load([
             'purchaseOrders.project',
             'purchaseOrders.invoices.checkRequisitions',
@@ -216,6 +222,8 @@ class VendorController extends Controller
      */
     public function update(Request $request, Vendor $vendor)
     {
+        abort_unless(auth()->user()->canWrite('vendors'), 403);
+
         $request->validate([
             'name' => [
                 'required',
@@ -274,6 +282,8 @@ class VendorController extends Controller
      */
     public function bulkActivate(Request $request)
     {
+        abort_unless(auth()->user()->canWrite('vendors'), 403);
+
         $request->validate([
             'vendor_ids' => 'required|array',
             'vendor_ids.*' => 'exists:vendors,id',
@@ -290,6 +300,8 @@ class VendorController extends Controller
      */
     public function bulkDeactivate(Request $request)
     {
+        abort_unless(auth()->user()->canWrite('vendors'), 403);
+
         $request->validate([
             'vendor_ids' => 'required|array',
             'vendor_ids.*' => 'exists:vendors,id',
@@ -306,6 +318,8 @@ class VendorController extends Controller
      */
     public function bulkDelete(Request $request)
     {
+        abort_unless(auth()->user()->canWrite('vendors'), 403);
+
         $request->validate([
             'vendor_ids' => 'required|array',
             'vendor_ids.*' => 'exists:vendors,id',

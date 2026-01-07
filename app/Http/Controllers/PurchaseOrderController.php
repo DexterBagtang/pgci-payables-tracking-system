@@ -19,6 +19,8 @@ class PurchaseOrderController extends Controller
 
     public function index(Request $request)
     {
+        abort_unless(auth()->user()->canRead('purchase_orders'), 403);
+
         $query = PurchaseOrder::with(['vendor', 'project', 'creator'])
             ->select('purchase_orders.*')
             ->leftJoin('vendors', 'purchase_orders.vendor_id', '=', 'vendors.id')
@@ -126,6 +128,8 @@ class PurchaseOrderController extends Controller
      */
     public function create(Request $request)
     {
+        abort_unless(auth()->user()->canWrite('purchase_orders'), 403);
+
         $vendors = Vendor::where('is_active', true)->orderBy('name')->get();
         $projects = Project::all();
 
@@ -139,6 +143,8 @@ class PurchaseOrderController extends Controller
 
     public function store(Request $request)
     {
+        abort_unless(auth()->user()->canWrite('purchase_orders'), 403);
+
         $validated = $request->validate([
             'po_number' => $request->po_status === 'draft' ? 'nullable|string|unique:purchase_orders' : 'required|string|unique:purchase_orders',
             'project_id' => $request->po_status === 'draft' ? 'nullable|exists:projects,id' : 'required|exists:projects,id',
@@ -247,6 +253,8 @@ class PurchaseOrderController extends Controller
      */
     public function show(Request $request,PurchaseOrder $purchaseOrder)
     {
+        abort_unless(auth()->user()->canRead('purchase_orders'), 403);
+
         $purchaseOrder->load([
             'project:id,project_title,cer_number,total_project_cost,total_contract_cost,project_status,description,project_type,smpo_number,philcom_category',
             'vendor:id,name,category',
@@ -274,6 +282,8 @@ class PurchaseOrderController extends Controller
      */
     public function edit(PurchaseOrder $purchaseOrder)
     {
+        abort_unless(auth()->user()->canWrite('purchase_orders'), 403);
+
         $purchaseOrder->load(['files', 'project:id,project_title,cer_number', 'vendor:id,name']);
         $vendors = Vendor::where('is_active', true)->orderBy('name')->get();
         $projects = Project::all();
@@ -291,6 +301,8 @@ class PurchaseOrderController extends Controller
      */
     public function update(Request $request, PurchaseOrder $purchaseOrder)
     {
+        abort_unless(auth()->user()->canWrite('purchase_orders'), 403);
+
         // Prevent vendor change if PO has invoices
         if ($purchaseOrder->invoices()->count() > 0 && $request->vendor_id != $purchaseOrder->vendor_id) {
             return back()->withErrors([
@@ -398,6 +410,8 @@ class PurchaseOrderController extends Controller
      */
     public function close(Request $request, PurchaseOrder $purchaseOrder)
     {
+        abort_unless(auth()->user()->canWrite('purchase_orders'), 403);
+
         // Validate request
         $validated = $request->validate([
             'closure_remarks' => 'required|string|max:1000',
@@ -535,6 +549,8 @@ class PurchaseOrderController extends Controller
      */
     public function destroy(string $id)
     {
+        abort_unless(auth()->user()->canWrite('purchase_orders'), 403);
+
         //
     }
 }
