@@ -34,36 +34,14 @@ class DatabaseSeeder extends Seeder
             'password' => Hash::make('payablesadmin2025'),
         ]);
 
-        // Sample users for each role
-        User::factory()->create([
-            'name' => 'John Purchasing',
-            'username' => 'purchasing',
-            'email' => 'purchasing@philcom.com',
-            'role' => UserRole::PURCHASING,
-            'password' => Hash::make('password'),
-        ]);
-
-        User::factory()->create([
-            'name' => 'Jane Payables',
-            'username' => 'payables',
-            'email' => 'payables@philcom.com',
-            'role' => UserRole::PAYABLES,
-            'password' => Hash::make('password'),
-        ]);
-
-        User::factory()->create([
-            'name' => 'Mike Disbursement',
-            'username' => 'disbursement',
-            'email' => 'disbursement@philcom.com',
-            'role' => UserRole::DISBURSEMENT,
-            'password' => Hash::make('password'),
-        ]);
 
         $this->call([
 //            VendorSeeder::class,
 //            ProjectSeeder::class,
 //            PurchaseOrderSeeder::class,
 //            InvoiceSeeder::class,
+        UserPermissionsSeeder::class,
+
         ]);
 
 

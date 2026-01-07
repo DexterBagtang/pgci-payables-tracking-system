@@ -51,7 +51,7 @@ class UserPermissionsSeeder extends Seeder
                 'email_verified_at' => now(),
                 'permissions' => [
                     'read' => ['vendors', 'projects', 'purchase_orders', 'invoices',
-                               'invoice_review', 'check_requisitions', 'disbursements'],
+                               'invoice_review', 'check_requisitions'],
                     'write' => ['invoice_review', 'check_requisitions']
                 ]
             ],
