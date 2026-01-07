@@ -1,5 +1,6 @@
 import { useState, useEffect, lazy, Suspense } from 'react';
 import { router } from '@inertiajs/react';
+import { usePermissions } from '@/hooks/use-permissions';
 
 import {
     Table,
@@ -35,6 +36,7 @@ const AddVendorDialog = lazy(() => import('@/pages/vendors/components/AddVendorD
 const EditVendorDialog = lazy(() => import('@/pages/vendors/components/EditVendorDialog.jsx'));
 
 export default function VendorsTable({ vendors, filters = {}, stats = {} }) {
+    const { canWrite } = usePermissions();
     const [searchTerm, setSearchTerm] = useState(filters.search || '');
     const [sortField, setSortField] = useState(filters.sort_field || '');
     const [sortDirection, setSortDirection] = useState(filters.sort_direction || 'asc');
@@ -191,16 +193,18 @@ export default function VendorsTable({ vendors, filters = {}, stats = {} }) {
                             Vendors Management
                         </CardTitle>
 
-                        <Suspense fallback={<DialogLoadingFallback message="Loading form..." />}>
-                            <AddVendorDialog
-                                trigger={
-                                    <Button className="gap-2">
-                                        <Plus className="h-4 w-4" />
-                                        Add Vendor
+                        {canWrite('vendors') && (
+                            <Suspense fallback={<DialogLoadingFallback message="Loading form..." />}>
+                                <AddVendorDialog
+                                    trigger={
+                                        <Button className="gap-2">
+                                            <Plus className="h-4 w-4" />
+                                            Add Vendor
                                     </Button>
                                 }
                             />
                         </Suspense>
+                        )}
                     </div>
                 </CardHeader>
                 <CardContent>

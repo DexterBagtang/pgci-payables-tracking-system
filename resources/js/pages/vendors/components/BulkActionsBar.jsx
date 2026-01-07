@@ -6,9 +6,12 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { CheckCircle, XCircle, Trash2, ChevronDown } from 'lucide-react';
+import { usePermissions } from '@/hooks/use-permissions';
 
 export default function BulkActionsBar({ selectedCount, onActivate, onDeactivate, onDelete }) {
-    if (selectedCount === 0) return null;
+    const { canWrite } = usePermissions();
+
+    if (selectedCount === 0 || !canWrite('vendors')) return null;
 
     return (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 flex items-center justify-between">

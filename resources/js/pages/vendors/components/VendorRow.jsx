@@ -2,6 +2,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { router } from '@inertiajs/react';
+import { usePermissions } from '@/hooks/use-permissions';
 import {
     Mail,
     MapPin,
@@ -14,6 +15,7 @@ import {
 } from 'lucide-react';
 
 export default function VendorRow({ vendor, isSelected, onSelect, onEdit }) {
+    const { canWrite } = usePermissions();
     const formatDate = (dateString) => {
         return new Date(dateString).toLocaleDateString('en-US', {
             year: 'numeric',
@@ -179,18 +181,20 @@ export default function VendorRow({ vendor, isSelected, onSelect, onEdit }) {
                     >
                         <Eye className="h-4 w-4" />
                     </Button>
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onEdit(vendor);
-                        }}
-                        className="rounded-full h-8 w-8 p-0"
-                        aria-label={`Edit ${vendor.name}`}
-                    >
-                        <Edit className="h-4 w-4" />
-                    </Button>
+                    {canWrite('vendors') && (
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onEdit(vendor);
+                            }}
+                            className="rounded-full h-8 w-8 p-0"
+                            aria-label={`Edit ${vendor.name}`}
+                        >
+                            <Edit className="h-4 w-4" />
+                        </Button>
+                    )}
                 </div>
             </td>
         </tr>
