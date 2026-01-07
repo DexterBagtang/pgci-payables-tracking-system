@@ -1,12 +1,11 @@
 import AuthenticatedSessionController from '@/actions/App/Http/Controllers/Auth/AuthenticatedSessionController';
 import InputError from '@/components/input-error';
-import TextLink from '@/components/text-link';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import AuthLayout from '@/layouts/auth-layout';
-import { request } from '@/routes/password';
 import { Form, Head } from '@inertiajs/react';
 import { LoaderCircle } from 'lucide-react';
 
@@ -43,9 +42,20 @@ export default function Login({ status, canResetPassword }: LoginProps) {
                                 <div className="flex items-center">
                                     <Label htmlFor="password">Password</Label>
                                     {canResetPassword && (
-                                        <TextLink href={request()} className="ml-auto text-sm" tabIndex={5}>
-                                            Forgot password?
-                                        </TextLink>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <button
+                                                    type="button"
+                                                    className="ml-auto text-sm text-primary underline-offset-4 hover:underline"
+                                                    tabIndex={5}
+                                                >
+                                                    Forgot password?
+                                                </button>
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                <p>Please contact IT for password reset assistance</p>
+                                            </TooltipContent>
+                                        </Tooltip>
                                     )}
                                 </div>
                                 <Input
