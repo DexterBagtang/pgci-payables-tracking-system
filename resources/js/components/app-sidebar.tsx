@@ -13,7 +13,8 @@ import {
     LayoutGrid,
     Receipt,
     ScanSearch,
-    Banknote
+    Banknote,
+    Users
 } from 'lucide-react';
 import AppLogo from './app-logo';
 import { usePermissions } from '@/hooks/use-permissions';
@@ -67,6 +68,12 @@ const allNavItems: NavItem[] = [
         href: '/disbursements',
         icon: Banknote,
         module: 'disbursements',
+    },
+    {
+        title: 'Users',
+        href: '/users',
+        icon: Users,
+        module: 'users',
     }
 
 ];

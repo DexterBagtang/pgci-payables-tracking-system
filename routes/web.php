@@ -8,6 +8,7 @@ use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\PurchaseOrderController;
 use App\Http\Controllers\RemarksController;
+use App\Http\Controllers\UserController;
 use App\Http\Controllers\VendorController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -107,6 +108,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
 
 
+});
+
+// Admin-only routes
+Route::middleware(['auth', 'verified', 'role:admin'])->group(function () {
+    Route::resource('users', UserController::class)->except(['destroy']);
+    Route::post('users/{user}/reset-password', [UserController::class, 'resetPassword'])
+        ->name('users.reset-password');
 });
 
 require __DIR__.'/settings.php';

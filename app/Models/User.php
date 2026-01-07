@@ -65,6 +65,7 @@ class User extends Authenticatable
         'invoice_review',
         'check_requisitions',
         'disbursements',
+        'users',
     ];
 
     /**
