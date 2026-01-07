@@ -20,6 +20,7 @@ use App\Observers\DisbursementObserver;
 use App\Observers\FileObserver;
 use App\Observers\UserObserver;
 use App\Observers\RemarkObserver;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -46,5 +47,11 @@ class AppServiceProvider extends ServiceProvider
         File::observe(FileObserver::class);
         User::observe(UserObserver::class);
         Remark::observe(RemarkObserver::class);
+
+        // Define dynamic gates for each module
+        foreach (User::MODULES as $module) {
+            Gate::define("read-{$module}", fn(User $user) => $user->canRead($module));
+            Gate::define("write-{$module}", fn(User $user) => $user->canWrite($module));
+        }
     }
 }

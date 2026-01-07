@@ -26,6 +26,7 @@ class User extends Authenticatable
         'password',
         'username',
         'role',
+        'permissions',
     ];
 
     /**
@@ -49,7 +50,92 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'role' => UserRole::class,
+            'permissions' => 'array',
         ];
+    }
+
+    /**
+     * Available modules in the system
+     */
+    const MODULES = [
+        'vendors',
+        'projects',
+        'purchase_orders',
+        'invoices',
+        'invoice_review',
+        'check_requisitions',
+        'disbursements',
+    ];
+
+    /**
+     * Check if user has admin override (bypasses all permission checks)
+     */
+    private function hasAdminOverride(): bool
+    {
+        return $this->isAdmin();
+    }
+
+    /**
+     * Check if user can read a specific module
+     */
+    public function canRead(string $module): bool
+    {
+        if ($this->hasAdminOverride()) {
+            return true;
+        }
+
+        return in_array($module, $this->permissions['read'] ?? []);
+    }
+
+    /**
+     * Check if user can write/modify a specific module
+     */
+    public function canWrite(string $module): bool
+    {
+        if ($this->hasAdminOverride()) {
+            return true;
+        }
+
+        return in_array($module, $this->permissions['write'] ?? []);
+    }
+
+    /**
+     * Get all modules user can read
+     */
+    public function getReadableModules(): array
+    {
+        if ($this->hasAdminOverride()) {
+            return self::MODULES;
+        }
+
+        return $this->permissions['read'] ?? [];
+    }
+
+    /**
+     * Get all modules user can write
+     */
+    public function getWritableModules(): array
+    {
+        if ($this->hasAdminOverride()) {
+            return self::MODULES;
+        }
+
+        return $this->permissions['write'] ?? [];
+    }
+
+    /**
+     * Validate and sanitize permissions on set
+     */
+    public function setPermissionsAttribute(?array $value): void
+    {
+        if ($value !== null) {
+            $this->attributes['permissions'] = json_encode([
+                'read' => array_values(array_intersect($value['read'] ?? [], self::MODULES)),
+                'write' => array_values(array_intersect($value['write'] ?? [], self::MODULES)),
+            ]);
+        } else {
+            $this->attributes['permissions'] = null;
+        }
     }
 
     /**
