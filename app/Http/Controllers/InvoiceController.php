@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Invoice\UpdateInvoiceRequest;
 use App\Models\ActivityLog;
 use App\Models\Invoice;
 use App\Models\Project;
@@ -243,12 +244,30 @@ class InvoiceController extends Controller
         $validator->after(function ($validator) use ($invoicesData) {
             $invoices = $invoicesData;
 
+            // Track SI numbers within this batch to detect duplicates
+            $siNumbersInBatch = [];
+
             foreach ($invoices as $index => $invoice) {
                 // Get the vendor_id from the purchase order
                 $purchaseOrder = PurchaseOrder::find($invoice['purchase_order_id']);
 
                 if ($purchaseOrder) {
-                    // Check for duplicate SI number from the same vendor across all POs
+                    $vendorId = $purchaseOrder->vendor_id;
+                    $siNumber = $invoice['si_number'];
+
+                    // Check for duplicate SI number WITHIN the current batch
+                    $batchKey = "{$vendorId}_{$siNumber}";
+                    if (isset($siNumbersInBatch[$batchKey])) {
+                        $vendorName = $purchaseOrder->vendor->name ?? 'this vendor';
+                        $validator->errors()->add(
+                            "invoices.{$index}.si_number",
+                            "Duplicate SI number '{$siNumber}' for {$vendorName} in this batch. Each invoice must have a unique SI number per vendor."
+                        );
+                    } else {
+                        $siNumbersInBatch[$batchKey] = true;
+                    }
+
+                    // Check for duplicate SI number from the same vendor in DATABASE
                     $exists = \App\Models\Invoice::whereHas('purchaseOrder', function ($q) use ($purchaseOrder) {
                         $q->where('vendor_id', $purchaseOrder->vendor_id);
                     })
@@ -485,7 +504,8 @@ class InvoiceController extends Controller
      */
     public function edit(Invoice $invoice)
     {
-        abort_unless(auth()->user()->canWrite('invoices'), 403);
+        // Use policy to check if user can edit this invoice (checks permission AND status)
+        $this->authorize('update', $invoice);
 
         $invoice->load('purchaseOrder.project', 'purchaseOrder.vendor', 'files');
         return inertia('invoices/edit', [
@@ -498,51 +518,13 @@ class InvoiceController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Invoice $invoice)
+    public function update(UpdateInvoiceRequest $request, Invoice $invoice)
     {
-        abort_unless(auth()->user()->canWrite('invoices'), 403);
+        // Authorization and validation already handled by UpdateInvoiceRequest
+        // - Policy checks user permission AND invoice status (cannot edit approved/paid)
+        // - Form Request validates data and business rules
 
-        $validated = $request->validate([
-            'purchase_order_id' => 'required|exists:purchase_orders,id',
-            'si_number' => 'required|string|max:255',
-            'si_date' => 'required|date',
-            'si_received_at' => 'nullable|date',
-            'invoice_amount' => 'required|numeric|min:0',
-            'currency' => 'nullable|in:PHP,USD',
-            'due_date' => 'nullable|date',
-            'notes' => 'nullable|string',
-            'submitted_at' => 'nullable|date',
-            'submitted_to' => 'nullable|string|max:255',
-            'files.*' => 'file|max:20480|mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png,txt',
-        ]);
-
-        // Check for duplicate SI number from the same vendor and currency matching
-        $purchaseOrder = PurchaseOrder::find($validated['purchase_order_id']);
-        if ($purchaseOrder) {
-            $duplicateExists = Invoice::whereHas('purchaseOrder', function ($q) use ($purchaseOrder) {
-                $q->where('vendor_id', $purchaseOrder->vendor_id);
-            })
-            ->where('si_number', $validated['si_number'])
-            ->where('id', '!=', $invoice->id)
-            ->exists();
-
-            if ($duplicateExists) {
-                $vendorName = $purchaseOrder->vendor->name ?? 'this vendor';
-                return back()->withErrors([
-                    'si_number' => "The SI number '{$validated['si_number']}' already exists for {$vendorName}. Duplicate invoices from the same vendor are not allowed."
-                ])->withInput();
-            }
-
-            // Check if invoice currency matches PO currency
-            $invoiceCurrency = $validated['currency'] ?? 'PHP';
-            $poCurrency = $purchaseOrder->currency ?? 'PHP';
-
-            if ($invoiceCurrency !== $poCurrency) {
-                return back()->withErrors([
-                    'currency' => "Invoice currency ({$invoiceCurrency}) must match the Purchase Order currency ({$poCurrency})."
-                ])->withInput();
-            }
-        }
+        $validated = $request->validated();
 
         // Remove files array from validated data for mass assignment
         $fileData = $validated['files'] ?? [];

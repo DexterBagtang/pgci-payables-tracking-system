@@ -16,7 +16,8 @@ export default function POHeader({
     financialMetrics,
     formatDate,
     formatPercentage,
-    onCloseClick
+    onCloseClick,
+    canWrite
 }) {
     const getStatusConfig = (status) => {
         const configs = {
@@ -47,12 +48,14 @@ export default function POHeader({
                 </div>
                 <div className="flex gap-2">
                     <BackButton />
-                    <Link href={`/purchase-orders/${purchaseOrder.id}/edit`} prefetch>
-                        <Button variant="outline" size="sm">
-                            <Edit className="mr-1.5 h-3.5 w-3.5" />
-                            Edit
-                        </Button>
-                    </Link>
+                    {canWrite('purchase_orders') && (
+                        <Link href={`/purchase-orders/${purchaseOrder.id}/edit`} prefetch>
+                            <Button variant="outline" size="sm">
+                                <Edit className="mr-1.5 h-3.5 w-3.5" />
+                                Edit
+                            </Button>
+                        </Link>
+                    )}
                     {(user.role === 'purchasing' || user.role === 'admin') &&
                         purchaseOrder.po_status !== 'closed' &&
                         purchaseOrder.po_status !== 'cancelled' && (
