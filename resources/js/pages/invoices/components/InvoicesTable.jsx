@@ -36,10 +36,12 @@ import {
     XCircle
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { usePermissions } from '@/hooks/use-permissions';
 import StatusBadge, { AgingBadge, OverdueBadge } from '@/components/custom/StatusBadge.jsx';
 import InvoiceSummaryCards from './InvoiceSummaryCards.jsx';
 
 const InvoicesTable = ({ invoices, filters, filterOptions, statusCounts, currentPageTotal }) => {
+    const { canWrite } = usePermissions();
     const [searchValue, setSearchValue] = useState('');
     const [sortField, setSortField] = useState(filters.sort_field);
     const [sortDirection, setSortDirection] = useState(filters.sort_direction);
@@ -218,12 +220,14 @@ const InvoicesTable = ({ invoices, filters, filterOptions, statusCounts, current
                                 <CardDescription>AP Invoice Processing & Tracking System</CardDescription>
                             </div>
                             <div className="flex items-center space-x-3">
-                                <Link href="/invoices/create" prefetch>
-                                    <Button size="sm">
-                                        <Plus className="mr-2 h-4 w-4" />
-                                        Add Invoice
-                                    </Button>
-                                </Link>
+                                {canWrite('invoices') && (
+                                    <Link href="/invoices/create" prefetch>
+                                        <Button size="sm">
+                                            <Plus className="mr-2 h-4 w-4" />
+                                            Add Invoice
+                                        </Button>
+                                    </Link>
+                                )}
                             </div>
                         </div>
                     </CardHeader>
@@ -786,26 +790,28 @@ const InvoicesTable = ({ invoices, filters, filterOptions, statusCounts, current
                                                                 </Tooltip>
                                                             </TooltipProvider>
 
-                                                            <TooltipProvider>
-                                                                <Tooltip>
-                                                                    <TooltipTrigger asChild>
-                                                                        <Button
-                                                                            variant="ghost"
-                                                                            size="icon"
-                                                                            className="h-8 w-8"
-                                                                            onClick={(e) => {
-                                                                                e.stopPropagation();
-                                                                                router.get(`/invoices/${invoice.id}/edit`);
-                                                                            }}
-                                                                        >
-                                                                            <Edit className="h-4 w-4" />
-                                                                        </Button>
-                                                                    </TooltipTrigger>
-                                                                    <TooltipContent>
-                                                                        <p>Edit Invoice</p>
-                                                                    </TooltipContent>
-                                                                </Tooltip>
-                                                            </TooltipProvider>
+                                                            {canWrite('invoices') && (
+                                                                <TooltipProvider>
+                                                                    <Tooltip>
+                                                                        <TooltipTrigger asChild>
+                                                                            <Button
+                                                                                variant="ghost"
+                                                                                size="icon"
+                                                                                className="h-8 w-8"
+                                                                                onClick={(e) => {
+                                                                                    e.stopPropagation();
+                                                                                    router.get(`/invoices/${invoice.id}/edit`);
+                                                                                }}
+                                                                            >
+                                                                                <Edit className="h-4 w-4" />
+                                                                            </Button>
+                                                                        </TooltipTrigger>
+                                                                        <TooltipContent>
+                                                                            <p>Edit Invoice</p>
+                                                                        </TooltipContent>
+                                                                    </Tooltip>
+                                                                </TooltipProvider>
+                                                            )}
 
                                                             <TooltipProvider>
                                                                 <Tooltip>

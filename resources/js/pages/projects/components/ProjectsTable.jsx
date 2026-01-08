@@ -1,5 +1,6 @@
 import { useState, useEffect, lazy, Suspense } from 'react';
 import { router } from '@inertiajs/react';
+import { usePermissions } from '@/hooks/use-permissions';
 import {
     Table,
     TableBody,
@@ -42,6 +43,7 @@ import ProjectStats from './ProjectStats';
 const AddProjectDialog = lazy(() => import('@/pages/projects/components/AddProjectDialog.jsx'));
 
 export default function ProjectsTable({ projects, filters = {}, stats = {} }) {
+    const { canWrite } = usePermissions();
     const [searchTerm, setSearchTerm] = useState(filters.search || '');
     const [projectType, setProjectType] = useState(filters.project_type || '');
     const [projectStatus, setProjectStatus] = useState(filters.project_status || '');
@@ -145,10 +147,12 @@ export default function ProjectsTable({ projects, filters = {}, stats = {} }) {
                             Projects Management
                         </CardTitle>
 
-                        <Button className="gap-2" onClick={() => setIsAddDialogOpen(true)}>
-                            <Plus className="h-4 w-4" />
-                            Add Project
-                        </Button>
+                        {canWrite('projects') && (
+                            <Button className="gap-2" onClick={() => setIsAddDialogOpen(true)}>
+                                <Plus className="h-4 w-4" />
+                                Add Project
+                            </Button>
+                        )}
                     </div>
                 </CardHeader>
                 <CardContent>
@@ -378,6 +382,7 @@ export default function ProjectsTable({ projects, filters = {}, stats = {} }) {
 }
 
 function ProjectRow({ project, onEdit }) {
+    const { canWrite } = usePermissions();
     const formatDate = (dateString) => {
         return new Date(dateString).toLocaleDateString('en-US', {
             year: 'numeric',
@@ -493,18 +498,20 @@ function ProjectRow({ project, onEdit }) {
                     >
                         <Eye className="h-3.5 w-3.5" />
                     </Button>
-                    <Button
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onEdit(project);
-                        }}
-                        variant="ghost"
-                        size="sm"
-                        className="rounded-full h-7 w-7 p-0"
-                        aria-label={`Edit ${project.project_title}`}
-                    >
-                        <Edit className="h-3.5 w-3.5" />
-                    </Button>
+                    {canWrite('projects') && (
+                        <Button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onEdit(project);
+                            }}
+                            variant="ghost"
+                            size="sm"
+                            className="rounded-full h-7 w-7 p-0"
+                            aria-label={`Edit ${project.project_title}`}
+                        >
+                            <Edit className="h-3.5 w-3.5" />
+                        </Button>
+                    )}
                 </div>
             </TableCell>
         </TableRow>

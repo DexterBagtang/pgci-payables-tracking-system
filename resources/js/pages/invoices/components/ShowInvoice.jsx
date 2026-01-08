@@ -21,8 +21,10 @@ import InvoiceReview from '@/pages/invoices/components/InvoiceReview.jsx';
 import BackButton from '@/components/custom/BackButton.jsx';
 import StatusBadge, { OverdueBadge } from '@/components/custom/StatusBadge.jsx';
 import InvoiceDetailsTab from '@/pages/invoices/components/InvoiceDetailsTab.jsx';
+import { usePermissions } from '@/hooks/use-permissions';
 
 const ShowInvoice = ({ invoice }) => {
+    const { canWrite } = usePermissions();
     const {
         purchase_order: po,
         files = [],
@@ -82,12 +84,14 @@ const ShowInvoice = ({ invoice }) => {
                             </div>
 
                             <div className="flex flex-shrink-0 gap-2">
-                                <Link href={`/invoices/${invoice.id}/edit`} prefetch>
-                                    <Button variant="outline" size="sm">
-                                        <Edit className="mr-2 h-4 w-4" />
-                                        Edit
-                                    </Button>
-                                </Link>
+                                {canWrite('invoices') && (
+                                    <Link href={`/invoices/${invoice.id}/edit`} prefetch>
+                                        <Button variant="outline" size="sm">
+                                            <Edit className="mr-2 h-4 w-4" />
+                                            Edit
+                                        </Button>
+                                    </Link>
+                                )}
                                 <BackButton />
                             </div>
                         </div>
@@ -175,7 +179,7 @@ const ShowInvoice = ({ invoice }) => {
                                             <CreditCard className="mr-2 h-5 w-5 text-blue-600" />
                                             Check Requisitions ({check_requisitions.length})
                                         </CardTitle>
-                                        {invoice.invoice_status === 'approved' && (
+                                        {invoice.invoice_status === 'approved' && canWrite('check_requisitions') && (
                                             <Link href="/check-requisition/create" data={{ invoice_id: invoice.id }}>
                                                 <Button>
                                                     <CreditCard className="mr-2 h-4 w-4" />
@@ -219,7 +223,7 @@ const ShowInvoice = ({ invoice }) => {
                                         <div className="py-8 text-center">
                                             <CreditCard className="mx-auto mb-3 h-12 w-12 text-slate-300" />
                                             <div className="mb-4 text-slate-500">No check requisitions created yet</div>
-                                            {invoice.invoice_status === 'approved' ? (
+                                            {invoice.invoice_status === 'approved' && canWrite('check_requisitions') ? (
                                                 <Link href="/check-requisition/create" data={{ invoice_id: invoice.id }}>
                                                     <Button>
                                                         <CreditCard className="mr-2 h-4 w-4" />

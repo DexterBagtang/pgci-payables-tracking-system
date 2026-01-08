@@ -22,8 +22,10 @@ import AttachmentViewer from '@/pages/invoices/components/AttachmentViewer.jsx';
 import Remarks from '@/components/custom/Remarks.jsx';
 import BackButton from '@/components/custom/BackButton.jsx';
 import { Badge } from '@/components/ui/badge';
+import { usePermissions } from '@/hooks/use-permissions';
 
 const ShowDisbursement = ({ disbursement, checkRequisitions, files, financialMetrics, payees, projects, accounts }) => {
+    const { canWrite } = usePermissions();
     const {
         activity_logs,
         remarks = [],
@@ -99,7 +101,7 @@ const ShowDisbursement = ({ disbursement, checkRequisitions, files, financialMet
                             </div>
 
                             <div className="flex flex-shrink-0 gap-2">
-                                {!isReleased && (
+                                {!isReleased && canWrite('disbursements') && (
                                     <Link href={`/disbursements/${disbursement.id}/edit`} prefetch>
                                         <Button variant="outline" size="sm">
                                             <Edit className="mr-2 h-4 w-4" />

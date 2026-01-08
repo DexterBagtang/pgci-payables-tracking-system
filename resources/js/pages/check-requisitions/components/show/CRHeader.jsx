@@ -4,6 +4,7 @@ import StatusBadge from '@/components/custom/StatusBadge';
 import BackButton from '@/components/custom/BackButton';
 import { Edit, Download, Printer, Copy, SearchCheck } from 'lucide-react';
 import { toast } from 'sonner';
+import { usePermissions } from '@/hooks/use-permissions';
 
 /**
  * Check Requisition Header Component
@@ -18,6 +19,7 @@ export default function CRHeader({
     onEdit,
     onReview
 }) {
+    const { canWrite } = usePermissions();
     const handlePrintPdf = () => {
         if (mainPdfFile) {
             window.open(`/storage/${mainPdfFile.file_path}`, '_blank');
@@ -110,10 +112,12 @@ Approved By: ${checkRequisition.approved_by || 'Pending'}
                         </Button>
                     )}
 
-                    <Button variant="outline" size="sm" onClick={onEdit}>
-                        <Edit className="mr-2 h-4 w-4" />
-                        Edit
-                    </Button>
+                    {canWrite('check_requisitions') && (
+                        <Button variant="outline" size="sm" onClick={onEdit}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            Edit
+                        </Button>
+                    )}
 
                     {mainPdfFile && (
                         <>

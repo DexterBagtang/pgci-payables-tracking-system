@@ -1,5 +1,6 @@
 import { useEffect, useState, Suspense, lazy, useMemo } from 'react';
 import { Head, Link, router, usePage } from '@inertiajs/react';
+import { usePermissions } from '@/hooks/use-permissions';
 import {
     Table,
     TableBody,
@@ -64,6 +65,7 @@ const AddPurchaseOrderDialog = lazy(() => import('@/pages/purchase-orders/compon
 const EditPurchaseOrderDialog = lazy(() => import('@/pages/purchase-orders/components/EditPurchaseOrderDialog.jsx'));
 
 export default function PurchaseOrderTable({ purchaseOrders, filters, filterOptions }) {
+    const { canWrite } = usePermissions();
     const { data } = purchaseOrders;
     const [localFilters, setLocalFilters] = useState({
         search: filters.search || '',
@@ -384,10 +386,12 @@ export default function PurchaseOrderTable({ purchaseOrders, filters, filterOpti
                                     <Download className="mr-2 h-4 w-4" />
                                     Export
                                 </Button>
-                                <Button onClick={()=>setCreateOpen(true)} size="sm">
-                                    <Plus className="mr-2 h-4 w-4" />
-                                    Add PO
-                                </Button>
+                                {canWrite('purchase_orders') && (
+                                    <Button onClick={()=>setCreateOpen(true)} size="sm">
+                                        <Plus className="mr-2 h-4 w-4" />
+                                        Add PO
+                                    </Button>
+                                )}
                             </div>
                         </div>
                     </CardHeader>
@@ -884,27 +888,29 @@ export default function PurchaseOrderTable({ purchaseOrders, filters, filterOpti
                                                                 </Tooltip>
                                                             </TooltipProvider>
 
-                                                            <TooltipProvider>
-                                                                <Tooltip>
-                                                                    <TooltipTrigger asChild>
-                                                                        <Button
-                                                                            variant="ghost"
-                                                                            size="icon"
-                                                                            className="h-8 w-8"
-                                                                            onClick={(e) => {
-                                                                                e.stopPropagation();
-                                                                                setSelectedPO(po);
-                                                                                setEditOpen(true);
-                                                                            }}
-                                                                        >
-                                                                            <Edit className="h-4 w-4" />
-                                                                        </Button>
-                                                                    </TooltipTrigger>
-                                                                    <TooltipContent>
-                                                                        <p>Edit PO</p>
-                                                                    </TooltipContent>
-                                                                </Tooltip>
-                                                            </TooltipProvider>
+                                                            {canWrite('purchase_orders') && (
+                                                                <TooltipProvider>
+                                                                    <Tooltip>
+                                                                        <TooltipTrigger asChild>
+                                                                            <Button
+                                                                                variant="ghost"
+                                                                                size="icon"
+                                                                                className="h-8 w-8"
+                                                                                onClick={(e) => {
+                                                                                    e.stopPropagation();
+                                                                                    setSelectedPO(po);
+                                                                                    setEditOpen(true);
+                                                                                }}
+                                                                            >
+                                                                                <Edit className="h-4 w-4" />
+                                                                            </Button>
+                                                                        </TooltipTrigger>
+                                                                        <TooltipContent>
+                                                                            <p>Edit PO</p>
+                                                                        </TooltipContent>
+                                                                    </Tooltip>
+                                                                </TooltipProvider>
+                                                            )}
 
                                                             <DropdownMenu>
                                                                 <DropdownMenuTrigger asChild>

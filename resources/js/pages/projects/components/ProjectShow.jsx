@@ -48,12 +48,14 @@ import BackButton from '@/components/custom/BackButton.jsx';
 import { route } from 'ziggy-js';
 import StatusBadge from '@/components/custom/StatusBadge.jsx';
 import InvoicesList from '@/components/custom/InvoicesList.jsx';
+import { usePermissions } from '@/hooks/use-permissions';
 
 const Remarks = lazy(() => import("@/components/custom/Remarks.jsx"));
 const ActivityTimeline = lazy(() => import("@/components/custom/ActivityTimeline.jsx"));
 
 export default function ProjectShow({ project }) {
     const { auth } = usePage().props;
+    const { canWrite } = usePermissions();
     const { purchase_orders, remarks = [], activity_logs = [] } = project;
     const [activeTab, setActiveTab] = useRemember('overview','project-details-tab');
 
@@ -276,13 +278,15 @@ export default function ProjectShow({ project }) {
                             </div>
                             <div className="flex gap-2">
                                 <BackButton />
-                                <Button
-                                    size="sm"
-                                    onClick={() => router.get(`/purchase-orders/create?project_id=${project.id}`)}
-                                >
-                                    <Plus className="h-4 w-4 mr-2" />
-                                    Add Purchase Order
-                                </Button>
+                                {canWrite('purchase_orders') && (
+                                    <Button
+                                        size="sm"
+                                        onClick={() => router.get(`/purchase-orders/create?project_id=${project.id}`)}
+                                    >
+                                        <Plus className="h-4 w-4 mr-2" />
+                                        Add Purchase Order
+                                    </Button>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -885,13 +889,15 @@ export default function ProjectShow({ project }) {
                                                 <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
                                                 <p className="text-lg font-medium mb-2">No Purchase Orders</p>
                                                 <p className="text-sm mb-4">Get started by creating your first purchase order</p>
-                                                <Button
-                                                    size="sm"
-                                                    onClick={() => router.get(`/purchase-orders/create?project_id=${project.id}`)}
-                                                >
-                                                    <Plus className="h-4 w-4 mr-2" />
-                                                    Create First PO
-                                                </Button>
+                                                {canWrite('purchase_orders') && (
+                                                    <Button
+                                                        size="sm"
+                                                        onClick={() => router.get(`/purchase-orders/create?project_id=${project.id}`)}
+                                                    >
+                                                        <Plus className="h-4 w-4 mr-2" />
+                                                        Create First PO
+                                                    </Button>
+                                                )}
                                             </div>
                                         )}
                                     </CardContent>

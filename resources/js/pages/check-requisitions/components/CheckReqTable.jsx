@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, router } from '@inertiajs/react';
+import { usePermissions } from '@/hooks/use-permissions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -52,6 +53,7 @@ import StatusBadge from '@/components/custom/StatusBadge.jsx';
 import PaginationServerSide from '@/components/custom/Pagination.jsx';
 
 export default function CheckReqTable({ checkRequisitions, filters, filterOptions, statistics }) {
+    const { canWrite } = usePermissions();
     const { data } = checkRequisitions;
     const [localFilters, setLocalFilters] = useState({
         search: filters.search || '',
@@ -266,12 +268,14 @@ export default function CheckReqTable({ checkRequisitions, filters, filterOption
                                     <Download className="mr-2 h-4 w-4" />
                                     Export
                                 </Button>
-                                <Link href="/check-requisitions/create">
-                                    <Button size="sm">
-                                        <Plus className="mr-2 h-4 w-4" />
-                                        New Requisition
-                                    </Button>
-                                </Link>
+                                {canWrite('check_requisitions') && (
+                                    <Link href="/check-requisitions/create">
+                                        <Button size="sm">
+                                            <Plus className="mr-2 h-4 w-4" />
+                                            New Requisition
+                                        </Button>
+                                    </Link>
+                                )}
                             </div>
                         </div>
                     </CardHeader>

@@ -46,6 +46,7 @@ import { getUniqueProjectsWithFormattedDate } from "@/components/custom/helpers.
 import BackButton from '@/components/custom/BackButton.jsx';
 import StatusBadge from '@/components/custom/StatusBadge.jsx';
 import { useRemember } from '@inertiajs/react';
+import { usePermissions } from '@/hooks/use-permissions';
 
 const VendorProjects = lazy(() => import('@/pages/vendors/components/VendorProjects.jsx'));
 const EditVendorDialog = lazy(() => import("@/pages/vendors/components/EditVendorDialog.jsx"));
@@ -55,6 +56,7 @@ const Remarks = lazy(() => import("@/components/custom/Remarks.jsx"));
 const ActivityTimeline = lazy(() => import("@/components/custom/ActivityTimeline.jsx"));
 
 export default function ShowVendor({ vendor }) {
+    const { canWrite } = usePermissions();
     const [activeTab, setActiveTab] = useRemember('overview','vendor-detail-tab');
     const [editDialogOpen, setEditDialogOpen] = useState(false);
 
@@ -155,10 +157,12 @@ export default function ShowVendor({ vendor }) {
                             </div>
                             <div className="flex gap-2">
                                 <BackButton />
-                                <Button size="sm" onClick={() => setEditDialogOpen(true)}>
-                                    <Edit className="mr-2 h-4 w-4" />
-                                    Edit Vendor
-                                </Button>
+                                {canWrite('vendors') && (
+                                    <Button size="sm" onClick={() => setEditDialogOpen(true)}>
+                                        <Edit className="mr-2 h-4 w-4" />
+                                        Edit Vendor
+                                    </Button>
+                                )}
                             </div>
                         </div>
                     </div>

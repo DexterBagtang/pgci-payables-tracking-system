@@ -3,6 +3,7 @@ import { Input } from '@/components/ui/input';
 import { Link, router } from '@inertiajs/react';
 import { Plus, Search, Edit } from 'lucide-react';
 import { useState } from 'react';
+import { usePermissions } from '@/hooks/use-permissions';
 import {
     Table,
     TableBody,
@@ -60,6 +61,7 @@ export default function UsersTable({
     stats,
     roleOptions
 }: UsersTableProps) {
+    const { canWrite } = usePermissions();
     const [search, setSearch] = useState(filters.search || '');
 
     const handleSearch = (e: React.FormEvent) => {
@@ -142,12 +144,14 @@ export default function UsersTable({
                                 Manage user accounts and permissions
                             </CardDescription>
                         </div>
-                        <Button asChild>
-                            <Link href="/users/create">
-                                <Plus className="mr-2 h-4 w-4" />
-                                Add User
-                            </Link>
-                        </Button>
+                        {canWrite('users') && (
+                            <Button asChild>
+                                <Link href="/users/create">
+                                    <Plus className="mr-2 h-4 w-4" />
+                                    Add User
+                                </Link>
+                            </Button>
+                        )}
                     </div>
                 </CardHeader>
                 <CardContent>
@@ -206,15 +210,17 @@ export default function UsersTable({
                                             </TableCell>
                                             <TableCell className="text-right">
                                                 <div className="flex justify-end gap-2">
-                                                    <Button
-                                                        variant="outline"
-                                                        size="sm"
-                                                        asChild
-                                                    >
-                                                        <Link href={`/users/${user.id}/edit`}>
-                                                            <Edit className="h-4 w-4" />
-                                                        </Link>
-                                                    </Button>
+                                                    {canWrite('users') && (
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            asChild
+                                                        >
+                                                            <Link href={`/users/${user.id}/edit`}>
+                                                                <Edit className="h-4 w-4" />
+                                                            </Link>
+                                                        </Button>
+                                                    )}
                                                 </div>
                                             </TableCell>
                                         </TableRow>

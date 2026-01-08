@@ -731,7 +731,7 @@ class InvoiceController extends Controller
     // Bulk Mark Files Received
     public function bulkMarkReceived(Request $request)
     {
-        abort_unless(auth()->user()->canWrite('invoices'), 403);
+        abort_unless(auth()->user()->canWrite('invoice_review'), 403);
 
         $request->validate([
             'invoice_ids' => 'required|array',

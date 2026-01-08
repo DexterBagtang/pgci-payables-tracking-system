@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, router } from '@inertiajs/react';
+import { usePermissions } from '@/hooks/use-permissions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -54,6 +55,7 @@ import KanbanView from './KanbanView';
 import CalendarView from './CalendarView';
 
 export default function DisbursementsTable({ disbursements, filters, filterOptions, statistics }) {
+    const { canWrite } = usePermissions();
     const { data } = disbursements;
 
     // New state for view mode and bulk actions
@@ -401,12 +403,14 @@ export default function DisbursementsTable({ disbursements, filters, filterOptio
                                     </Button>
                                 </div>
 
-                                <Link href="/disbursements/create">
-                                    <Button size="sm">
-                                        <Plus className="mr-2 h-4 w-4" />
-                                        Create Disbursement
-                                    </Button>
-                                </Link>
+                                {canWrite('disbursements') && (
+                                    <Link href="/disbursements/create">
+                                        <Button size="sm">
+                                            <Plus className="mr-2 h-4 w-4" />
+                                            Create Disbursement
+                                        </Button>
+                                    </Link>
+                                )}
                             </div>
                         </div>
                     </CardHeader>
@@ -1083,7 +1087,7 @@ export default function DisbursementsTable({ disbursements, filters, filterOptio
                                                                     </Tooltip>
                                                                 </TooltipProvider>
 
-                                                                {!disbursement.date_check_released_to_vendor && (
+                                                                {!disbursement.date_check_released_to_vendor && canWrite('disbursements') && (
                                                                     <>
                                                                         <TooltipProvider>
                                                                             <Tooltip>

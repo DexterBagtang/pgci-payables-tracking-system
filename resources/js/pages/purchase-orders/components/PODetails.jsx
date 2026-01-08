@@ -2,6 +2,7 @@ import { lazy, Suspense, useState } from 'react';
 import { useRemember, usePage } from '@inertiajs/react';
 import { Loader, Info, DollarSign, Receipt, FileText, Clock, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { usePermissions } from '@/hooks/use-permissions';
 
 // Import custom hooks
 import { usePOFinancials } from '../hooks/usePOFinancials';
@@ -31,6 +32,7 @@ const ClosePurchaseOrderDialog = lazy(() => import('@/pages/purchase-orders/comp
  * 5. Lazy Loading - Heavy components loaded on demand
  */
 export default function PODetails({ purchaseOrder, vendors, projects, backUrl }) {
+    const { canWrite } = usePermissions();
     const [tab, setTab] = useRemember('overview', 'po-detail-tab');
     const [showCloseDialog, setShowCloseDialog] = useState(false);
     const { user } = usePage().props.auth;
@@ -65,6 +67,7 @@ export default function PODetails({ purchaseOrder, vendors, projects, backUrl })
                             formatDate={formatDate}
                             formatPercentage={formatPercentage}
                             onCloseClick={() => setShowCloseDialog(true)}
+                            canWrite={canWrite}
                         />
                     </div>
                 </div>
@@ -151,14 +154,16 @@ export default function PODetails({ purchaseOrder, vendors, projects, backUrl })
                                 emptyStateTitle="No invoices linked"
                                 emptyStateDescription="Invoices will appear once created and associated with this PO"
                                 emptyStateAction={
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => window.location.href = '/invoices/create'}
-                                    >
-                                        <Receipt className="mr-2 h-4 w-4" />
-                                        Create Invoice
-                                    </Button>
+                                    canWrite('invoices') ? (
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => window.location.href = '/invoices/create'}
+                                        >
+                                            <Receipt className="mr-2 h-4 w-4" />
+                                            Create Invoice
+                                        </Button>
+                                    ) : null
                                 }
                             />
                         </div>
