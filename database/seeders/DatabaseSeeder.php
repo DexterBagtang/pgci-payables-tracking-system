@@ -2,12 +2,8 @@
 
 namespace Database\Seeders;
 
-use App\Enums\UserRole;
-use App\Models\Project;
-use App\Models\User;
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
@@ -18,33 +14,12 @@ class DatabaseSeeder extends Seeder
     {
         // User::factory(10)->create();
 
-        User::factory()->create([
-            'name' => 'Dexter Admin',
-            'username' => 'admin',
-            'email' => 'dexterbagtang@philcom.com',
-            'role' => UserRole::ADMIN,
-            'password' => Hash::make('asdfasdf'),
-        ]);
-
-        User::factory()->create([
-            'name' => 'Payables Admin',
-            'username' => 'payables.admin',
-            'email' => 'payables.admin@philcom.com',
-            'role' => UserRole::ADMIN,
-            'password' => Hash::make('payablesadmin2025'),
-        ]);
-
-
         $this->call([
+            UserPermissionsSeeder::class,
 //            VendorSeeder::class,
 //            ProjectSeeder::class,
 //            PurchaseOrderSeeder::class,
 //            InvoiceSeeder::class,
-        UserPermissionsSeeder::class,
-
         ]);
-
-
-
     }
 }

@@ -15,12 +15,24 @@ class UserPermissionsSeeder extends Seeder
     public function run(): void
     {
         $users = [
-            // System Administrator
+            // System Administrators
             [
                 'username' => 'admin',
-                'name' => 'System Administrator',
-                'email' => 'admin@philcom.com',
-                'password' => Hash::make('password'),
+                'name' => 'Dexter Admin',
+                'email' => 'dexterbagtang@philcom.com',
+                'password' => Hash::make('asdfasdf'),
+                'role' => UserRole::ADMIN,
+                'email_verified_at' => now(),
+                'permissions' => [
+                    'read' => User::MODULES,
+                    'write' => User::MODULES,
+                ]
+            ],
+            [
+                'username' => 'payables.admin',
+                'name' => 'Payables Admin',
+                'email' => 'payables.admin@philcom.com',
+                'password' => Hash::make('payablesadmin2025'),
                 'role' => UserRole::ADMIN,
                 'email_verified_at' => now(),
                 'permissions' => [
