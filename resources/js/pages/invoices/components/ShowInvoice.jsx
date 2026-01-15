@@ -17,7 +17,6 @@ import { useCallback, useMemo } from 'react';
 import ActivityTimeline from '@/components/custom/ActivityTimeline.jsx';
 import AttachmentViewer from '@/pages/invoices/components/AttachmentViewer.jsx';
 import Remarks from '@/components/custom/Remarks.jsx';
-import InvoiceReview from '@/pages/invoices/components/InvoiceReview.jsx';
 import BackButton from '@/components/custom/BackButton.jsx';
 import StatusBadge, { OverdueBadge } from '@/components/custom/StatusBadge.jsx';
 import InvoiceDetailsTab from '@/pages/invoices/components/InvoiceDetailsTab.jsx';
@@ -141,12 +140,11 @@ const ShowInvoice = ({ invoice }) => {
 
                     {/* Tabbed Content */}
                     <Tabs value={tab} onValueChange={setTab} className="space-y-4">
-                        <TabsList className="grid w-full grid-cols-2 md:grid-cols-6">
+                        <TabsList className="grid w-full grid-cols-2 md:grid-cols-5">
                             <TabsTrigger value="details">Details</TabsTrigger>
                             <TabsTrigger value="files">Files ({attachments.length})</TabsTrigger>
                             <TabsTrigger value="requisitions">Requisitions ({check_requisitions.length})</TabsTrigger>
                             <TabsTrigger value="remarks">Remarks ({remarks.length})</TabsTrigger>
-                            <TabsTrigger value="review">Review</TabsTrigger>
                             <TabsTrigger value="timeline">Activity Logs</TabsTrigger>
                         </TabsList>
 
@@ -246,16 +244,6 @@ const ShowInvoice = ({ invoice }) => {
                             <Remarks remarks={remarks} remarkableType={'Invoice'} remarkableId={invoice.id} />
                         </TabsContent>
 
-                        {/* Review Tab */}
-                        <TabsContent value="review">
-                            <InvoiceReview
-                                invoice={invoice}
-                                canReviewInvoice={canReviewInvoice}
-                                isAlreadyReviewed={isAlreadyReviewed}
-                                activityLogs={activity_logs}
-                                onTabChange={setTab}
-                            />
-                        </TabsContent>
 
                         {/* Timeline Tab */}
                         <TabsContent value="timeline">
