@@ -171,7 +171,7 @@ export default function CreateDisbursementFormNew({ checkRequisitions, filters }
                 setVoucherCheckStatus(data.available ? 'available' : 'unavailable');
             } catch (error) {
                 console.error('Error checking voucher uniqueness:', error);
-                setVoucherCheckStatus(null);
+                setVoucherCheckStatus('error');
             }
         }, 500);
 
@@ -580,6 +580,9 @@ export default function CreateDisbursementFormNew({ checkRequisitions, filters }
                                                                 {voucherCheckStatus === 'unavailable' && (
                                                                     <XCircle className="h-4 w-4 text-red-500" />
                                                                 )}
+                                                                {voucherCheckStatus === 'error' && (
+                                                                    <AlertTriangle className="h-4 w-4 text-amber-500" />
+                                                                )}
                                                             </div>
                                                         )}
                                                     </div>
@@ -591,6 +594,9 @@ export default function CreateDisbursementFormNew({ checkRequisitions, filters }
                                                     )}
                                                     {voucherCheckStatus === 'available' && (
                                                         <p className="text-sm text-green-600">Voucher number is available</p>
+                                                    )}
+                                                    {voucherCheckStatus === 'error' && (
+                                                        <p className="text-sm text-amber-600">Could not verify availability. Please try again.</p>
                                                     )}
                                                 </div>
 

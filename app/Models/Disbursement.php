@@ -29,21 +29,23 @@ class Disbursement extends Model
 
     /**
      * Relationship: Get all invoices through check requisitions
+     * Uses a custom query since this involves two many-to-many pivot tables
      */
     public function invoices()
     {
-        return $this->hasManyThrough(
-            Invoice::class,
-            CheckRequisition::class,
-            'id', // Foreign key on check_requisitions table
-            'id', // Foreign key on invoices table
-            'id', // Local key on disbursements table
-            'id'  // Local key on check_requisitions table
-        )
-        ->join('check_requisition_disbursement', 'check_requisitions.id', '=', 'check_requisition_disbursement.check_requisition_id')
-        ->join('check_requisition_invoices', 'check_requisitions.id', '=', 'check_requisition_invoices.check_requisition_id')
-        ->where('check_requisition_disbursement.disbursement_id', $this->id)
-        ->select('invoices.*');
+        return Invoice::whereHas('checkRequisitions', function ($query) {
+            $query->whereHas('disbursements', function ($q) {
+                $q->where('disbursements.id', $this->id);
+            });
+        });
+    }
+
+    /**
+     * Get invoices as a collection (for when you need the actual data)
+     */
+    public function getInvoicesAttribute()
+    {
+        return $this->invoices()->get();
     }
 
     /**

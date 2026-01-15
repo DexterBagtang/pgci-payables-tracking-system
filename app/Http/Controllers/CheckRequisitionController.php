@@ -328,14 +328,8 @@ class CheckRequisitionController extends Controller
 
     public function edit(CheckRequisition $checkRequisition)
     {
-        abort_unless(auth()->user()->canWrite('check_requisitions'), 403);
-
-        // Only allow editing if status is pending_approval
-        if ($checkRequisition->requisition_status == 'approved') {
-            return redirect()
-                ->route('check-requisitions.show', $checkRequisition)
-                ->with('error', 'Cannot edit check requisition with status: ' . $checkRequisition->requisition_status);
-        }
+        // Use policy to check both permission and status restrictions
+        $this->authorize('update', $checkRequisition);
 
         // Get current invoices attached to this requisition
         $currentInvoices = $checkRequisition->invoices()
@@ -381,7 +375,8 @@ class CheckRequisitionController extends Controller
 
     public function update(Request $request, CheckRequisition $checkRequisition)
     {
-        abort_unless(auth()->user()->canWrite('check_requisitions'), 403);
+        // Use policy to check both permission and status restrictions
+        $this->authorize('update', $checkRequisition);
 
         // Validate the request
         $validated = $request->validate([

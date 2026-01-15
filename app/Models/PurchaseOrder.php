@@ -71,10 +71,19 @@ class PurchaseOrder extends Model
     /**
      * Sync financial summary columns from invoices
      * This calculates and updates total_invoiced, total_paid, and outstanding_amount
+     *
+     * Note: Uses net_amount consistently for accurate financial tracking
+     * - total_invoiced: Sum of net_amount for all non-rejected invoices
+     * - total_paid: Sum of net_amount for paid invoices only
+     * - outstanding_amount: PO amount minus total paid
      */
     public function syncFinancials(): void
     {
-        $totalInvoiced = $this->invoices()->sum('invoice_amount');
+        // Use net_amount consistently (excludes rejected invoices from total)
+        $totalInvoiced = $this->invoices()
+            ->where('invoice_status', '!=', 'rejected')
+            ->sum('net_amount');
+
         $totalPaid = $this->invoices()
             ->where('invoice_status', 'paid')
             ->sum('net_amount');
@@ -110,10 +119,13 @@ class PurchaseOrder extends Model
 
     /**
      * Get calculated total invoiced (for verification purposes)
+     * Uses net_amount and excludes rejected invoices for consistency with syncFinancials
      */
     public function getCalculatedTotalInvoicedAttribute(): float
     {
-        return $this->invoices()->sum('invoice_amount');
+        return $this->invoices()
+            ->where('invoice_status', '!=', 'rejected')
+            ->sum('net_amount');
     }
 
     /**

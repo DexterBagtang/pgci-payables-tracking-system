@@ -72,7 +72,8 @@ class Invoice extends Model
 
     public function scopeOverdue($query)
     {
-        return $query->where('due_date', '<', now())
+        // Use whereDate for fair comparison (ignores time component)
+        return $query->whereDate('due_date', '<', now()->toDateString())
             ->whereNotIn('invoice_status', ['paid', 'rejected']);
     }
 

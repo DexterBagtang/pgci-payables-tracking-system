@@ -24,8 +24,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', [DashboardController::class,'index'])->name('dashboard');
 
     // Dashboard Widget API Routes
+    // Note: Dashboard data access is based on authenticated user context
+    // Each widget should filter data based on user's module permissions internally
     Route::prefix('api/dashboard')->group(function () {
-        // Unified Dashboard Widgets (All Roles)
+        // Unified Dashboard Widgets (All authenticated users can view dashboard)
+        // Widgets internally filter data based on user's readable modules
         Route::prefix('unified')->group(function () {
             Route::get('ap-aging', [UnifiedDashboardController::class, 'apAgingSummary']);
             Route::get('invoice-pipeline', [UnifiedDashboardController::class, 'invoicePipelineStatus']);

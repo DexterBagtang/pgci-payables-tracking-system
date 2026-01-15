@@ -661,7 +661,7 @@ const InvoicesTable = ({ invoices, filters, filterOptions, statusCounts, current
                                                                 </Tooltip>
                                                             </TooltipProvider>
                                                             <div className="text-xs text-gray-500">
-                                                                <span className="font-medium">PO:</span> {invoice.purchase_order.po_number}
+                                                                <span className="font-medium">PO:</span> {invoice.purchase_order?.po_number || '-'}
                                                             </div>
                                                             <div className="text-xs text-gray-500">
                                                                 <span className="font-medium">Date:</span> {formatDate(invoice.si_date)}
@@ -674,19 +674,21 @@ const InvoicesTable = ({ invoices, filters, filterOptions, statusCounts, current
                                                         <div className="flex flex-col space-y-1">
                                                             <div className="flex items-center">
                                                                 <Building2 className="mr-1 h-4 w-4 text-gray-500" />
-                                                                <span className="font-medium text-sm mr-1">{invoice.purchase_order.vendor.name}</span>
-                                                                <StatusBadge
-                                                                    status={invoice.purchase_order.vendor.category}
-                                                                    showIcon={false}
-                                                                    size="xs"
-                                                                    variant="outline"
-                                                                />
+                                                                <span className="font-medium text-sm mr-1">{invoice.purchase_order?.vendor?.name || 'Unknown Vendor'}</span>
+                                                                {invoice.purchase_order?.vendor?.category && (
+                                                                    <StatusBadge
+                                                                        status={invoice.purchase_order.vendor.category}
+                                                                        showIcon={false}
+                                                                        size="xs"
+                                                                        variant="outline"
+                                                                    />
+                                                                )}
                                                             </div>
                                                             <div className="mt-1 text-xs text-gray-600">
-                                                                {invoice.purchase_order.project.project_title}
+                                                                {invoice.purchase_order?.project?.project_title || 'Unknown Project'}
                                                             </div>
                                                             <div className="text-xs text-gray-500">
-                                                                CER: {invoice.purchase_order.project.cer_number}
+                                                                CER: {invoice.purchase_order?.project?.cer_number || '-'}
                                                             </div>
                                                         </div>
                                                     </TableCell>

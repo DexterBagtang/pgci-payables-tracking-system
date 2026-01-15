@@ -583,7 +583,14 @@ class InvoiceController extends Controller
 
     public function review(Invoice $invoice, Request $request)
     {
-        abort_unless(auth()->user()->canWrite('invoice_review'), 403);
+        // Use policy to check permission AND invoice state (only pending/received can be reviewed)
+        $this->authorize('review', $invoice);
+
+        // Validate the approval status input
+        $request->validate([
+            'approvalStatus' => 'required|in:approved,rejected',
+            'remarks' => 'nullable|string|max:1000',
+        ]);
 
         $oldStatus = $invoice->invoice_status;
         $now = now();

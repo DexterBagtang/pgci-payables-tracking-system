@@ -29,10 +29,33 @@ class RemarksController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'remarkable_type' => 'required|string',
+            'remarkable_type' => 'required|string|in:App\\Models\\Invoice,App\\Models\\PurchaseOrder,App\\Models\\CheckRequisition,App\\Models\\Disbursement,App\\Models\\Vendor,App\\Models\\Project',
             'remarkable_id'   => 'required|integer',
             'remark_text'     => 'required|string|max:1000',
         ]);
+
+        // Map model types to their corresponding module permissions
+        $moduleMap = [
+            'App\\Models\\Invoice' => 'invoices',
+            'App\\Models\\PurchaseOrder' => 'purchase_orders',
+            'App\\Models\\CheckRequisition' => 'check_requisitions',
+            'App\\Models\\Disbursement' => 'disbursements',
+            'App\\Models\\Vendor' => 'vendors',
+            'App\\Models\\Project' => 'projects',
+        ];
+
+        $module = $moduleMap[$data['remarkable_type']] ?? null;
+
+        // User must have read permission on the module to add remarks
+        if (!$module || !auth()->user()->canRead($module)) {
+            abort(403, 'You do not have permission to add remarks to this resource.');
+        }
+
+        // Verify the resource exists
+        $modelClass = $data['remarkable_type'];
+        if (!$modelClass::find($data['remarkable_id'])) {
+            abort(404, 'Resource not found.');
+        }
 
         $remark = Remark::create([
             'remarkable_type' => $data['remarkable_type'],
