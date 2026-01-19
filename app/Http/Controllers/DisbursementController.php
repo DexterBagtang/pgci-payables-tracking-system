@@ -2,6 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Disbursement\BulkReleaseDisbursementRequest;
+use App\Http\Requests\Disbursement\QuickReleaseDisbursementRequest;
+use App\Http\Requests\Disbursement\StoreDisbursementRequest;
+use App\Http\Requests\Disbursement\UpdateDisbursementRequest;
 use App\Models\ActivityLog;
 use App\Models\CheckRequisition;
 use App\Models\Disbursement;
@@ -21,7 +25,7 @@ class DisbursementController extends Controller
      */
     public function index(Request $request)
     {
-        abort_unless(auth()->user()->canRead('disbursements'), 403);
+        $this->authorize('viewAny', Disbursement::class);
 
         $query = Disbursement::query();
 
@@ -347,7 +351,7 @@ class DisbursementController extends Controller
      */
     public function create(Request $request)
     {
-        abort_unless(auth()->user()->canWrite('disbursements'), 403);
+        $this->authorize('create', Disbursement::class);
 
         $query = CheckRequisition::with(['invoices', 'generator'])
             ->where('requisition_status', 'approved');
@@ -391,10 +395,8 @@ class DisbursementController extends Controller
     /**
      * Store a newly created disbursement
      */
-    public function store(Request $request)
+    public function store(StoreDisbursementRequest $request)
     {
-        abort_unless(auth()->user()->canWrite('disbursements'), 403);
-
         // Debug logging
         \Log::info('Disbursement store request', [
             'has_files' => $request->hasFile('files'),
@@ -402,17 +404,7 @@ class DisbursementController extends Controller
             'all_input_keys' => array_keys($request->all()),
         ]);
 
-        $validated = $request->validate([
-            'check_voucher_number' => 'nullable|string|unique:disbursements,check_voucher_number',
-            'date_check_scheduled' => 'nullable|date',
-            'date_check_released_to_vendor' => 'nullable|date',
-            'date_check_printing' => 'nullable|date',
-            'remarks' => 'nullable|string',
-            'check_requisition_ids' => 'required|array',
-            'check_requisition_ids.*' => 'exists:check_requisitions,id',
-            'files' => 'nullable|array',
-            'files.*' => 'file|mimes:pdf,jpg,jpeg,png|max:10240', // 10MB max per file
-        ]);
+        $validated = $request->validated();
 
         DB::beginTransaction();
         try {
@@ -531,13 +523,13 @@ class DisbursementController extends Controller
      */
     public function show($id)
     {
-        abort_unless(auth()->user()->canRead('disbursements'), 403);
-
         $disbursement = Disbursement::with([
             'creator:id,name',
             'activityLogs.user:id,name',
             'remarks.user:id,name',
         ])->findOrFail($id);
+
+        $this->authorize('view', $disbursement);
 
         // Get associated check requisitions with their invoices
         $checkRequisitions = $disbursement->checkRequisitions()
@@ -616,9 +608,9 @@ class DisbursementController extends Controller
      */
     public function edit($id)
     {
-        abort_unless(auth()->user()->canWrite('disbursements'), 403);
-
         $disbursement = Disbursement::with(['checkRequisitions.invoices'])->findOrFail($id);
+
+        $this->authorize('update', $disbursement);
 
         // Get current check requisitions
         $currentCheckReqs = $disbursement->checkRequisitions()
@@ -692,23 +684,9 @@ class DisbursementController extends Controller
     /**
      * Update the specified disbursement
      */
-    public function update(Request $request, $id)
+    public function update(UpdateDisbursementRequest $request, Disbursement $disbursement)
     {
-        abort_unless(auth()->user()->canWrite('disbursements'), 403);
-
-        $disbursement = Disbursement::findOrFail($id);
-
-        $validated = $request->validate([
-            'check_voucher_number' => 'nullable|string|unique:disbursements,check_voucher_number,' . $disbursement->id,
-            'date_check_scheduled' => 'nullable|date',
-            'date_check_released_to_vendor' => 'nullable|date',
-            'date_check_printing' => 'nullable|date',
-            'remarks' => 'nullable|string',
-            'check_requisition_ids' => 'required|array',
-            'check_requisition_ids.*' => 'exists:check_requisitions,id',
-            'files' => 'nullable|array',
-            'files.*' => 'file|mimes:pdf,jpg,jpeg,png|max:10240',
-        ]);
+        $validated = $request->validated();
 
         DB::beginTransaction();
         try {
@@ -1024,16 +1002,9 @@ class DisbursementController extends Controller
     /**
      * Quick release a disbursement
      */
-    public function quickRelease(Request $request, $id)
+    public function quickRelease(QuickReleaseDisbursementRequest $request, Disbursement $disbursement)
     {
-        abort_unless(auth()->user()->canWrite('disbursements'), 403);
-
-        $disbursement = Disbursement::findOrFail($id);
-
-        $validated = $request->validate([
-            'date_check_released_to_vendor' => 'required|date',
-            'release_notes' => 'nullable|string|max:500',
-        ]);
+        $validated = $request->validated();
 
         DB::beginTransaction();
         try {
@@ -1097,16 +1068,9 @@ class DisbursementController extends Controller
     /**
      * Bulk release multiple disbursements
      */
-    public function bulkRelease(Request $request)
+    public function bulkRelease(BulkReleaseDisbursementRequest $request)
     {
-        abort_unless(auth()->user()->canWrite('disbursements'), 403);
-
-        $validated = $request->validate([
-            'disbursement_ids' => 'required|array',
-            'disbursement_ids.*' => 'exists:disbursements,id',
-            'date_check_released_to_vendor' => 'required|date',
-            'release_notes' => 'nullable|string|max:500',
-        ]);
+        $validated = $request->validated();
 
         DB::beginTransaction();
         try {
@@ -1385,7 +1349,7 @@ class DisbursementController extends Controller
      */
     public function calendarData(Request $request)
     {
-        abort_unless(auth()->user()->canRead('disbursements'), 403);
+        $this->authorize('viewAny', Disbursement::class);
 
         $startDate = $request->get('start', now()->startOfMonth()->toDateString());
         $endDate = $request->get('end', now()->endOfMonth()->toDateString());
@@ -1435,7 +1399,7 @@ class DisbursementController extends Controller
      */
     public function kanbanData(Request $request)
     {
-        abort_unless(auth()->user()->canRead('disbursements'), 403);
+        $this->authorize('viewAny', Disbursement::class);
 
         $disbursements = Disbursement::query()
             ->with(['checkRequisitions.invoices'])
