@@ -2,20 +2,21 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Project\StoreProjectRequest;
+use App\Http\Requests\Project\UpdateProjectRequest;
 use App\Models\Project;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
-use Inertia\Inertia;
+use Inertia\Response;
 
 class ProjectController extends Controller
 {
-    public function index(Request $request)
+    public function index(Request $request): Response
     {
-        abort_unless(auth()->user()->canRead('projects'), 403);
+        $this->authorize('viewAny', Project::class);
 
         $query = Project::query();
 
-        // Search functionality
         if ($request->filled('search')) {
             $search = $request->get('search');
             $query->where(function ($q) use ($search) {
@@ -25,38 +26,28 @@ class ProjectController extends Controller
             });
         }
 
-        // Filter by project type
         if ($request->filled('project_type')) {
             $query->where('project_type', $request->project_type);
         }
 
-        // Filter by project status
         if ($request->filled('project_status')) {
             $query->where('project_status', $request->project_status);
         }
 
-        // Sorting functionality
         $sortField = $request->get('sort_field', 'created_at');
         $sortDirection = $request->get('sort_direction', 'desc');
 
-        // Validate sort field to prevent SQL injection
         $allowedSortFields = ['project_title', 'cer_number', 'total_project_cost', 'total_contract_cost', 'project_type', 'project_status', 'created_at'];
         if (in_array($sortField, $allowedSortFields)) {
             $query->orderBy($sortField, $sortDirection);
-        } else {
-            $query->orderBy('created_at', 'desc');
         }
 
-        // Pagination
         $perPage = $request->get('per_page', 15);
         $perPage = in_array($perPage, [10, 15, 25, 50]) ? $perPage : 15;
 
         $projects = $query->paginate($perPage);
-
-        // Append query parameters to pagination links - THIS IS THE KEY FIX
         $projects->appends($request->query());
 
-        // Calculate stats
         $stats = [
             'total' => Project::count(),
             'active' => Project::where('project_status', 'active')->count(),
@@ -83,108 +74,70 @@ class ProjectController extends Controller
         ]);
     }
 
-    public function create()
+    public function create(): Response
     {
-        abort_unless(auth()->user()->canWrite('projects'), 403);
+        $this->authorize('create', Project::class);
 
-        return Inertia::render('Projects/Create');
+        return inertia('projects/create');
     }
 
-    public function store(Request $request)
+    public function store(StoreProjectRequest $request): RedirectResponse
     {
-        abort_unless(auth()->user()->canWrite('projects'), 403);
-
-        $validated = $request->validate([
-            'project_title' => 'required|string|max:255',
-            'cer_number' => 'required|string|max:255|unique:projects',
-            'total_project_cost' => 'nullable|numeric|min:0',
-            'total_contract_cost' => 'nullable|numeric|min:0',
-            'project_status' => 'nullable|in:active,on_hold,completed,cancelled',
-            'description' => 'nullable|string',
-            'project_type' => 'nullable|in:sm_project,philcom_project',
-            'smpo_number' => 'required_if:project_type,sm_project|nullable|string|max:255',
-            'philcom_category' => 'required_if:project_type,philcom_project|nullable|in:profit_and_loss,capital_expenditure,others',
-            'team' => 'required_if:project_type,philcom_project',
-        ]);
-
+        $validated = $request->validated();
         $validated['created_by'] = auth()->id();
 
         $project = Project::create($validated);
-
-        // Log creation to activity log
         $project->logCreation();
 
         return redirect()->route('projects.index')->with('success', 'Project created successfully.');
     }
 
-    public function show(Project $project)
+    public function show(Project $project): Response
     {
-        abort_unless(auth()->user()->canRead('projects'), 403);
+        $this->authorize('view', $project);
 
-        return Inertia::render('projects/show', [
+        return inertia('projects/show', [
             'project' => $project->load([
                 'creator:id,name',
                 'purchaseOrders.vendor',
                 'purchaseOrders.invoices',
                 'remarks.user:id,name',
-                'activityLogs.user:id,name'
+                'activityLogs.user:id,name',
             ]),
         ]);
     }
 
-    public function edit(Project $project)
+    public function edit(Project $project): Response
     {
-        abort_unless(auth()->user()->canWrite('projects'), 403);
+        $this->authorize('update', $project);
 
-        return Inertia::render('Projects/Edit', [
+        return inertia('projects/edit', [
             'project' => $project,
         ]);
     }
 
-    public function update(Request $request, Project $project)
+    public function update(UpdateProjectRequest $request, Project $project): RedirectResponse
     {
-        abort_unless(auth()->user()->canWrite('projects'), 403);
-
-        $validated = $request->validate([
-            'project_title' => 'required|string|max:255',
-            'cer_number' => [
-                'required',
-                'string',
-                'max:255',
-                Rule::unique('projects', 'cer_number')->ignore($project->id)
-            ],
-            'total_project_cost' => 'required|numeric|min:0.01', // Made required and minimum 0.01
-            'total_contract_cost' => 'required_if:project_type,sm_project', // Made required and minimum 0.01
-            'project_type' => 'required|in:sm_project,philcom_project', // Made required
-            'smpo_number' => 'required_if:project_type,sm_project|nullable|string|max:255',
-            'philcom_category' => 'required_if:project_type,philcom_project|nullable|in:profit_and_loss,capital_expenditure,others',
-            'team' => 'required_if:project_type,philcom_project',
-            'description' => 'nullable|string|max:1000', // Added max length for description
-        ]);
-
-        // Capture old status if exists
+        $validated = $request->validated();
         $oldStatus = $project->project_status;
 
-        // Update the project
         $project->fill($validated);
         $project->save();
 
         $changes = $project->getChanges();
 
-        // Check if status changed
         if (isset($changes['project_status'])) {
             $project->logStatusChange($oldStatus, $changes['project_status']);
-        } else if (!empty($changes)) {
-            // Log regular update
+        } elseif (! empty($changes)) {
             $project->logUpdate($changes);
         }
 
         return back()->with('success', 'Project updated successfully.');
     }
 
-    public function destroy(Project $project)
+    public function destroy(Project $project): RedirectResponse
     {
-        abort_unless(auth()->user()->canWrite('projects'), 403);
+        $this->authorize('delete', $project);
 
         $project->delete();
 
