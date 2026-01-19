@@ -104,16 +104,6 @@ export default function ShowVendor({ vendor }) {
         });
     };
 
-    const getStatusColor = (status) => {
-        const colors = {
-            active: 'text-green-600',
-            inactive: 'text-gray-500',
-            overdue: 'text-red-600',
-            warning: 'text-orange-600'
-        };
-        return colors[status] || 'text-gray-600';
-    };
-
     // Determine vendor health status
     const getVendorHealthStatus = () => {
         if (overdue_amount > 0) {

@@ -8,83 +8,59 @@ use Illuminate\Auth\Access\Response;
 
 class VendorPolicy
 {
-    /**
-     * Determine if the user can view any vendors.
-     */
     public function viewAny(User $user): Response
     {
-        return $user->canRead('vendors')
-            ? Response::allow()
-            : Response::deny('You do not have permission to view vendors.');
+        return $this->checkRead($user, 'view vendors');
     }
 
-    /**
-     * Determine if the user can view the vendor.
-     */
     public function view(User $user, Vendor $vendor): Response
     {
-        return $user->canRead('vendors')
-            ? Response::allow()
-            : Response::deny('You do not have permission to view vendors.');
+        return $this->checkRead($user, 'view vendors');
     }
 
-    /**
-     * Determine if the user can create vendors.
-     */
     public function create(User $user): Response
     {
-        return $user->canWrite('vendors')
-            ? Response::allow()
-            : Response::deny('You do not have permission to create vendors.');
+        return $this->checkWrite($user, 'create vendors');
     }
 
-    /**
-     * Determine if the user can update the vendor.
-     */
     public function update(User $user, Vendor $vendor): Response
     {
-        return $user->canWrite('vendors')
-            ? Response::allow()
-            : Response::deny('You do not have permission to update vendors.');
+        return $this->checkWrite($user, 'update vendors');
     }
 
-    /**
-     * Determine if the user can delete the vendor.
-     */
     public function delete(User $user, Vendor $vendor): Response
     {
-        return $user->canWrite('vendors')
-            ? Response::allow()
-            : Response::deny('You do not have permission to delete vendors.');
+        return $this->checkWrite($user, 'delete vendors');
     }
 
-    /**
-     * Determine if the user can bulk manage vendors (activate/deactivate/delete).
-     */
     public function bulkManage(User $user): Response
     {
-        return $user->canWrite('vendors')
-            ? Response::allow()
-            : Response::deny('You do not have permission to manage vendors.');
+        return $this->checkWrite($user, 'manage vendors');
     }
 
-    /**
-     * Determine if the user can restore the vendor (for soft deletes).
-     */
     public function restore(User $user, Vendor $vendor): Response
     {
-        return $user->canWrite('vendors')
-            ? Response::allow()
-            : Response::deny('You do not have permission to restore vendors.');
+        return $this->checkWrite($user, 'restore vendors');
     }
 
-    /**
-     * Determine if the user can permanently delete the vendor.
-     */
     public function forceDelete(User $user, Vendor $vendor): Response
     {
         return $user->isAdmin()
             ? Response::allow()
             : Response::deny('Only administrators can permanently delete vendors.');
+    }
+
+    private function checkRead(User $user, string $action): Response
+    {
+        return $user->canRead('vendors')
+            ? Response::allow()
+            : Response::deny("You do not have permission to {$action}.");
+    }
+
+    private function checkWrite(User $user, string $action): Response
+    {
+        return $user->canWrite('vendors')
+            ? Response::allow()
+            : Response::deny("You do not have permission to {$action}.");
     }
 }

@@ -100,21 +100,11 @@ class VendorController extends Controller
      */
     public function store(StoreVendorRequest $request)
     {
-        // Authorization and validation handled by StoreVendorRequest
-        $validated = $request->validated();
-
         $vendor = Vendor::create([
-            'name' => $validated['name'],
-            'contact_person' => $validated['contact_person'] ?? null,
-            'email' => $validated['email'] ?? null,
-            'phone' => $validated['phone'] ?? null,
-            'address' => $validated['address'] ?? null,
-            'category' => $validated['category'],
-            'payment_terms' => $validated['payment_terms'] ?? null,
+            ...$request->validated(),
             'created_by' => auth()->id(),
         ]);
 
-        // Log creation to activity log
         $vendor->logCreation();
 
         return back()->with('success', 'Vendor created successfully.');
@@ -214,33 +204,19 @@ class VendorController extends Controller
      */
     public function update(UpdateVendorRequest $request, Vendor $vendor)
     {
-        // Authorization and validation handled by UpdateVendorRequest
-        $validated = $request->validated();
-
-        // Capture old status before update
         $oldStatus = $vendor->is_active;
 
-        // Update the vendor details
-        $vendor->fill([
-            'name' => $validated['name'],
-            'contact_person' => $validated['contact_person'] ?? null,
-            'email' => $validated['email'] ?? null,
-            'phone' => $validated['phone'] ?? null,
-            'address' => $validated['address'] ?? null,
-            'category' => $validated['category'],
-            'payment_terms' => $validated['payment_terms'] ?? null,
-            'is_active' => $validated['is_active'] ?? $vendor->is_active,
-        ]);
-
+        $vendor->fill($request->validated());
         $vendor->save();
 
         $changes = $vendor->getChanges();
 
-        // Check if status changed (activation/deactivation)
         if (isset($changes['is_active'])) {
-            $vendor->logStatusChange($oldStatus ? 'active' : 'inactive', $changes['is_active'] ? 'active' : 'inactive');
+            $vendor->logStatusChange(
+                $oldStatus ? 'active' : 'inactive',
+                $changes['is_active'] ? 'active' : 'inactive'
+            );
         } elseif (! empty($changes)) {
-            // Log regular update
             $vendor->logUpdate($changes);
         }
 
@@ -260,15 +236,8 @@ class VendorController extends Controller
      */
     public function bulkActivate(Request $request)
     {
-        $this->authorize('bulkManage', Vendor::class);
-
-        $request->validate([
-            'vendor_ids' => 'required|array',
-            'vendor_ids.*' => 'exists:vendors,id',
-        ]);
-
-        $count = Vendor::whereIn('id', $request->vendor_ids)
-            ->update(['is_active' => 1]);
+        $vendorIds = $this->validateBulkOperation($request);
+        $count = Vendor::whereIn('id', $vendorIds)->update(['is_active' => 1]);
 
         return back()->with('success', "{$count} vendor(s) activated successfully.");
     }
@@ -278,15 +247,8 @@ class VendorController extends Controller
      */
     public function bulkDeactivate(Request $request)
     {
-        $this->authorize('bulkManage', Vendor::class);
-
-        $request->validate([
-            'vendor_ids' => 'required|array',
-            'vendor_ids.*' => 'exists:vendors,id',
-        ]);
-
-        $count = Vendor::whereIn('id', $request->vendor_ids)
-            ->update(['is_active' => 0]);
+        $vendorIds = $this->validateBulkOperation($request);
+        $count = Vendor::whereIn('id', $vendorIds)->update(['is_active' => 0]);
 
         return back()->with('success', "{$count} vendor(s) deactivated successfully.");
     }
@@ -296,15 +258,24 @@ class VendorController extends Controller
      */
     public function bulkDelete(Request $request)
     {
+        $vendorIds = $this->validateBulkOperation($request);
+        $count = Vendor::whereIn('id', $vendorIds)->delete();
+
+        return back()->with('success', "{$count} vendor(s) deleted successfully.");
+    }
+
+    /**
+     * Validate and authorize bulk operations
+     */
+    private function validateBulkOperation(Request $request): array
+    {
         $this->authorize('bulkManage', Vendor::class);
 
-        $request->validate([
+        $validated = $request->validate([
             'vendor_ids' => 'required|array',
             'vendor_ids.*' => 'exists:vendors,id',
         ]);
 
-        $count = Vendor::whereIn('id', $request->vendor_ids)->delete();
-
-        return back()->with('success', "{$count} vendor(s) deleted successfully.");
+        return $validated['vendor_ids'];
     }
 }
