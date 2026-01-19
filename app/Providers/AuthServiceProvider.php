@@ -6,10 +6,12 @@ use App\Models\CheckRequisition;
 use App\Models\Disbursement;
 use App\Models\Invoice;
 use App\Models\PurchaseOrder;
+use App\Models\Vendor;
 use App\Policies\CheckRequisitionPolicy;
 use App\Policies\DisbursementPolicy;
 use App\Policies\InvoicePolicy;
 use App\Policies\PurchaseOrderPolicy;
+use App\Policies\VendorPolicy;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 
 class AuthServiceProvider extends ServiceProvider
@@ -24,6 +26,7 @@ class AuthServiceProvider extends ServiceProvider
         PurchaseOrder::class => PurchaseOrderPolicy::class,
         CheckRequisition::class => CheckRequisitionPolicy::class,
         Disbursement::class => DisbursementPolicy::class,
+        Vendor::class => VendorPolicy::class,
     ];
 
     /**

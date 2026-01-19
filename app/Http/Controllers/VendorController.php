@@ -2,9 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Vendor\StoreVendorRequest;
+use App\Http\Requests\Vendor\UpdateVendorRequest;
 use App\Models\Vendor;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 
 class VendorController extends Controller
 {
@@ -13,7 +14,7 @@ class VendorController extends Controller
      */
     public function index(Request $request)
     {
-        abort_unless(auth()->user()->canRead('vendors'), 403);
+        $this->authorize('viewAny', Vendor::class);
 
         $query = Vendor::query()->withCount(['purchaseOrders', 'invoices']);
 
@@ -97,28 +98,19 @@ class VendorController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(StoreVendorRequest $request)
     {
-        abort_unless(auth()->user()->canWrite('vendors'), 403);
-
-        $request->validate([
-            'name' => 'required|string|max:255|unique:vendors,name',
-            'email' => 'nullable|email|max:255',
-            'phone' => 'nullable|string|max:255',
-            'address' => 'nullable|string|max:1000',
-            'category' => 'required|in:SAP,Manual',
-            'payment_terms' => 'nullable|string|max:255',
-            'notes' => 'nullable|string|max:1000',
-        ]);
+        // Authorization and validation handled by StoreVendorRequest
+        $validated = $request->validated();
 
         $vendor = Vendor::create([
-            'name' => $request->name,
-            'contact_person' => $request->contact_person,
-            'email' => $request->email,
-            'phone' => $request->phone,
-            'address' => $request->address,
-            'category' => $request->category,
-            'payment_terms' => $request->payment_terms,
+            'name' => $validated['name'],
+            'contact_person' => $validated['contact_person'] ?? null,
+            'email' => $validated['email'] ?? null,
+            'phone' => $validated['phone'] ?? null,
+            'address' => $validated['address'] ?? null,
+            'category' => $validated['category'],
+            'payment_terms' => $validated['payment_terms'] ?? null,
             'created_by' => auth()->id(),
         ]);
 
@@ -133,13 +125,13 @@ class VendorController extends Controller
      */
     public function show(Vendor $vendor)
     {
-        abort_unless(auth()->user()->canRead('vendors'), 403);
+        $this->authorize('view', $vendor);
 
         $vendor->load([
             'purchaseOrders.project',
             'purchaseOrders.invoices.checkRequisitions',
             'remarks.user',
-            'activityLogs.user:id,name'
+            'activityLogs.user:id,name',
         ]);
 
         // Get all invoices for this vendor
@@ -164,7 +156,7 @@ class VendorController extends Controller
         // Count invoice statuses
         $paidInvoices = $invoices->where('invoice_status', 'paid')->count();
 
-        $pendingInvoices = $invoices->where('invoice_status','!=','paid')->count();
+        $pendingInvoices = $invoices->where('invoice_status', '!=', 'paid')->count();
 
         $overdueInvoicesCount = $overdueInvoices->count();
 
@@ -204,7 +196,7 @@ class VendorController extends Controller
 
         return inertia('vendors/show', [
             'vendor' => array_merge($vendor->toArray(), [
-                'financial_summary' => $financialSummary
+                'financial_summary' => $financialSummary,
             ]),
         ]);
     }
@@ -220,38 +212,24 @@ class VendorController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Vendor $vendor)
+    public function update(UpdateVendorRequest $request, Vendor $vendor)
     {
-        abort_unless(auth()->user()->canWrite('vendors'), 403);
-
-        $request->validate([
-            'name' => [
-                'required',
-                'string',
-                'max:255',
-                Rule::unique('vendors','name')->ignore($vendor->id,'id'),
-            ],
-            'email' => 'nullable|email|max:255',
-            'phone' => 'nullable|string|max:255',
-            'address' => 'nullable|string|max:1000',
-            'category' => 'required|in:SAP,Manual',
-            'payment_terms' => 'nullable|string|max:255',
-            'notes' => 'nullable|string|max:1000',
-        ]);
+        // Authorization and validation handled by UpdateVendorRequest
+        $validated = $request->validated();
 
         // Capture old status before update
         $oldStatus = $vendor->is_active;
 
         // Update the vendor details
         $vendor->fill([
-            'name' => $request->name,
-            'contact_person' => $request->contact_person,
-            'email' => $request->email,
-            'phone' => $request->phone,
-            'address' => $request->address,
-            'category' => $request->category,
-            'payment_terms' => $request->payment_terms,
-            'is_active' => $request->is_active,
+            'name' => $validated['name'],
+            'contact_person' => $validated['contact_person'] ?? null,
+            'email' => $validated['email'] ?? null,
+            'phone' => $validated['phone'] ?? null,
+            'address' => $validated['address'] ?? null,
+            'category' => $validated['category'],
+            'payment_terms' => $validated['payment_terms'] ?? null,
+            'is_active' => $validated['is_active'] ?? $vendor->is_active,
         ]);
 
         $vendor->save();
@@ -261,7 +239,7 @@ class VendorController extends Controller
         // Check if status changed (activation/deactivation)
         if (isset($changes['is_active'])) {
             $vendor->logStatusChange($oldStatus ? 'active' : 'inactive', $changes['is_active'] ? 'active' : 'inactive');
-        } else if (!empty($changes)) {
+        } elseif (! empty($changes)) {
             // Log regular update
             $vendor->logUpdate($changes);
         }
@@ -282,7 +260,7 @@ class VendorController extends Controller
      */
     public function bulkActivate(Request $request)
     {
-        abort_unless(auth()->user()->canWrite('vendors'), 403);
+        $this->authorize('bulkManage', Vendor::class);
 
         $request->validate([
             'vendor_ids' => 'required|array',
@@ -300,7 +278,7 @@ class VendorController extends Controller
      */
     public function bulkDeactivate(Request $request)
     {
-        abort_unless(auth()->user()->canWrite('vendors'), 403);
+        $this->authorize('bulkManage', Vendor::class);
 
         $request->validate([
             'vendor_ids' => 'required|array',
@@ -318,7 +296,7 @@ class VendorController extends Controller
      */
     public function bulkDelete(Request $request)
     {
-        abort_unless(auth()->user()->canWrite('vendors'), 403);
+        $this->authorize('bulkManage', Vendor::class);
 
         $request->validate([
             'vendor_ids' => 'required|array',
