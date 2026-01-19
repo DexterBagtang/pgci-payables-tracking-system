@@ -1,51 +1,3 @@
-# CLAUDE.md
-
-**Payables Management System**: Laravel 12 + React 19 + Inertia.js
-
-## References
-
-- **Database Schema**: `docs/db.mmd` (complete ERD)
-- **Business Flow**: `docs/flowchart.mmd` (workflow diagram)
-- **Documentation**: `docs/` (implementation guides)
-
-## Structure
-
-### /app (Backend Logic)
-- **Models**: `$guarded = []`, polymorphic relations (`fileable`, `loggable`, `remarkable`)
-- **Controllers**: POST for updates with files (not PATCH), bulk operations optimized
-- **Observers**: Registered in `AppServiceProvider` for audit trails
-- **Traits**: `LogsActivity`, `HasRemarks`
-
-### /resources/js (Frontend)
-- **pages/**: Inertia route components (.tsx)
-- **components/**: ui/ (shadcn), custom/ (app-specific)
-- **actions/**: Wayfinder type-safe routes (auto-generated)
-- **Path alias**: `@/` = `resources/js/`
-
-### /config
-- **Dev**: `composer dev` (Laravel:8020 + Queue + Vite)
-- **Build**: `npm run build`, `composer test`
-- **Stack**: Tailwind v4, TypeScript strict, Pest tests, SQLite test DB
-
-## Critical Gotchas
-
-1. **Invoice**: NO `vendor_id`/`project_id` - use `hasOneThrough` via PurchaseOrder
-2. **Updates**: POST (not PATCH) for file uploads
-3. **Dual Logging**: AuditTrail (DB changes) vs ActivityLog (business events)
-4. **CheckRequisition**: Two user relations - `generator` and `processor`
-5. **API vs Inertia**: Some endpoints return JSON to avoid version conflicts
-
-## Commands
-
-```bash
-composer dev              # Start dev server
-composer test             # Run tests
-npm run types            # TypeScript check
-npm run lint             # ESLint fix
-```
-
-===
-
 <laravel-boost-guidelines>
 === foundation rules ===
 
@@ -161,6 +113,13 @@ protected function isAccessible(User $user, ?string $path = null): bool
 
 ## Enums
 - Typically, keys in an Enum should be TitleCase. For example: `FavoritePerson`, `BestLake`, `Monthly`.
+
+=== tests rules ===
+
+## Test Enforcement
+
+- Every change must be programmatically tested. Write a new test or update an existing test, then run the affected tests to make sure they pass.
+- Run the minimum number of tests needed to ensure code quality and speed. Use `php artisan test --compact` with a specific filename or filter.
 
 === inertia-laravel/core rules ===
 
@@ -325,6 +284,102 @@ If your application uses the `<Form>` component from Inertia, you can use Wayfin
 
 - You must run `vendor/bin/pint --dirty` before finalizing changes to ensure your code matches the project's expected style.
 - Do not run `vendor/bin/pint --test`, simply run `vendor/bin/pint` to fix any formatting issues.
+
+=== pest/core rules ===
+
+## Pest
+### Testing
+- If you need to verify a feature is working, write or update a Unit / Feature test.
+
+### Pest Tests
+- All tests must be written using Pest. Use `php artisan make:test --pest {name}`.
+- You must not remove any tests or test files from the tests directory without approval. These are not temporary or helper files - these are core to the application.
+- Tests should test all of the happy paths, failure paths, and weird paths.
+- Tests live in the `tests/Feature` and `tests/Unit` directories.
+- Pest tests look and behave like this:
+<code-snippet name="Basic Pest Test Example" lang="php">
+it('is true', function () {
+    expect(true)->toBeTrue();
+});
+</code-snippet>
+
+### Running Tests
+- Run the minimal number of tests using an appropriate filter before finalizing code edits.
+- To run all tests: `php artisan test --compact`.
+- To run all tests in a file: `php artisan test --compact tests/Feature/ExampleTest.php`.
+- To filter on a particular test name: `php artisan test --compact --filter=testName` (recommended after making a change to a related file).
+- When the tests relating to your changes are passing, ask the user if they would like to run the entire test suite to ensure everything is still passing.
+
+### Pest Assertions
+- When asserting status codes on a response, use the specific method like `assertForbidden` and `assertNotFound` instead of using `assertStatus(403)` or similar, e.g.:
+<code-snippet name="Pest Example Asserting postJson Response" lang="php">
+it('returns all', function () {
+    $response = $this->postJson('/api/docs', []);
+
+    $response->assertSuccessful();
+});
+</code-snippet>
+
+### Mocking
+- Mocking can be very helpful when appropriate.
+- When mocking, you can use the `Pest\Laravel\mock` Pest function, but always import it via `use function Pest\Laravel\mock;` before using it. Alternatively, you can use `$this->mock()` if existing tests do.
+- You can also create partial mocks using the same import or self method.
+
+### Datasets
+- Use datasets in Pest to simplify tests that have a lot of duplicated data. This is often the case when testing validation rules, so consider this solution when writing tests for validation rules.
+
+<code-snippet name="Pest Dataset Example" lang="php">
+it('has emails', function (string $email) {
+    expect($email)->not->toBeEmpty();
+})->with([
+    'james' => 'james@laravel.com',
+    'taylor' => 'taylor@laravel.com',
+]);
+</code-snippet>
+
+=== pest/v4 rules ===
+
+## Pest 4
+
+- Pest 4 is a huge upgrade to Pest and offers: browser testing, smoke testing, visual regression testing, test sharding, and faster type coverage.
+- Browser testing is incredibly powerful and useful for this project.
+- Browser tests should live in `tests/Browser/`.
+- Use the `search-docs` tool for detailed guidance on utilizing these features.
+
+### Browser Testing
+- You can use Laravel features like `Event::fake()`, `assertAuthenticated()`, and model factories within Pest 4 browser tests, as well as `RefreshDatabase` (when needed) to ensure a clean state for each test.
+- Interact with the page (click, type, scroll, select, submit, drag-and-drop, touch gestures, etc.) when appropriate to complete the test.
+- If requested, test on multiple browsers (Chrome, Firefox, Safari).
+- If requested, test on different devices and viewports (like iPhone 14 Pro, tablets, or custom breakpoints).
+- Switch color schemes (light/dark mode) when appropriate.
+- Take screenshots or pause tests for debugging when appropriate.
+
+### Example Tests
+
+<code-snippet name="Pest Browser Test Example" lang="php">
+it('may reset the password', function () {
+    Notification::fake();
+
+    $this->actingAs(User::factory()->create());
+
+    $page = visit('/sign-in'); // Visit on a real browser...
+
+    $page->assertSee('Sign In')
+        ->assertNoJavascriptErrors() // or ->assertNoConsoleLogs()
+        ->click('Forgot Password?')
+        ->fill('email', 'nuno@laravel.com')
+        ->click('Send Reset Link')
+        ->assertSee('We have emailed your password reset link!')
+
+    Notification::assertSent(ResetPassword::class);
+});
+</code-snippet>
+
+<code-snippet name="Pest Smoke Testing Example" lang="php">
+$pages = visit(['/', '/about', '/contact']);
+
+$pages->assertNoJavascriptErrors()->assertNoConsoleLogs();
+</code-snippet>
 
 === inertia-react/core rules ===
 
