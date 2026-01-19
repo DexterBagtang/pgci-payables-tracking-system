@@ -2,6 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\CheckRequisition\ApproveCheckRequisitionRequest;
+use App\Http\Requests\CheckRequisition\RejectCheckRequisitionRequest;
+use App\Http\Requests\CheckRequisition\StoreCheckRequisitionRequest;
+use App\Http\Requests\CheckRequisition\UpdateCheckRequisitionRequest;
 use App\Models\ActivityLog;
 use App\Models\CheckRequisition;
 use App\Models\File;
@@ -19,7 +23,7 @@ class CheckRequisitionController extends Controller
 {
     public function index(Request $request)
     {
-        abort_unless(auth()->user()->canRead('check_requisitions'), 403);
+        $this->authorize('viewAny', CheckRequisition::class);
 
         $query = CheckRequisition::query();
 
@@ -114,7 +118,7 @@ class CheckRequisitionController extends Controller
 
     public function create(Request $request)
     {
-        abort_unless(auth()->user()->canWrite('check_requisitions'), 403);
+        $this->authorize('create', CheckRequisition::class);
 
         $query = Invoice::with(['purchaseOrder.vendor', 'purchaseOrder.project'])
             ->where('invoice_status', 'approved');
@@ -167,27 +171,9 @@ class CheckRequisitionController extends Controller
         ]);
     }
 
-    public function store(Request $request)
+    public function store(StoreCheckRequisitionRequest $request)
     {
-        abort_unless(auth()->user()->canWrite('check_requisitions'), 403);
-
-        $validated = $request->validate([
-            'request_date' => 'required|date',
-            'payee_name' => 'required|string',
-            'purpose' => 'required|string',
-            'po_number' => 'required|string',
-            'cer_number' => 'nullable|string',
-            'si_number' => 'required|string',
-            'account_charge' => 'nullable|string',
-            'service_line_dist' => 'nullable|string',
-            'php_amount' => 'required|numeric|min:0',
-            'requested_by' => 'required|string',
-            'reviewed_by' => 'nullable|string',
-            'approved_by' => 'nullable|string',
-            'amount_in_words' => 'required|string',
-            'invoice_ids' => 'required|array',
-            'invoice_ids.*' => 'exists:invoices,id'
-        ]);
+        $validated = $request->validated();
 
         // Extract invoice_ids before creating the record
         $invoiceIds = $validated['invoice_ids'];
@@ -280,13 +266,13 @@ class CheckRequisitionController extends Controller
 
     public function show($id)
     {
-        abort_unless(auth()->user()->canRead('check_requisitions'), 403);
-
         $checkRequisition = CheckRequisition::with([
             'generator:id,name',
             'processor:id,name',
             'activityLogs.user:id,name',
         ])->findOrFail($id);
+
+        $this->authorize('view', $checkRequisition);
 
         // Get associated invoices through the junction table
         $invoices = $checkRequisition->invoices()
@@ -373,29 +359,9 @@ class CheckRequisitionController extends Controller
         ]);
     }
 
-    public function update(Request $request, CheckRequisition $checkRequisition)
+    public function update(UpdateCheckRequisitionRequest $request, CheckRequisition $checkRequisition)
     {
-        // Use policy to check both permission and status restrictions
-        $this->authorize('update', $checkRequisition);
-
-        // Validate the request
-        $validated = $request->validate([
-            'request_date' => 'required|date',
-            'payee_name' => 'required|string',
-            'purpose' => 'required|string',
-            'po_number' => 'required|string',
-            'cer_number' => 'nullable|string',
-            'si_number' => 'required|string',
-            'account_charge' => 'nullable|string',
-            'service_line_dist' => 'nullable|string',
-            'php_amount' => 'required|numeric|min:0',
-            'requested_by' => 'required|string',
-            'reviewed_by' => 'nullable|string',
-            'approved_by' => 'nullable|string',
-            'amount_in_words' => 'required|string',
-            'invoice_ids' => 'required|array',
-            'invoice_ids.*' => 'exists:invoices,id'
-        ]);
+        $validated = $request->validated();
 
         // Extract invoice_ids before updating
         $invoiceIds = $validated['invoice_ids'];
@@ -499,7 +465,7 @@ class CheckRequisitionController extends Controller
      */
     public function createApi(Request $request)
     {
-        abort_unless(auth()->user()->canWrite('check_requisitions'), 403);
+        $this->authorize('create', CheckRequisition::class);
 
         $query = Invoice::with(['purchaseOrder.vendor', 'purchaseOrder.project'])
             ->where('invoice_status', 'approved');
@@ -559,7 +525,7 @@ class CheckRequisitionController extends Controller
      */
     public function editApi(Request $request, CheckRequisition $checkRequisition)
     {
-        abort_unless(auth()->user()->canWrite('check_requisitions'), 403);
+        $this->authorize('update', $checkRequisition);
 
         // Get current invoice IDs
         $currentInvoiceIds = $checkRequisition->invoices()->pluck('invoices.id')->toArray();
@@ -631,19 +597,9 @@ class CheckRequisitionController extends Controller
     /**
      * Approve a check requisition
      */
-    public function approve(Request $request, CheckRequisition $checkRequisition)
+    public function approve(ApproveCheckRequisitionRequest $request, CheckRequisition $checkRequisition)
     {
-        abort_unless(auth()->user()->canWrite('check_requisitions'), 403);
-
-        // Validate that it's in the correct status
-        if ($checkRequisition->requisition_status !== 'pending_approval') {
-            return back()->with('error', 'Check requisition cannot be approved in current status');
-        }
-
-        $validated = $request->validate([
-            'notes' => 'nullable|string',
-            'approval_document' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240', // 10MB
-        ]);
+        $validated = $request->validated();
 
         DB::beginTransaction();
         try {
@@ -731,20 +687,9 @@ class CheckRequisitionController extends Controller
     /**
      * Reject a check requisition
      */
-    public function reject(Request $request, CheckRequisition $checkRequisition)
+    public function reject(RejectCheckRequisitionRequest $request, CheckRequisition $checkRequisition)
     {
-        abort_unless(auth()->user()->canWrite('check_requisitions'), 403);
-
-        // Validate that it's in the correct status
-        if ($checkRequisition->requisition_status !== 'pending_approval') {
-            return back()->with('error', 'Check requisition cannot be rejected in current status');
-        }
-
-        $validated = $request->validate([
-            'rejection_reason' => 'required|string',
-            'notes' => 'nullable|string',
-            'rejection_document' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240', // 10MB
-        ]);
+        $validated = $request->validated();
 
         DB::beginTransaction();
         try {
