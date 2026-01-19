@@ -50,8 +50,7 @@ class UserPermissionsSeeder extends Seeder
                 'role' => UserRole::PAYABLES,
                 'email_verified_at' => now(),
                 'permissions' => [
-                    'read' => ['vendors', 'projects', 'purchase_orders', 'invoices',
-                               'invoice_review', 'check_requisitions', 'disbursements'],
+                    'read' => ['vendors', 'projects', 'purchase_orders', 'invoices', 'check_requisitions', 'disbursements'],
                     'write' => []
                 ]
             ],
@@ -63,8 +62,7 @@ class UserPermissionsSeeder extends Seeder
                 'role' => UserRole::PAYABLES,
                 'email_verified_at' => now(),
                 'permissions' => [
-                    'read' => ['vendors', 'projects', 'purchase_orders', 'invoices',
-                               'invoice_review', 'check_requisitions', 'disbursements'],
+                    'read' => ['vendors', 'projects', 'purchase_orders', 'invoices', 'check_requisitions', 'disbursements'],
                     'write' => []
                 ]
             ],
@@ -76,8 +74,7 @@ class UserPermissionsSeeder extends Seeder
                 'role' => UserRole::PAYABLES,
                 'email_verified_at' => now(),
                 'permissions' => [
-                    'read' => ['vendors', 'projects', 'purchase_orders', 'invoices',
-                               'invoice_review', 'check_requisitions'],
+                    'read' => ['invoices', 'invoice_review', 'check_requisitions'],
                     'write' => ['invoice_review', 'check_requisitions']
                 ]
             ],
@@ -89,8 +86,7 @@ class UserPermissionsSeeder extends Seeder
                 'role' => UserRole::PAYABLES,
                 'email_verified_at' => now(),
                 'permissions' => [
-                    'read' => ['vendors', 'projects', 'purchase_orders', 'invoices',
-                               'invoice_review', 'check_requisitions', 'disbursements'],
+                    'read' => ['invoices', 'invoice_review', 'check_requisitions', 'disbursements'],
                     'write' => []
                 ]
             ],
@@ -104,8 +100,7 @@ class UserPermissionsSeeder extends Seeder
                 'role' => UserRole::PURCHASING,
                 'email_verified_at' => now(),
                 'permissions' => [
-                    'read' => ['vendors', 'projects', 'purchase_orders', 'invoices',
-                               'invoice_review', 'check_requisitions', 'disbursements'],
+                    'read' => ['vendors', 'projects', 'purchase_orders'],
                     'write' => ['vendors', 'projects', 'purchase_orders']
                 ]
             ],
@@ -117,8 +112,7 @@ class UserPermissionsSeeder extends Seeder
                 'role' => UserRole::PURCHASING,
                 'email_verified_at' => now(),
                 'permissions' => [
-                    'read' => ['vendors', 'projects', 'purchase_orders', 'invoices',
-                               'invoice_review', 'check_requisitions', 'disbursements'],
+                    'read' => ['vendors', 'projects', 'purchase_orders'],
                     'write' => []
                 ]
             ],
@@ -130,8 +124,7 @@ class UserPermissionsSeeder extends Seeder
                 'role' => UserRole::PURCHASING,
                 'email_verified_at' => now(),
                 'permissions' => [
-                    'read' => ['vendors', 'projects', 'purchase_orders', 'invoices',
-                               'invoice_review', 'check_requisitions', 'disbursements'],
+                    'read' => ['vendors', 'projects', 'purchase_orders', ],
                     'write' => ['purchase_orders']
                 ]
             ],
@@ -143,8 +136,7 @@ class UserPermissionsSeeder extends Seeder
                 'role' => UserRole::PURCHASING,
                 'email_verified_at' => now(),
                 'permissions' => [
-                    'read' => ['vendors', 'projects', 'purchase_orders', 'invoices',
-                               'invoice_review', 'check_requisitions', 'disbursements'],
+                    'read' => ['vendors', 'projects', 'purchase_orders', 'invoices'],
                     'write' => ['invoices']
                 ]
             ],
@@ -158,8 +150,7 @@ class UserPermissionsSeeder extends Seeder
                 'role' => UserRole::DISBURSEMENT,
                 'email_verified_at' => now(),
                 'permissions' => [
-                    'read' => ['vendors', 'projects', 'purchase_orders', 'invoices',
-                               'invoice_review', 'check_requisitions', 'disbursements'],
+                    'read' => ['vendors', 'projects', 'purchase_orders', 'invoices', 'check_requisitions', 'disbursements'],
                     'write' => []
                 ]
             ],
@@ -171,8 +162,7 @@ class UserPermissionsSeeder extends Seeder
                 'role' => UserRole::DISBURSEMENT,
                 'email_verified_at' => now(),
                 'permissions' => [
-                    'read' => ['vendors', 'projects', 'purchase_orders', 'invoices',
-                               'invoice_review', 'check_requisitions', 'disbursements'],
+                    'read' => ['disbursements'],
                     'write' => ['disbursements']
                 ]
             ],
@@ -184,8 +174,7 @@ class UserPermissionsSeeder extends Seeder
                 'role' => UserRole::DISBURSEMENT,
                 'email_verified_at' => now(),
                 'permissions' => [
-                    'read' => ['vendors', 'projects', 'purchase_orders', 'invoices',
-                               'invoice_review', 'check_requisitions', 'disbursements'],
+                    'read' => ['disbursements'],
                     'write' => []
                 ]
             ],
