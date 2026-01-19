@@ -11,21 +11,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Project extends Model
 {
-    use HasFactory,HasRemarks, LogsActivity;
+    use HasFactory, HasRemarks, LogsActivity;
 
-    protected $fillable = [
-        'project_title',
-        'cer_number',
-        'total_project_cost',
-        'total_contract_cost',
-        'project_status',
-        'description',
-        'project_type',
-        'smpo_number',
-        'philcom_category',
-        'team',
-        'created_by',
-    ];
+    protected $guarded = [];
 
     protected $casts = [
         'total_project_cost' => 'decimal:2',
@@ -46,45 +34,43 @@ class Project extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
-    // Scopes for common queries
     public function scopeActive($query)
     {
         return $query->where('project_status', 'active');
     }
 
-    public function scopeByType($query, $type)
+    public function scopeByType($query, string $type)
     {
         return $query->where('project_type', $type);
     }
 
-    public function scopeSearch($query, $search)
+    public function scopeSearch($query, string $search)
     {
-        return $query->where(function ($q) use ($search) {
-            $q->where('project_title', 'like', "%{$search}%")
-                ->orWhere('cer_number', 'like', "%{$search}%")
-                ->orWhere('smpo_number', 'like', "%{$search}%");
-        });
+        return $query->where(fn($q) => $q
+            ->where('project_title', 'like', "%{$search}%")
+            ->orWhere('cer_number', 'like', "%{$search}%")
+            ->orWhere('smpo_number', 'like', "%{$search}%")
+        );
     }
 
-    // Accessors
-    public function getFormattedProjectCostAttribute()
+    public function getFormattedProjectCostAttribute(): string
     {
         return number_format($this->total_project_cost, 2);
     }
 
-    public function getFormattedContractCostAttribute()
+    public function getFormattedContractCostAttribute(): string
     {
         return number_format($this->total_contract_cost, 2);
     }
 
-    public function getProjectTypeDisplayAttribute()
+    public function getProjectTypeDisplayAttribute(): string
     {
         return $this->project_type === 'sm_project' ? 'SM Project' : 'PhilCom Project';
     }
 
-    public function getProjectStatusDisplayAttribute()
+    public function getProjectStatusDisplayAttribute(): string
     {
-        return match($this->project_status) {
+        return match ($this->project_status) {
             'active' => 'Active',
             'on_hold' => 'On Hold',
             'completed' => 'Completed',
@@ -93,7 +79,7 @@ class Project extends Model
         };
     }
 
-    public function getBudgetUtilizationAttribute()
+    public function getBudgetUtilizationAttribute(): array
     {
         $committed = $this->purchaseOrders()
             ->whereIn('po_status', ['draft', 'open'])

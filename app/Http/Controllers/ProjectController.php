@@ -18,12 +18,11 @@ class ProjectController extends Controller
         $query = Project::query();
 
         if ($request->filled('search')) {
-            $search = $request->get('search');
-            $query->where(function ($q) use ($search) {
-                $q->where('project_title', 'like', "%{$search}%")
-                    ->orWhere('cer_number', 'like', "%{$search}%")
-                    ->orWhere('smpo_number', 'like', "%{$search}%");
-            });
+            $query->where(fn($q) => $q
+                ->where('project_title', 'like', "%{$request->search}%")
+                ->orWhere('cer_number', 'like', "%{$request->search}%")
+                ->orWhere('smpo_number', 'like', "%{$request->search}%")
+            );
         }
 
         if ($request->filled('project_type')) {
@@ -37,13 +36,14 @@ class ProjectController extends Controller
         $sortField = $request->get('sort_field', 'created_at');
         $sortDirection = $request->get('sort_direction', 'desc');
 
-        $allowedSortFields = ['project_title', 'cer_number', 'total_project_cost', 'total_contract_cost', 'project_type', 'project_status', 'created_at'];
-        if (in_array($sortField, $allowedSortFields)) {
-            $query->orderBy($sortField, $sortDirection);
-        }
+        $query->when(
+            in_array($sortField, ['project_title', 'cer_number', 'total_project_cost', 'total_contract_cost', 'project_type', 'project_status', 'created_at']),
+            fn($q) => $q->orderBy($sortField, $sortDirection)
+        );
 
-        $perPage = $request->get('per_page', 15);
-        $perPage = in_array($perPage, [10, 15, 25, 50]) ? $perPage : 15;
+        $perPage = in_array($request->get('per_page', 15), [10, 15, 25, 50])
+            ? $request->get('per_page')
+            : 15;
 
         $projects = $query->paginate($perPage);
         $projects->appends($request->query());
@@ -118,17 +118,14 @@ class ProjectController extends Controller
 
     public function update(UpdateProjectRequest $request, Project $project): RedirectResponse
     {
-        $validated = $request->validated();
         $oldStatus = $project->project_status;
-
-        $project->fill($validated);
-        $project->save();
+        $project->update($request->validated());
 
         $changes = $project->getChanges();
 
         if (isset($changes['project_status'])) {
             $project->logStatusChange($oldStatus, $changes['project_status']);
-        } elseif (! empty($changes)) {
+        } elseif ($changes) {
             $project->logUpdate($changes);
         }
 
