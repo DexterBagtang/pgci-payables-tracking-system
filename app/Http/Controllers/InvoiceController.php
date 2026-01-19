@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Invoice\StoreInvoiceRequest;
 use App\Http\Requests\Invoice\UpdateInvoiceRequest;
 use App\Models\ActivityLog;
 use App\Models\Invoice;
@@ -23,7 +24,7 @@ class InvoiceController extends Controller
      */
     public function index(Request $request)
     {
-        abort_unless(auth()->user()->canRead('invoices'), 403);
+        $this->authorize('viewAny', Invoice::class);
 
         // Optimized eager loading: Only load what's actually used in frontend
         // Removed redundant 'vendor' and 'project' direct relationships (frontend uses purchaseOrder.vendor/project)
@@ -176,7 +177,7 @@ class InvoiceController extends Controller
      */
     public function create()
     {
-        abort_unless(auth()->user()->canWrite('invoices'), 403);
+        $this->authorize('create', Invoice::class);
 
         return inertia('invoices/create', [
             'purchaseOrders' => PurchaseOrder::with(['project', 'vendor'])->where('po_status','open')->get(),
@@ -186,7 +187,7 @@ class InvoiceController extends Controller
 
     public function store(Request $request)
     {
-        abort_unless(auth()->user()->canWrite('invoices'), 403);
+        $this->authorize('create', Invoice::class);
 
         // Handle both regular form submission and optimized FormData submission
         $invoicesData = $request->has('_invoices_json')
@@ -481,7 +482,7 @@ class InvoiceController extends Controller
      */
     public function show(Invoice $invoice)
     {
-        abort_unless(auth()->user()->canRead('invoices'), 403);
+        $this->authorize('view', $invoice);
 
         $invoice->load('purchaseOrder.project',
             'purchaseOrder.vendor',
@@ -574,11 +575,11 @@ class InvoiceController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy(Invoice $invoice)
     {
-        abort_unless(auth()->user()->canWrite('invoices'), 403);
+        $this->authorize('delete', $invoice);
 
-        //
+        // Implementation pending
     }
 
     public function review(Invoice $invoice, Request $request)
@@ -617,7 +618,7 @@ class InvoiceController extends Controller
 
     public function bulkReview(Request $request)
     {
-        abort_unless(auth()->user()->canWrite('invoice_review'), 403);
+        $this->authorize('bulkReview', Invoice::class);
 
         $query = Invoice::with([
             'purchaseOrder' => function ($q) {
@@ -720,7 +721,7 @@ class InvoiceController extends Controller
     // Bulk Mark Files Received
     public function bulkMarkReceived(Request $request)
     {
-        abort_unless(auth()->user()->canWrite('invoice_review'), 403);
+        $this->authorize('bulkReview', Invoice::class);
 
         $request->validate([
             'invoice_ids' => 'required|array',
@@ -780,7 +781,7 @@ class InvoiceController extends Controller
 // Bulk Approve
     public function bulkApprove(Request $request)
     {
-        abort_unless(auth()->user()->canWrite('invoice_review'), 403);
+        $this->authorize('bulkReview', Invoice::class);
 
         $request->validate([
             'invoice_ids' => 'required|array',
@@ -872,7 +873,7 @@ class InvoiceController extends Controller
 // Bulk Reject
     public function bulkReject(Request $request)
     {
-        abort_unless(auth()->user()->canWrite('invoice_review'), 403);
+        $this->authorize('bulkReview', Invoice::class);
 
         $request->validate([
             'invoice_ids' => 'required|array',
@@ -952,7 +953,7 @@ class InvoiceController extends Controller
      */
     public function bulkReviewApi(Request $request)
     {
-        abort_unless(auth()->user()->canWrite('invoice_review'), 403);
+        $this->authorize('bulkReview', Invoice::class);
 
         $query = Invoice::with([
             'purchaseOrder' => function ($q) {

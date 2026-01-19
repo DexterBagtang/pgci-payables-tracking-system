@@ -157,6 +157,19 @@ class InvoicePolicy
     }
 
     /**
+     * Determine if the user can perform bulk review operations.
+     *
+     * Business Rules:
+     * - User must have write permission for invoice_review module
+     */
+    public function bulkReview(User $user): Response
+    {
+        return $user->canWrite('invoice_review')
+            ? Response::allow()
+            : Response::deny('You do not have permission to perform bulk review operations.');
+    }
+
+    /**
      * Determine if the user can permanently delete the invoice.
      */
     public function forceDelete(User $user, Invoice $invoice): Response

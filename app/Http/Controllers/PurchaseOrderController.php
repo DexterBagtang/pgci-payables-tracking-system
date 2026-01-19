@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\PurchaseOrder\StorePurchaseOrderRequest;
+use App\Http\Requests\PurchaseOrder\UpdatePurchaseOrderRequest;
 use App\Models\PoLineItem;
 use App\Models\Project;
 use App\Models\PurchaseOrder;
@@ -19,7 +21,7 @@ class PurchaseOrderController extends Controller
 
     public function index(Request $request)
     {
-        abort_unless(auth()->user()->canRead('purchase_orders'), 403);
+        $this->authorize('viewAny', PurchaseOrder::class);
 
         $query = PurchaseOrder::with(['vendor', 'project', 'creator'])
             ->select('purchase_orders.*')
@@ -128,7 +130,7 @@ class PurchaseOrderController extends Controller
      */
     public function create(Request $request)
     {
-        abort_unless(auth()->user()->canWrite('purchase_orders'), 403);
+        $this->authorize('create', PurchaseOrder::class);
 
         $vendors = Vendor::where('is_active', true)->orderBy('name')->get();
         $projects = Project::all();
@@ -141,46 +143,9 @@ class PurchaseOrderController extends Controller
     }
 
 
-    public function store(Request $request)
+    public function store(StorePurchaseOrderRequest $request)
     {
-        abort_unless(auth()->user()->canWrite('purchase_orders'), 403);
-
-        $validated = $request->validate([
-            'po_number' => $request->po_status === 'draft' ? 'nullable|string|unique:purchase_orders' : 'required|string|unique:purchase_orders',
-            'project_id' => $request->po_status === 'draft' ? 'nullable|exists:projects,id' : 'required|exists:projects,id',
-            'vendor_id' => $request->po_status === 'draft' ? 'nullable|exists:vendors,id' : 'required|exists:vendors,id',
-            'po_amount' => $request->po_status === 'draft' ? 'nullable|numeric|min:0' : 'required|numeric|min:0',
-            'currency' => 'nullable|in:PHP,USD',
-            'payment_term' => 'nullable|string',
-            'po_date' => $request->po_status === 'draft' ? 'nullable|date' : 'required|date',
-            'description' => 'nullable|string',
-            'files' => 'nullable|array',
-            'files.*' => 'file|max:10240', // 10MB max per file
-        ]);
-
-        // Budget validation: Check if PO amount exceeds project budget
-        if ($request->project_id && $request->po_amount) {
-            $project = Project::find($request->project_id);
-
-            if ($project && $project->total_project_cost) {
-                // Calculate total committed amount from existing POs (draft and open)
-                $existingCommitment = PurchaseOrder::where('project_id', $request->project_id)
-                    ->whereIn('po_status', ['draft', 'open'])
-                    ->sum('po_amount');
-
-                $newTotal = $existingCommitment + $request->po_amount;
-
-                if ($newTotal > $project->total_project_cost) {
-                    $overage = $newTotal - $project->total_project_cost;
-                    return back()->withErrors([
-                        'po_amount' => "This PO would exceed the project budget by ₱" . number_format($overage, 2) . ". " .
-                            "Project Budget: ₱" . number_format($project->total_project_cost, 2) . ", " .
-                            "Already Committed: ₱" . number_format($existingCommitment, 2) . ", " .
-                            "Remaining: ₱" . number_format($project->total_project_cost - $existingCommitment, 2)
-                    ])->withInput();
-                }
-            }
-        }
+        $validated = $request->validated();
 
         $validated['po_status'] = $request->po_status;
         $validated['created_by'] = auth()->id();
@@ -251,9 +216,9 @@ class PurchaseOrderController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Request $request,PurchaseOrder $purchaseOrder)
+    public function show(Request $request, PurchaseOrder $purchaseOrder)
     {
-        abort_unless(auth()->user()->canRead('purchase_orders'), 403);
+        $this->authorize('view', $purchaseOrder);
 
         $purchaseOrder->load([
             'project:id,project_title,cer_number,total_project_cost,total_contract_cost,project_status,description,project_type,smpo_number,philcom_category',
@@ -282,7 +247,7 @@ class PurchaseOrderController extends Controller
      */
     public function edit(PurchaseOrder $purchaseOrder)
     {
-        abort_unless(auth()->user()->canWrite('purchase_orders'), 403);
+        $this->authorize('update', $purchaseOrder);
 
         $purchaseOrder->load(['files', 'project:id,project_title,cer_number', 'vendor:id,name']);
         $vendors = Vendor::where('is_active', true)->orderBy('name')->get();
@@ -299,59 +264,9 @@ class PurchaseOrderController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, PurchaseOrder $purchaseOrder)
+    public function update(UpdatePurchaseOrderRequest $request, PurchaseOrder $purchaseOrder)
     {
-        abort_unless(auth()->user()->canWrite('purchase_orders'), 403);
-
-        // Prevent vendor change if PO has invoices
-        if ($purchaseOrder->invoices()->count() > 0 && $request->vendor_id != $purchaseOrder->vendor_id) {
-            return back()->withErrors([
-                'vendor_id' => 'Cannot change vendor because this PO has associated invoices.'
-            ])->withInput();
-        }
-
-        $validated = $request->validate([
-            'po_number' => [
-                $request->po_status === 'draft' ? 'nullable' : 'required',
-                'string',
-                'unique:purchase_orders,po_number,' . $purchaseOrder->id
-            ],
-            'project_id' => $request->po_status === 'draft' ? 'nullable|exists:projects,id' : 'required|exists:projects,id',
-            'vendor_id' => $request->po_status === 'draft' ? 'nullable|exists:vendors,id' : 'required|exists:vendors,id',
-            'po_amount' => $request->po_status === 'draft' ? 'nullable|numeric|min:0' : 'required|numeric|min:0',
-            'currency' => 'nullable|in:PHP,USD',
-            'payment_term' => 'nullable|string',
-            'po_date' => $request->po_status === 'draft' ? 'nullable|date' : 'required|date',
-            'description' => 'nullable|string',
-            'po_status' => 'required|in:draft,open,closed,cancelled',
-        ]);
-
-        // Budget validation: Check if updated PO amount exceeds project budget
-        if ($request->project_id && $request->po_amount) {
-            $project = Project::find($request->project_id);
-
-            if ($project && $project->total_project_cost) {
-                // Calculate total committed amount from existing POs (excluding current PO)
-                $existingCommitment = PurchaseOrder::where('project_id', $request->project_id)
-                    ->whereIn('po_status', ['draft', 'open'])
-                    ->where('id', '!=', $purchaseOrder->id)
-                    ->sum('po_amount');
-
-                $newTotal = $existingCommitment + $request->po_amount;
-
-                if ($newTotal > $project->total_project_cost) {
-                    $overage = $newTotal - $project->total_project_cost;
-                    return back()->withErrors([
-                        'po_amount' => "This PO would exceed the project budget by ₱" . number_format($overage, 2) . ". " .
-                            "Project Budget: ₱" . number_format($project->total_project_cost, 2) . ", " .
-                            "Already Committed: ₱" . number_format($existingCommitment, 2) . ", " .
-                            "Remaining: ₱" . number_format($project->total_project_cost - $existingCommitment, 2)
-                    ])->withInput();
-                }
-            }
-        }
-
-//        $validated['updated_by'] = auth()->id();
+        $validated = $request->validated();
 
         // Track finalization if PO transitions from draft to open
         $oldStatus = $purchaseOrder->po_status;
@@ -410,7 +325,7 @@ class PurchaseOrderController extends Controller
      */
     public function close(Request $request, PurchaseOrder $purchaseOrder)
     {
-        abort_unless(auth()->user()->canWrite('purchase_orders'), 403);
+        $this->authorize('close', $purchaseOrder);
 
         // Validate request
         $validated = $request->validate([
@@ -419,13 +334,6 @@ class PurchaseOrderController extends Controller
             'files' => 'nullable|array',
             'files.*' => 'file|max:10240', // 10MB max per file
         ]);
-
-        // Check if user has purchasing role
-        if (auth()->user()->role->value !== 'purchasing' && auth()->user()->role->value !== 'admin') {
-            return back()->withErrors([
-                'permission_error' => 'Only users with Purchasing role can close purchase orders.'
-            ]);
-        }
 
         // Check if PO is already closed
         if ($purchaseOrder->po_status === 'closed') {
@@ -547,10 +455,10 @@ class PurchaseOrderController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy(PurchaseOrder $purchaseOrder)
     {
-        abort_unless(auth()->user()->canWrite('purchase_orders'), 403);
+        $this->authorize('delete', $purchaseOrder);
 
-        //
+        // Implementation pending
     }
 }
