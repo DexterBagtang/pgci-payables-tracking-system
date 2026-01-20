@@ -73,8 +73,8 @@ export default function Dashboard(props: DashboardData) {
                         </div>
                     )}
 
-                    {/* Unified Dashboard Content (All Roles) */}
-                    <UnifiedDashboard />
+                    {/* Unified Dashboard Content (Role-Based Widget Ordering) */}
+                    <UnifiedDashboard role={role} />
 
                     {/* Role-Based Dashboards (Commented out for unified approach)
                     {role === 'purchasing' && <PurchasingDashboard />}

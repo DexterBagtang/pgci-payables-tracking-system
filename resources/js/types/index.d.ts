@@ -357,6 +357,12 @@ export interface BaseDashboardProps {
     timeRange: TimeRangeState;
 }
 
+export interface DashboardData {
+    role: UserRole;
+    alerts: Alert[];
+    timeRange: TimeRangeState;
+}
+
 // Unified Dashboard Widget Data Types
 export interface APAgingSummary {
     total_outstanding: number;

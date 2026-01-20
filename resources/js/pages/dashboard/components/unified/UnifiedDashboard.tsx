@@ -11,8 +11,13 @@ import TopVendorsByOutstanding from './TopVendorsByOutstanding';
 import ProjectSpendSummary from './ProjectSpendSummary';
 import DocumentAttachmentHealth from './DocumentAttachmentHealth';
 import RecentActivityFeed from './RecentActivityFeed';
+import { getDashboardConfig, type WidgetType } from '../../config/dashboardConfig';
 
-export default function UnifiedDashboard() {
+interface UnifiedDashboardProps {
+    role: string;
+}
+
+export default function UnifiedDashboard({ role }: UnifiedDashboardProps) {
     const queryClient = useQueryClient();
     const { customDates } = useDashboardFilter();
 
@@ -53,33 +58,30 @@ export default function UnifiedDashboard() {
         });
     }, [queryClient, customDates]);
 
+    // Widget component mapping
+    const widgetComponents: Record<WidgetType, React.ReactNode> = {
+        'ap-aging': <APAgingSummary key="ap-aging" />,
+        'upcoming-cashout': <UpcomingCashOut key="upcoming-cashout" />,
+        'pending-approvals': <PendingApprovalsByRole key="pending-approvals" />,
+        'invoice-pipeline': <InvoicePipelineStatus key="invoice-pipeline" />,
+        'po-utilization': <POUtilizationSnapshot key="po-utilization" />,
+        'bottlenecks': <ProcessBottleneckIndicators key="bottlenecks" />,
+        'top-vendors': <TopVendorsByOutstanding key="top-vendors" />,
+        'project-spend': <ProjectSpendSummary key="project-spend" />,
+        'compliance': <DocumentAttachmentHealth key="compliance" />,
+        'activity-feed': <RecentActivityFeed key="activity-feed" />,
+    };
+
+    // Get configuration for current role
+    const config = getDashboardConfig(role);
+
     return (
         <div className="space-y-6">
-            {/* Row 1 - Critical Metrics (4 cards on desktop, 2 on tablet, 1 on mobile) */}
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-                <APAgingSummary />
-                <UpcomingCashOut />
-                <PendingApprovalsByRole />
-                <InvoicePipelineStatus />
-            </div>
-
-            {/* Row 2 - Financial Analytics */}
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-                <POUtilizationSnapshot />
-                <ProcessBottleneckIndicators />
-            </div>
-
-            {/* Row 3 - Vendor & Project Analytics */}
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-                <TopVendorsByOutstanding />
-                <ProjectSpendSummary />
-            </div>
-
-            {/* Row 4 - Compliance & Activity */}
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-                <DocumentAttachmentHealth />
-                <RecentActivityFeed />
-            </div>
+            {config.rows.map((row, rowIndex) => (
+                <div key={`row-${rowIndex}`} className={row.gridClass}>
+                    {row.widgets.map(widgetId => widgetComponents[widgetId])}
+                </div>
+            ))}
         </div>
     );
 }
