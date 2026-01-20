@@ -32,10 +32,10 @@ export default function CRDocumentPreview({
             </CardHeader>
             <CardContent className="flex-1 flex flex-col gap-4">
                 {/* PDF Viewer */}
-                <div className="flex-1 rounded-lg bg-slate-100 min-h-80">
+                <div className="flex-1 rounded-lg bg-slate-100">
                     <iframe
                         src={`/storage/${mainPdfFile.file_path}#toolbar=0`}
-                        className="w-full min-h-80 border-0"
+                        className="w-full border-0 h-full"
                         title="Check Requisition PDF"
                         style={{ border: 'none' }}
                     />
