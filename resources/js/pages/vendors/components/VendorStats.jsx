@@ -8,48 +8,48 @@ export default function VendorStats({ stats }) {
             value: stats.total || 0,
             icon: Users,
             color: 'bg-blue-500',
-            bgColor: 'bg-blue-50',
-            textColor: 'text-blue-700'
+            bgColor: 'bg-blue-50 dark:bg-blue-900/30',
+            textColor: 'text-blue-700 dark:text-blue-300'
         },
         {
             title: 'Active',
             value: stats.active || 0,
             icon: CheckCircle,
             color: 'bg-green-500',
-            bgColor: 'bg-green-50',
-            textColor: 'text-green-700'
+            bgColor: 'bg-green-50 dark:bg-green-900/30',
+            textColor: 'text-green-700 dark:text-green-300'
         },
         {
             title: 'Inactive',
             value: stats.inactive || 0,
             icon: XCircle,
             color: 'bg-gray-500',
-            bgColor: 'bg-gray-50',
-            textColor: 'text-gray-700'
+            bgColor: 'bg-gray-50 dark:bg-gray-800/50',
+            textColor: 'text-gray-700 dark:text-gray-300'
         },
         {
             title: 'SAP',
             value: stats.sap || 0,
             icon: Package,
             color: 'bg-purple-500',
-            bgColor: 'bg-purple-50',
-            textColor: 'text-purple-700'
+            bgColor: 'bg-purple-50 dark:bg-purple-900/30',
+            textColor: 'text-purple-700 dark:text-purple-300'
         },
         {
             title: 'Manual',
             value: stats.manual || 0,
             icon: Package,
             color: 'bg-orange-500',
-            bgColor: 'bg-orange-50',
-            textColor: 'text-orange-700'
+            bgColor: 'bg-orange-50 dark:bg-orange-900/30',
+            textColor: 'text-orange-700 dark:text-orange-300'
         },
         {
             title: 'Recently Added',
             value: stats.recent || 0,
             icon: Calendar,
             color: 'bg-cyan-500',
-            bgColor: 'bg-cyan-50',
-            textColor: 'text-cyan-700',
+            bgColor: 'bg-cyan-50 dark:bg-cyan-900/30',
+            textColor: 'text-cyan-700 dark:text-cyan-300',
             subtitle: 'Last 7 days'
         }
     ];

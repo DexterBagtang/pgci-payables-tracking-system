@@ -14,12 +14,12 @@ export default function BulkActionsBar({ selectedCount, onActivate, onDeactivate
     if (selectedCount === 0 || !canWrite('vendors')) return null;
 
     return (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 flex items-center justify-between">
+        <div className="bg-blue-50 border border-blue-200 dark:bg-blue-900/30 dark:border-blue-700 rounded-lg p-3 mb-4 flex items-center justify-between">
             <div className="flex items-center gap-2">
                 <div className="bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-semibold">
                     {selectedCount}
                 </div>
-                <span className="text-sm font-medium text-blue-900">
+                <span className="text-sm font-medium text-blue-900 dark:text-blue-300">
                     {selectedCount} vendor{selectedCount !== 1 ? 's' : ''} selected
                 </span>
             </div>

@@ -122,7 +122,7 @@ export default function ShowVendor({ vendor }) {
 
     return (
         <>
-            <div className="min-h-screen bg-gray-50 p-6">
+            <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6">
                 <div className="mx-auto max-w-7xl">
                     {/* Header Section */}
                     <div className="mb-8">
@@ -133,7 +133,7 @@ export default function ShowVendor({ vendor }) {
                                 </div>
                                 <div>
                                     <div className="flex items-center gap-3">
-                                        <h1 className="text-3xl font-bold text-gray-900">{vendor.name}</h1>
+                                        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">{vendor.name}</h1>
                                         <StatusBadge status={vendor.is_active ? "active" : "inactive"} />
                                         <Badge
                                             variant="outline"
@@ -142,7 +142,7 @@ export default function ShowVendor({ vendor }) {
                                             {healthStatus.label}
                                         </Badge>
                                     </div>
-                                    <p className="text-gray-600">{vendor.category}</p>
+                                    <p className="text-gray-600 dark:text-gray-400">{vendor.category}</p>
                                 </div>
                             </div>
                             <div className="flex gap-2">
@@ -164,11 +164,11 @@ export default function ShowVendor({ vendor }) {
                             <CardContent className="pt-6">
                                 <div className="space-y-2">
                                     <div className="flex items-center justify-between">
-                                        <p className="text-sm font-medium text-gray-600">Total PO Amount</p>
-                                        <ShoppingCart className="h-5 w-5 text-blue-600" />
+                                        <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total PO Amount</p>
+                                        <ShoppingCart className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                                     </div>
                                     <p className="text-2xl font-bold">{formatCurrency(total_po_amount)}</p>
-                                    <div className="flex items-center gap-2 text-xs text-gray-500">
+                                    <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
                                         <Package className="h-3 w-3" />
                                         {purchase_orders.length} Purchase Orders
                                     </div>
@@ -181,16 +181,16 @@ export default function ShowVendor({ vendor }) {
                             <CardContent className="pt-6">
                                 <div className="space-y-2">
                                     <div className="flex items-center justify-between">
-                                        <p className="text-sm font-medium text-gray-600">Total Invoiced</p>
+                                        <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Invoiced</p>
                                         <FileText className="h-5 w-5 text-purple-600" />
                                     </div>
-                                    <p className="text-2xl font-bold text-purple-600">
+                                    <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
                                         {formatCurrency(total_invoiced)}
                                     </p>
                                     <div className="space-y-1">
                                         <div className="flex items-center justify-between text-xs">
-                                            <span className="text-gray-500">{invoicedProgress}% of PO</span>
-                                            <span className="text-gray-500">
+                                            <span className="text-gray-500 dark:text-gray-400">{invoicedProgress}% of PO</span>
+                                            <span className="text-gray-500 dark:text-gray-400">
                                                 {total_invoice} invoices
                                             </span>
                                         </div>
@@ -201,50 +201,50 @@ export default function ShowVendor({ vendor }) {
                         </Card>
 
                         {/* Total Paid */}
-                        <Card className="border-green-100 bg-green-50/50">
+                        <Card className="border-green-100 bg-green-50/50 dark:border-green-800 dark:bg-green-900/20">
                             <CardContent className="pt-6">
                                 <div className="space-y-2">
                                     <div className="flex items-center justify-between">
-                                        <p className="text-sm font-medium text-gray-600">Total Paid</p>
-                                        <CheckCircle className="h-5 w-5 text-green-600" />
+                                        <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Paid</p>
+                                        <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
                                     </div>
-                                    <p className="text-2xl font-bold text-green-600">
+                                    <p className="text-2xl font-bold text-green-600 dark:text-green-400">
                                         {formatCurrency(total_paid)}
                                     </p>
                                     <div className="space-y-1">
                                         <div className="flex items-center justify-between text-xs">
-                                            <span className="text-green-600 font-medium">
+                                            <span className="text-green-600 dark:text-green-400 font-medium">
                                                 {paymentProgress}% paid
                                             </span>
-                                            <span className="text-gray-600">
+                                            <span className="text-gray-600 dark:text-gray-400">
                                                 {paid_invoices} invoices
                                             </span>
                                         </div>
-                                        <Progress value={paymentProgress} className="h-1 bg-green-200" />
+                                        <Progress value={paymentProgress} className="h-1 bg-green-200 dark:bg-green-900" />
                                     </div>
                                 </div>
                             </CardContent>
                         </Card>
 
                         {/* Outstanding Balance */}
-                        <Card className={outstanding_balance > 0 ? "border-orange-200 bg-orange-50/50" : ""}>
+                        <Card className={outstanding_balance > 0 ? "border-orange-200 bg-orange-50/50 dark:border-orange-800 dark:bg-orange-900/20" : ""}>
                             <CardContent className="pt-6">
                                 <div className="space-y-2">
                                     <div className="flex items-center justify-between">
-                                        <p className="text-sm font-medium text-gray-600">Outstanding</p>
-                                        <Clock className="h-5 w-5 text-orange-600" />
+                                        <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Outstanding</p>
+                                        <Clock className="h-5 w-5 text-orange-600 dark:text-orange-400" />
                                     </div>
-                                    <p className={`text-2xl font-bold ${outstanding_balance > 0 ? 'text-orange-600' : 'text-gray-400'}`}>
+                                    <p className={`text-2xl font-bold ${outstanding_balance > 0 ? 'text-orange-600 dark:text-orange-400' : 'text-gray-400 dark:text-gray-600'}`}>
                                         {formatCurrency(outstanding_balance)}
                                     </p>
                                     <div className="text-xs">
                                         {overdue_amount > 0 ? (
-                                            <div className="flex items-center gap-1 text-red-600 font-medium">
+                                            <div className="flex items-center gap-1 text-red-600 dark:text-red-400 font-medium">
                                                 <AlertTriangle className="h-3 w-3" />
                                                 {formatCurrency(overdue_amount)} overdue ({overdue_invoices})
                                             </div>
                                         ) : (
-                                            <span className="text-gray-500">
+                                            <span className="text-gray-500 dark:text-gray-400">
                                                 {pending_invoices} pending invoices
                                             </span>
                                         )}
@@ -260,10 +260,10 @@ export default function ShowVendor({ vendor }) {
                             <CardContent className="pt-4 pb-4">
                                 <div className="flex items-center justify-between">
                                     <div>
-                                        <p className="text-sm text-gray-600">Projects</p>
+                                        <p className="text-sm text-gray-600 dark:text-gray-400">Projects</p>
                                         <p className="text-xl font-bold">{uniqueProjects.length}</p>
                                     </div>
-                                    <Package className="h-6 w-6 text-blue-500" />
+                                    <Package className="h-6 w-6 text-blue-500 dark:text-blue-400" />
                                 </div>
                             </CardContent>
                         </Card>
@@ -272,10 +272,10 @@ export default function ShowVendor({ vendor }) {
                             <CardContent className="pt-4 pb-4">
                                 <div className="flex items-center justify-between">
                                     <div>
-                                        <p className="text-sm text-gray-600">Avg Payment Days</p>
+                                        <p className="text-sm text-gray-600 dark:text-gray-400">Avg Payment Days</p>
                                         <p className="text-xl font-bold">{average_payment_days}</p>
                                     </div>
-                                    <Activity className="h-6 w-6 text-purple-500" />
+                                    <Activity className="h-6 w-6 text-purple-500 dark:text-purple-400" />
                                 </div>
                             </CardContent>
                         </Card>
@@ -284,10 +284,10 @@ export default function ShowVendor({ vendor }) {
                             <CardContent className="pt-4 pb-4">
                                 <div className="flex items-center justify-between">
                                     <div>
-                                        <p className="text-sm text-gray-600">Payment Terms</p>
+                                        <p className="text-sm text-gray-600 dark:text-gray-400">Payment Terms</p>
                                         <p className="text-lg font-semibold">{vendor.payment_terms || 'N/A'}</p>
                                     </div>
-                                    <CreditCard className="h-6 w-6 text-green-500" />
+                                    <CreditCard className="h-6 w-6 text-green-500 dark:text-green-400" />
                                 </div>
                             </CardContent>
                         </Card>
@@ -296,10 +296,10 @@ export default function ShowVendor({ vendor }) {
                             <CardContent className="pt-4 pb-4">
                                 <div className="flex items-center justify-between">
                                     <div>
-                                        <p className="text-sm text-gray-600">Vendor Type</p>
+                                        <p className="text-sm text-gray-600 dark:text-gray-400">Vendor Type</p>
                                         <p className="text-lg font-semibold">{vendor.vendor_type || 'General'}</p>
                                     </div>
-                                    <Building2 className="h-6 w-6 text-orange-500" />
+                                    <Building2 className="h-6 w-6 text-orange-500 dark:text-orange-400" />
                                 </div>
                             </CardContent>
                         </Card>
@@ -342,48 +342,48 @@ export default function ShowVendor({ vendor }) {
                                     <CardContent>
                                         <div className="space-y-4">
                                             <div className="flex items-center gap-3">
-                                                <User className="h-4 w-4 text-blue-600" />
+                                                <User className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                                                 <div>
                                                     <p className="text-sm font-medium">Contact Person</p>
-                                                    <p className="text-sm text-gray-600">
+                                                    <p className="text-sm text-gray-600 dark:text-gray-400">
                                                         {vendor.contact_person || "N/A"}
                                                     </p>
                                                 </div>
                                             </div>
 
                                             <div className="flex items-center gap-3">
-                                                <Mail className="h-4 w-4 text-blue-600" />
+                                                <Mail className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                                                 <div>
                                                     <p className="text-sm font-medium">Email</p>
-                                                    <p className="text-sm text-gray-600">
+                                                    <p className="text-sm text-gray-600 dark:text-gray-400">
                                                         {vendor.email || "N/A"}
                                                     </p>
                                                 </div>
                                             </div>
 
                                             <div className="flex items-center gap-3">
-                                                <Phone className="h-4 w-4 text-green-600" />
+                                                <Phone className="h-4 w-4 text-green-600 dark:text-green-400" />
                                                 <div>
                                                     <p className="text-sm font-medium">Phone</p>
-                                                    <p className="text-sm text-gray-600">
+                                                    <p className="text-sm text-gray-600 dark:text-gray-400">
                                                         {vendor.phone || "N/A"}
                                                     </p>
                                                 </div>
                                             </div>
 
                                             <div className="flex items-start gap-3">
-                                                <MapPin className="h-4 w-4 text-red-600 mt-1" />
+                                                <MapPin className="h-4 w-4 text-red-600 dark:text-red-400 mt-1" />
                                                 <div>
                                                     <p className="text-sm font-medium">Address</p>
-                                                    <p className="text-sm text-gray-600">{vendor.address || "N/A"}</p>
+                                                    <p className="text-sm text-gray-600 dark:text-gray-400">{vendor.address || "N/A"}</p>
                                                 </div>
                                             </div>
 
                                             <div className="flex items-center gap-3">
-                                                <Calendar className="h-4 w-4 text-purple-600" />
+                                                <Calendar className="h-4 w-4 text-purple-600 dark:text-purple-400" />
                                                 <div>
                                                     <p className="text-sm font-medium">Created</p>
-                                                    <p className="text-sm text-gray-600">
+                                                    <p className="text-sm text-gray-600 dark:text-gray-400">
                                                         {formatDate(vendor.created_at)}
                                                     </p>
                                                 </div>
@@ -406,7 +406,7 @@ export default function ShowVendor({ vendor }) {
                                             <div>
                                                 <div className="flex justify-between mb-2">
                                                     <span className="text-sm font-medium">Overall Payment Progress</span>
-                                                    <span className="text-sm font-bold text-green-600">
+                                                    <span className="text-sm font-bold text-green-600 dark:text-green-400">
                                                         {paymentProgress}%
                                                     </span>
                                                 </div>
@@ -417,47 +417,47 @@ export default function ShowVendor({ vendor }) {
                                             <div>
                                                 <div className="flex justify-between mb-2">
                                                     <span className="text-sm font-medium">Invoice Coverage</span>
-                                                    <span className="text-sm font-bold text-purple-600">
+                                                    <span className="text-sm font-bold text-purple-600 dark:text-purple-400">
                                                         {invoicedProgress}%
                                                     </span>
                                                 </div>
-                                                <Progress value={invoicedProgress} className="h-3 bg-purple-200" />
-                                                <p className="text-xs text-gray-500 mt-1">
+                                                <Progress value={invoicedProgress} className="h-3 bg-purple-200 dark:bg-purple-900" />
+                                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                                                     {formatCurrency(total_po_amount - total_invoiced)} not yet invoiced
                                                 </p>
                                             </div>
 
                                             {/* Financial Breakdown */}
-                                            <div className="space-y-3 pt-4 border-t">
+                                            <div className="space-y-3 pt-4 border-t dark:border-gray-700">
                                                 <div className="flex justify-between items-center">
-                                                    <span className="text-sm text-gray-600">PO Commitment:</span>
+                                                    <span className="text-sm text-gray-600 dark:text-gray-400">PO Commitment:</span>
                                                     <span className="font-semibold">{formatCurrency(total_po_amount)}</span>
                                                 </div>
                                                 <div className="flex justify-between items-center">
-                                                    <span className="text-sm text-gray-600">Invoiced:</span>
-                                                    <span className="font-semibold text-purple-600">
+                                                    <span className="text-sm text-gray-600 dark:text-gray-400">Invoiced:</span>
+                                                    <span className="font-semibold text-purple-600 dark:text-purple-400">
                                                         {formatCurrency(total_invoiced)}
                                                     </span>
                                                 </div>
                                                 <div className="flex justify-between items-center">
-                                                    <span className="text-sm text-gray-600">Paid:</span>
-                                                    <span className="font-semibold text-green-600">
+                                                    <span className="text-sm text-gray-600 dark:text-gray-400">Paid:</span>
+                                                    <span className="font-semibold text-green-600 dark:text-green-400">
                                                         {formatCurrency(total_paid)}
                                                     </span>
                                                 </div>
-                                                <div className="flex justify-between items-center pt-2 border-t">
-                                                    <span className="text-sm font-medium text-orange-600">Outstanding:</span>
-                                                    <span className="font-bold text-orange-600">
+                                                <div className="flex justify-between items-center pt-2 border-t dark:border-gray-700">
+                                                    <span className="text-sm font-medium text-orange-600 dark:text-orange-400">Outstanding:</span>
+                                                    <span className="font-bold text-orange-600 dark:text-orange-400">
                                                         {formatCurrency(outstanding_balance)}
                                                     </span>
                                                 </div>
                                                 {overdue_amount > 0 && (
-                                                    <div className="flex justify-between items-center bg-red-50 p-3 rounded-lg border border-red-200">
+                                                    <div className="flex justify-between items-center bg-red-50 dark:bg-red-900/20 p-3 rounded-lg border border-red-200 dark:border-red-800">
                                                         <div className="flex items-center gap-2">
-                                                            <AlertTriangle className="h-4 w-4 text-red-600" />
-                                                            <span className="text-sm font-medium text-red-600">Overdue:</span>
+                                                            <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400" />
+                                                            <span className="text-sm font-medium text-red-600 dark:text-red-400">Overdue:</span>
                                                         </div>
-                                                        <span className="font-bold text-red-600">
+                                                        <span className="font-bold text-red-600 dark:text-red-400">
                                                             {formatCurrency(overdue_amount)}
                                                         </span>
                                                     </div>
@@ -488,20 +488,20 @@ export default function ShowVendor({ vendor }) {
                                         <div className="space-y-4">
                                             {remarks.length > 0 ? (
                                                 remarks.slice(0, 5).map((remark) => (
-                                                    <div key={remark.id} className="border-b pb-3 last:border-b-0 last:pb-0">
+                                                    <div key={remark.id} className="border-b dark:border-gray-700 pb-3 last:border-b-0 last:pb-0">
                                                         <div className="flex items-center justify-between mb-2">
-                                                            <p className="text-xs text-gray-500">
+                                                            <p className="text-xs text-gray-500 dark:text-gray-400">
                                                                 {formatDate(remark.created_at)}
                                                             </p>
                                                             <Badge variant="outline" className="text-xs">
                                                                 {remark.user.name}
                                                             </Badge>
                                                         </div>
-                                                        <p className="text-sm text-gray-700">{remark.remark_text}</p>
+                                                        <p className="text-sm text-gray-700 dark:text-gray-300">{remark.remark_text}</p>
                                                     </div>
                                                 ))
                                             ) : (
-                                                <p className="text-sm text-gray-500 text-center py-4">
+                                                <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
                                                     No remarks yet
                                                 </p>
                                             )}
@@ -518,7 +518,7 @@ export default function ShowVendor({ vendor }) {
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                     <Card>
                                         <CardHeader className="pb-3">
-                                            <CardTitle className="text-sm font-medium text-gray-600">
+                                            <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
                                                 Invoice Status
                                             </CardTitle>
                                         </CardHeader>
@@ -526,24 +526,24 @@ export default function ShowVendor({ vendor }) {
                                             <div className="space-y-2">
                                                 <div className="flex justify-between items-center">
                                                     <span className="text-sm flex items-center gap-2">
-                                                        <CheckCircle className="h-4 w-4 text-green-600" />
+                                                        <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
                                                         Paid
                                                     </span>
                                                     <span className="font-semibold">{paid_invoices}</span>
                                                 </div>
                                                 <div className="flex justify-between items-center">
                                                     <span className="text-sm flex items-center gap-2">
-                                                        <Clock className="h-4 w-4 text-orange-600" />
+                                                        <Clock className="h-4 w-4 text-orange-600 dark:text-orange-400" />
                                                         Pending
                                                     </span>
                                                     <span className="font-semibold">{pending_invoices}</span>
                                                 </div>
                                                 <div className="flex justify-between items-center">
                                                     <span className="text-sm flex items-center gap-2">
-                                                        <AlertTriangle className="h-4 w-4 text-red-600" />
+                                                        <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400" />
                                                         Overdue
                                                     </span>
-                                                    <span className="font-semibold text-red-600">{overdue_invoices}</span>
+                                                    <span className="font-semibold text-red-600 dark:text-red-400">{overdue_invoices}</span>
                                                 </div>
                                             </div>
                                         </CardContent>
@@ -551,7 +551,7 @@ export default function ShowVendor({ vendor }) {
 
                                     <Card>
                                         <CardHeader className="pb-3">
-                                            <CardTitle className="text-sm font-medium text-gray-600">
+                                            <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
                                                 Payment Performance
                                             </CardTitle>
                                         </CardHeader>
@@ -559,10 +559,10 @@ export default function ShowVendor({ vendor }) {
                                             <div className="space-y-2">
                                                 <div>
                                                     <p className="text-2xl font-bold">{average_payment_days}</p>
-                                                    <p className="text-xs text-gray-600">Average Days to Pay</p>
+                                                    <p className="text-xs text-gray-600 dark:text-gray-400">Average Days to Pay</p>
                                                 </div>
-                                                <div className="pt-2 border-t">
-                                                    <p className="text-sm text-gray-600">Terms: {vendor.payment_terms || 'N/A'}</p>
+                                                <div className="pt-2 border-t dark:border-gray-700">
+                                                    <p className="text-sm text-gray-600 dark:text-gray-400">Terms: {vendor.payment_terms || 'N/A'}</p>
                                                 </div>
                                             </div>
                                         </CardContent>
@@ -570,16 +570,16 @@ export default function ShowVendor({ vendor }) {
 
                                     <Card>
                                         <CardHeader className="pb-3">
-                                            <CardTitle className="text-sm font-medium text-gray-600">
+                                            <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
                                                 Uninvoiced Balance
                                             </CardTitle>
                                         </CardHeader>
                                         <CardContent>
                                             <div className="space-y-2">
-                                                <p className="text-2xl font-bold text-blue-600">
+                                                <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                                                     {formatCurrency(total_po_amount - total_invoiced)}
                                                 </p>
-                                                <p className="text-xs text-gray-600">
+                                                <p className="text-xs text-gray-600 dark:text-gray-400">
                                                     {invoicedProgress}% of PO amount invoiced
                                                 </p>
                                                 <Progress value={invoicedProgress} className="h-2" />
@@ -597,24 +597,24 @@ export default function ShowVendor({ vendor }) {
                                         <div className="space-y-4">
                                             <div className="grid grid-cols-2 gap-4">
                                                 <div className="space-y-2">
-                                                    <p className="text-sm text-gray-600">Purchase Orders</p>
+                                                    <p className="text-sm text-gray-600 dark:text-gray-400">Purchase Orders</p>
                                                     <p className="text-xl font-bold">{formatCurrency(total_po_amount)}</p>
                                                 </div>
                                                 <div className="space-y-2">
-                                                    <p className="text-sm text-gray-600">Total Invoiced</p>
-                                                    <p className="text-xl font-bold text-purple-600">
+                                                    <p className="text-sm text-gray-600 dark:text-gray-400">Total Invoiced</p>
+                                                    <p className="text-xl font-bold text-purple-600 dark:text-purple-400">
                                                         {formatCurrency(total_invoiced)}
                                                     </p>
                                                 </div>
                                                 <div className="space-y-2">
-                                                    <p className="text-sm text-gray-600">Total Paid</p>
-                                                    <p className="text-xl font-bold text-green-600">
+                                                    <p className="text-sm text-gray-600 dark:text-gray-400">Total Paid</p>
+                                                    <p className="text-xl font-bold text-green-600 dark:text-green-400">
                                                         {formatCurrency(total_paid)}
                                                     </p>
                                                 </div>
                                                 <div className="space-y-2">
-                                                    <p className="text-sm text-gray-600">Balance Due</p>
-                                                    <p className="text-xl font-bold text-orange-600">
+                                                    <p className="text-sm text-gray-600 dark:text-gray-400">Balance Due</p>
+                                                    <p className="text-xl font-bold text-orange-600 dark:text-orange-400">
                                                         {formatCurrency(outstanding_balance)}
                                                     </p>
                                                 </div>

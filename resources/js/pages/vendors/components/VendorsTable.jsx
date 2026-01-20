@@ -219,7 +219,7 @@ export default function VendorsTable({ vendors, filters = {}, stats = {} }) {
                     {/* Active Filters Display */}
                     {(searchTerm || sortField || filters.status || filters.category) && (
                         <div className="mb-3 flex items-center gap-2 flex-wrap">
-                            <div className="flex items-center gap-1.5 text-xs text-slate-600">
+                            <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400">
                                 <Search className="h-3.5 w-3.5" />
                                 <span className="font-medium">Active Filters:</span>
                             </div>
@@ -227,7 +227,7 @@ export default function VendorsTable({ vendors, filters = {}, stats = {} }) {
                             {searchTerm && (
                                 <Badge
                                     variant="secondary"
-                                    className="gap-1.5 pl-2 pr-1 py-1 bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100"
+                                    className="gap-1.5 pl-2 pr-1 py-1 bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-700 dark:hover:bg-blue-900/50"
                                 >
                                     <Search className="h-3 w-3" />
                                     <span className="text-xs max-w-[200px] truncate">
@@ -235,7 +235,7 @@ export default function VendorsTable({ vendors, filters = {}, stats = {} }) {
                                     </span>
                                     <button
                                         onClick={() => setSearchTerm('')}
-                                        className="ml-0.5 rounded-sm hover:bg-blue-200 p-0.5"
+                                        className="ml-0.5 rounded-sm hover:bg-blue-200 dark:hover:bg-blue-800 p-0.5"
                                     >
                                         <X className="h-3 w-3" />
                                     </button>
@@ -245,14 +245,14 @@ export default function VendorsTable({ vendors, filters = {}, stats = {} }) {
                             {filters.status && (
                                 <Badge
                                     variant="secondary"
-                                    className="gap-1.5 pl-2 pr-1 py-1 bg-green-50 text-green-700 border-green-200 hover:bg-green-100"
+                                    className="gap-1.5 pl-2 pr-1 py-1 bg-green-50 text-green-700 border-green-200 hover:bg-green-100 dark:bg-green-900/30 dark:text-green-300 dark:border-green-700 dark:hover:bg-green-900/50"
                                 >
                                     <span className="text-xs">
                                         Status: {filters.status.split(',').map(s => s === '1' ? 'Active' : 'Inactive').join(', ')}
                                     </span>
                                     <button
                                         onClick={() => handleFilterChange({ status: '', page: 1 })}
-                                        className="ml-0.5 rounded-sm hover:bg-green-200 p-0.5"
+                                        className="ml-0.5 rounded-sm hover:bg-green-200 dark:hover:bg-green-800 p-0.5"
                                     >
                                         <X className="h-3 w-3" />
                                     </button>
@@ -262,14 +262,14 @@ export default function VendorsTable({ vendors, filters = {}, stats = {} }) {
                             {filters.category && (
                                 <Badge
                                     variant="secondary"
-                                    className="gap-1.5 pl-2 pr-1 py-1 bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100"
+                                    className="gap-1.5 pl-2 pr-1 py-1 bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-700 dark:hover:bg-purple-900/50"
                                 >
                                     <span className="text-xs capitalize">
                                         Category: {filters.category.split(',').join(', ')}
                                     </span>
                                     <button
                                         onClick={() => handleFilterChange({ category: '', page: 1 })}
-                                        className="ml-0.5 rounded-sm hover:bg-purple-200 p-0.5"
+                                        className="ml-0.5 rounded-sm hover:bg-purple-200 dark:hover:bg-purple-800 p-0.5"
                                     >
                                         <X className="h-3 w-3" />
                                     </button>
@@ -279,7 +279,7 @@ export default function VendorsTable({ vendors, filters = {}, stats = {} }) {
                             {sortField && (
                                 <Badge
                                     variant="secondary"
-                                    className="gap-1.5 pl-2 pr-1 py-1 bg-orange-50 text-orange-700 border-orange-200 hover:bg-orange-100"
+                                    className="gap-1.5 pl-2 pr-1 py-1 bg-orange-50 text-orange-700 border-orange-200 hover:bg-orange-100 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-700 dark:hover:bg-orange-900/50"
                                 >
                                     {sortDirection === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
                                     <span className="text-xs capitalize">
@@ -291,7 +291,7 @@ export default function VendorsTable({ vendors, filters = {}, stats = {} }) {
                                             setSortDirection('asc');
                                             handleFilterChange({ sort_field: '', sort_direction: '', page: 1 });
                                         }}
-                                        className="ml-0.5 rounded-sm hover:bg-orange-200 p-0.5"
+                                        className="ml-0.5 rounded-sm hover:bg-orange-200 dark:hover:bg-orange-800 p-0.5"
                                     >
                                         <X className="h-3 w-3" />
                                     </button>
@@ -312,7 +312,7 @@ export default function VendorsTable({ vendors, filters = {}, stats = {} }) {
                                         page: 1
                                     });
                                 }}
-                                className="text-xs text-slate-500 hover:text-slate-700 underline ml-1"
+                                className="text-xs text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 underline ml-1"
                             >
                                 Clear all
                             </button>
