@@ -184,6 +184,17 @@ class InvoiceController extends Controller
         ]);
     }
 
+    /**
+     * Show the form for creating bulk invoices.
+     */
+    public function createBulk()
+    {
+        $this->authorize('create', Invoice::class);
+
+        return inertia('invoices/create-bulk', [
+            'purchaseOrders' => PurchaseOrder::with(['project', 'vendor'])->where('po_status','open')->get(),
+        ]);
+    }
 
     public function store(Request $request)
     {
