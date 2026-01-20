@@ -26,11 +26,22 @@ export default function CreatePoPage({ vendors, projects, project_id }: CreatePa
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Create Purchase Order" />
-            <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
-                <div className="relative min-h-[100vh] flex-1 overflow-hidden rounded-xl md:min-h-min dark:border-sidebar-border">
-                    <Suspense fallback={null}>
-                        <CreatePOForm vendors={vendors} projects={projects} project_id={project_id} />
-                    </Suspense>
+            <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4 md:p-6">
+                {/* Page Header */}
+                <div className="mb-2">
+                    <h1 className="text-2xl font-bold tracking-tight text-gray-900">Create Purchase Order</h1>
+                    <p className="text-sm text-gray-600 mt-1">
+                        Fill in the details below to create a new purchase order
+                    </p>
+                </div>
+
+                {/* Form Container with better styling */}
+                <div className="relative flex-1 rounded-xl border border-gray-200 bg-white shadow-sm md:min-h-min">
+                    <div className="p-6">
+                        <Suspense fallback={null}>
+                            <CreatePOForm vendors={vendors} projects={projects} project_id={project_id} />
+                        </Suspense>
+                    </div>
                 </div>
             </div>
         </AppLayout>

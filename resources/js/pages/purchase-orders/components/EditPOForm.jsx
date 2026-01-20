@@ -97,28 +97,6 @@ export default function EditPOForm({
         return formContent;
     }
 
-    // If used in full page, return with Head and wrapper
-    return (
-        <>
-            <Head title={`Edit Purchase Order - ${purchaseOrder.po_number}`} />
-
-            <div className="py-6">
-                <div className="mx-auto max-w-4xl sm:px-6 lg:px-8">
-                    {/* Header */}
-                    <div className="mb-6">
-                        <div>
-                            <h1 className="text-2xl font-semibold text-gray-900">
-                                Edit Purchase Order - {purchaseOrder.po_number}
-                            </h1>
-                            <p className="mt-2 text-sm text-gray-600">
-                                Update the purchase order details below
-                            </p>
-                        </div>
-                    </div>
-
-                    {formContent}
-                </div>
-            </div>
-        </>
-    );
+    // If used in full page, just return the form content since the page wrapper has the header
+    return formContent;
 }

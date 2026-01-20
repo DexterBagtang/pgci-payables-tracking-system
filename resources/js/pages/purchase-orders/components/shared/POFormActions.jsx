@@ -1,13 +1,15 @@
 import { Button } from '@/components/ui/button.js';
 import { Spinner } from '@/components/ui/spinner.js';
-import { Save } from 'lucide-react';
+import { Save, X } from 'lucide-react';
 import BackButton from '@/components/custom/BackButton.jsx';
+import { router } from '@inertiajs/react';
+import { Separator } from '@/components/ui/separator.js';
 
 /**
  * POFormActions Component
  * Shared UI component for form action buttons
  * Used by both CreatePOForm and EditPOForm
- * 
+ *
  * @param {Object} props
  * @param {Function} props.onSubmit - Submit handler function
  * @param {boolean} props.processing - Whether form is being processed
@@ -24,28 +26,48 @@ export default function POFormActions({
 }) {
     const getButtonText = () => {
         if (mode === 'create') {
-            return isDraft ? 'Save as Draft' : 'Create';
+            return isDraft ? 'Save as Draft' : 'Create Purchase Order';
         } else {
             return processing ? 'Updating...' : 'Update Purchase Order';
         }
     };
 
-    return (
-        <div className={`flex items-center ${isDialog ? 'justify-end' : 'justify-between'} pt-6`}>
-            {!isDialog && <BackButton />}
+    const handleCancel = () => {
+        router.get('/purchase-orders');
+    };
 
-            <Button
-                type="button"
-                disabled={processing}
-                onClick={onSubmit}
-            >
-                {processing ? (
-                    <Spinner className="mr-2 h-4 w-4" />
-                ) : (
-                    <Save className="mr-2 h-4 w-4" />
-                )}
-                {getButtonText()}
-            </Button>
-        </div>
+    return (
+        <>
+            <Separator className="my-6" />
+            <div className={`flex items-center gap-3 ${isDialog ? 'justify-end' : 'justify-between'}`}>
+                {!isDialog && <BackButton />}
+
+                <div className="flex gap-3">
+                    <Button
+                        type="button"
+                        variant="outline"
+                        disabled={processing}
+                        onClick={handleCancel}
+                    >
+                        <X className="mr-2 h-4 w-4" />
+                        Cancel
+                    </Button>
+
+                    <Button
+                        type="button"
+                        disabled={processing}
+                        onClick={onSubmit}
+                        className="min-w-[180px]"
+                    >
+                        {processing ? (
+                            <Spinner className="mr-2 h-4 w-4" />
+                        ) : (
+                            <Save className="mr-2 h-4 w-4" />
+                        )}
+                        {getButtonText()}
+                    </Button>
+                </div>
+            </div>
+        </>
     );
 }

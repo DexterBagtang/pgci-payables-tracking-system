@@ -204,7 +204,7 @@ class PurchaseOrderController extends Controller
             }
         }
 
-        return back()->with('success', "Purchase Order $purchaseOrder->po_number created.");
+        return to_route('purchase-orders.index')->with('success', "Purchase Order $purchaseOrder->po_number created.");
     }
 
 
@@ -314,8 +314,7 @@ class PurchaseOrderController extends Controller
             }
         }
 
-//        return to_route('purchase-orders.show',$purchaseOrder->id)->with('message', 'Purchase Order updated successfully.');
-        return back()->with('message', "Purchase Order #$purchaseOrder->po_number updated successfully.");
+        return to_route('purchase-orders.index')->with('message', "Purchase Order #$purchaseOrder->po_number updated successfully.");
     }
 
     /**

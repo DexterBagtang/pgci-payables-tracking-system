@@ -1,4 +1,4 @@
-import { useEffect, useState, Suspense, lazy, useMemo } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { usePermissions } from '@/hooks/use-permissions';
 import {
@@ -57,12 +57,7 @@ import {
 import PaginationServerSide from '@/components/custom/Pagination.jsx';
 import { differenceInDays, format } from 'date-fns';
 import StatusBadge from '@/components/custom/StatusBadge.jsx';
-import DialogLoadingFallback from '@/components/custom/DialogLoadingFallback.jsx';
 import { cn } from '@/lib/utils';
-
-// Lazy load dialog components
-const AddPurchaseOrderDialog = lazy(() => import('@/pages/purchase-orders/components/AddPurchaseOrderDialog.jsx'));
-const EditPurchaseOrderDialog = lazy(() => import('@/pages/purchase-orders/components/EditPurchaseOrderDialog.jsx'));
 
 export default function PurchaseOrderTable({ purchaseOrders, filters, filterOptions }) {
     const { canWrite } = usePermissions();
@@ -86,10 +81,6 @@ export default function PurchaseOrderTable({ purchaseOrders, filters, filterOpti
     const [sortField, setSortField] = useState(filters.sort_field || 'po_date');
     const [sortDirection, setSortDirection] = useState(filters.sort_direction || 'desc');
     const [activeTab, setActiveTab] = useState(filters.status || 'all');
-
-    const [isCreateOpen, setCreateOpen] = useState(false);
-    const [isEditOpen, setEditOpen] = useState(false);
-    const [selectedPO, setSelectedPO] = useState(null);
 
     // SAP-like status configuration
     const getStatusConfig = (status) => {
@@ -387,7 +378,7 @@ export default function PurchaseOrderTable({ purchaseOrders, filters, filterOpti
                                     Export
                                 </Button>
                                 {canWrite('purchase_orders') && (
-                                    <Button onClick={()=>setCreateOpen(true)} size="sm">
+                                    <Button onClick={() => router.get('/purchase-orders/create')} size="sm">
                                         <Plus className="mr-2 h-4 w-4" />
                                         Add PO
                                     </Button>
@@ -898,8 +889,7 @@ export default function PurchaseOrderTable({ purchaseOrders, filters, filterOpti
                                                                                 className="h-8 w-8"
                                                                                 onClick={(e) => {
                                                                                     e.stopPropagation();
-                                                                                    setSelectedPO(po);
-                                                                                    setEditOpen(true);
+                                                                                    router.get(`/purchase-orders/${po.id}/edit`);
                                                                                 }}
                                                                             >
                                                                                 <Edit className="h-4 w-4" />
@@ -948,30 +938,6 @@ export default function PurchaseOrderTable({ purchaseOrders, filters, filterOpti
                         <PaginationServerSide items={purchaseOrders} onChange={handlePageChange} />
                     </CardContent>
                 </Card>
-
-                <Suspense fallback={<DialogLoadingFallback message="Loading form..." />}>
-                    <AddPurchaseOrderDialog
-                        open={isCreateOpen}
-                        onOpenChange={setCreateOpen}
-                        vendors={filterOptions.vendors}
-                        projects={filterOptions.projects}
-                    />
-                </Suspense>
-
-                {isEditOpen && selectedPO && (
-                    <Suspense fallback={<DialogLoadingFallback message="Loading form..." />}>
-                        <EditPurchaseOrderDialog
-                            key={selectedPO.id}
-                            open={isEditOpen}
-                            onOpenChange={setEditOpen}
-                            purchaseOrder={selectedPO}
-                            vendors={filterOptions.vendors}
-                            projects={filterOptions.projects}
-                        />
-                    </Suspense>
-                )}
-
-
             </div>
         </div>
     );
