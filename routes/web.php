@@ -70,14 +70,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/api/check-requisitions/create', [CheckRequisitionController::class, 'createApi'])
         ->name('check-requisitions.create-api');
     // API endpoint for check requisition editing with pagination
-    Route::get('/api/check-requisitions/{checkRequisition}/edit', [CheckRequisitionController::class, 'editApi'])
+    Route::get('/api/check-requisitions/{check_requisition}/edit', [CheckRequisitionController::class, 'editApi'])
         ->name('check-requisitions.edit-api');
     // Review and approval routes
-    Route::get('/check-requisitions/{checkRequisition}/review', [CheckRequisitionController::class, 'review'])
+    Route::get('/check-requisitions/{check_requisition}/review', [CheckRequisitionController::class, 'review'])
         ->name('check-requisitions.review');
-    Route::post('/check-requisitions/{checkRequisition}/approve', [CheckRequisitionController::class, 'approve'])
+    Route::post('/check-requisitions/{check_requisition}/approve', [CheckRequisitionController::class, 'approve'])
         ->name('check-requisitions.approve');
-    Route::post('/check-requisitions/{checkRequisition}/reject', [CheckRequisitionController::class, 'reject'])
+    Route::post('/check-requisitions/{check_requisition}/reject', [CheckRequisitionController::class, 'reject'])
         ->name('check-requisitions.reject');
 
     Route::resource('disbursements', DisbursementController::class)->except(['update']);

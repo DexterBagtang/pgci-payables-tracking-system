@@ -16,7 +16,7 @@ class RejectCheckRequisitionRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return $this->user()->can('reject', $this->route('checkRequisition'));
+        return $this->user()->can('reject', $this->route('check_requisition'));
     }
 
     /**
@@ -55,7 +55,7 @@ class RejectCheckRequisitionRequest extends FormRequest
      */
     protected function failedAuthorization(): void
     {
-        $checkRequisition = $this->route('checkRequisition');
+        $checkRequisition = $this->route('check_requisition');
 
         throw new AuthorizationException(
             "Cannot reject check requisition in '{$checkRequisition->requisition_status}' status. " .

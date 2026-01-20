@@ -107,7 +107,7 @@ class VendorController extends Controller
 
         $vendor->logCreation();
 
-        return back()->with('success', 'Vendor created successfully.');
+        return back()->with('success', "Vendor $vendor->name created successfully.");
     }
 
     /**
@@ -220,7 +220,7 @@ class VendorController extends Controller
             $vendor->logUpdate($changes);
         }
 
-        return back()->with('success', 'Vendor updated successfully.');
+        return back()->with('success', "$vendor->name updated successfully.");
     }
 
     /**

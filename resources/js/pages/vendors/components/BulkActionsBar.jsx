@@ -23,7 +23,7 @@ export default function BulkActionsBar({ selectedCount, onActivate, onDeactivate
                     {selectedCount} vendor{selectedCount !== 1 ? 's' : ''} selected
                 </span>
             </div>
-            
+
             <div className="flex items-center gap-2">
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -41,13 +41,13 @@ export default function BulkActionsBar({ selectedCount, onActivate, onDeactivate
                             <XCircle className="h-4 w-4 text-gray-600" />
                             Deactivate Selected
                         </DropdownMenuItem>
-                        <DropdownMenuItem 
-                            onClick={onDelete} 
-                            className="gap-2 text-red-600 focus:text-red-600"
-                        >
-                            <Trash2 className="h-4 w-4" />
-                            Delete Selected
-                        </DropdownMenuItem>
+                        {/*<DropdownMenuItem */}
+                        {/*    onClick={onDelete} */}
+                        {/*    className="gap-2 text-red-600 focus:text-red-600"*/}
+                        {/*>*/}
+                        {/*    <Trash2 className="h-4 w-4" />*/}
+                        {/*    Delete Selected*/}
+                        {/*</DropdownMenuItem>*/}
                     </DropdownMenuContent>
                 </DropdownMenu>
             </div>

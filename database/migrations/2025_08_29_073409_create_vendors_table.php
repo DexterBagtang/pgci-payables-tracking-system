@@ -22,6 +22,7 @@ return new class extends Migration
             $table->string('payment_terms')->nullable();
             $table->boolean('is_active')->default(true);
             $table->enum('vendor_type', ['supplier', 'contractor', 'service_provider', 'other'])->nullable();
+            $table->text('notes')->nullable();
             $table->foreignId('created_by')->constrained('users');
             $table->timestamps();
 

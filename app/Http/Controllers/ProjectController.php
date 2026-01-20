@@ -89,7 +89,7 @@ class ProjectController extends Controller
         $project = Project::create($validated);
         $project->logCreation();
 
-        return redirect()->route('projects.index')->with('success', 'Project created successfully.');
+        return redirect()->route('projects.index')->with('success', "Project($project->project_title) created successfully.");
     }
 
     public function show(Project $project): Response
@@ -129,7 +129,7 @@ class ProjectController extends Controller
             $project->logUpdate($changes);
         }
 
-        return back()->with('success', 'Project updated successfully.');
+        return back()->with('success', "Project - $project->project_title updated successfully.");
     }
 
     public function destroy(Project $project): RedirectResponse
@@ -138,6 +138,6 @@ class ProjectController extends Controller
 
         $project->delete();
 
-        return redirect()->route('projects.index')->with('success', 'Project deleted successfully.');
+        return redirect()->route('projects.index')->with('success', "Project($project->project_title) deleted successfully.");
     }
 }

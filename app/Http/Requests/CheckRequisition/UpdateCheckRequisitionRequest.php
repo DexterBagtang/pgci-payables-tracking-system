@@ -18,7 +18,7 @@ class UpdateCheckRequisitionRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return $this->user()->can('update', $this->route('checkRequisition'));
+        return $this->user()->can('update', $this->route('check_requisition'));
     }
 
     /**
@@ -82,7 +82,7 @@ class UpdateCheckRequisitionRequest extends FormRequest
         $validator->after(function ($validator) {
             // Check all invoices are in valid status for linking
             if ($this->has('invoice_ids')) {
-                $checkRequisition = $this->route('checkRequisition');
+                $checkRequisition = $this->route('check_requisition');
                 $currentInvoiceIds = $checkRequisition->invoices()->pluck('invoices.id')->toArray();
                 $newInvoiceIds = array_diff($this->invoice_ids, $currentInvoiceIds);
 
@@ -117,7 +117,17 @@ class UpdateCheckRequisitionRequest extends FormRequest
      */
     protected function failedAuthorization()
     {
-        $checkRequisition = $this->route('checkRequisition');
+        // Laravel resource routes use snake_case for parameter names
+        // Route parameter is 'check_requisition', not 'checkRequisition'
+        $checkRequisition = $this->route('check_requisition');
+
+        // Handle case where check requisition doesn't exist
+        if (!$checkRequisition) {
+            abort(response()->json([
+                'message' => 'Check requisition not found.',
+                'help' => 'The requested check requisition does not exist or has been deleted.'
+            ], 404));
+        }
 
         abort(response()->json([
             'message' => "Cannot edit check requisition in '{$checkRequisition->requisition_status}' status.",
