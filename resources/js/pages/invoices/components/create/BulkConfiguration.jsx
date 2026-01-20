@@ -405,7 +405,7 @@ export default function BulkConfiguration({
                                     if (fieldKey === 'invoice_amount') {
                                         return (
                                             <div key={fieldKey} className="">
-                                                <Label className="text-xs">Shared Amount</Label>
+                                                <Label className="text-xs">Invoice Amount</Label>
                                                 <Input
                                                     type="number"
                                                     step="0.01"
