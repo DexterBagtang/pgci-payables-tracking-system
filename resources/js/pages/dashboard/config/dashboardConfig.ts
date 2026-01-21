@@ -42,10 +42,10 @@ const disbursementConfig: RoleDashboardConfig = {
             gridClass: 'grid grid-cols-1 xl:grid-cols-2 gap-4',
             widgets: ['po-utilization', 'bottlenecks'],
         },
-        {
-            gridClass: 'grid grid-cols-1 xl:grid-cols-2 gap-4',
-            widgets: ['top-vendors', 'project-spend'],
-        },
+        // {
+        //     gridClass: 'grid grid-cols-1 xl:grid-cols-2 gap-4',
+        //     widgets: ['top-vendors', 'project-spend'],
+        // },
         {
             gridClass: 'grid grid-cols-1 xl:grid-cols-2 gap-4',
             widgets: ['compliance', 'activity-feed'],
