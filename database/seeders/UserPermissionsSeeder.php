@@ -46,7 +46,7 @@ class UserPermissionsSeeder extends Seeder
                 'username' => 'MGU',
                 'name' => 'Mike Renzo G. Ulit',
                 'email' => 'Mike.Ulit@philcom.com',
-                'password' => Hash::make('password'), // Change on first login
+                'password' => Hash::make('payables@philcom'), // Change on first login
                 'role' => UserRole::PAYABLES,
                 'email_verified_at' => now(),
                 'permissions' => [
@@ -58,7 +58,7 @@ class UserPermissionsSeeder extends Seeder
                 'username' => 'JTM',
                 'name' => 'Jhoy T. Mayuga',
                 'email' => 'Jhoy.Mayuga@philcom.com',
-                'password' => Hash::make('password'),
+                'password' => Hash::make('payables@philcom'),
                 'role' => UserRole::PAYABLES,
                 'email_verified_at' => now(),
                 'permissions' => [
@@ -70,7 +70,7 @@ class UserPermissionsSeeder extends Seeder
                 'username' => 'KAU',
                 'name' => 'Kimberly A. Usona',
                 'email' => 'Kimberly.Usona@philcom.com',
-                'password' => Hash::make('password'),
+                'password' => Hash::make('payables@philcom'),
                 'role' => UserRole::PAYABLES,
                 'email_verified_at' => now(),
                 'permissions' => [
@@ -82,7 +82,7 @@ class UserPermissionsSeeder extends Seeder
                 'username' => 'JLM',
                 'name' => 'Joseph David L. Maderazo',
                 'email' => 'Joseph.Maderazo@philcom.com',
-                'password' => Hash::make('password'),
+                'password' => Hash::make('payables@philcom'),
                 'role' => UserRole::PAYABLES,
                 'email_verified_at' => now(),
                 'permissions' => [
@@ -96,7 +96,7 @@ class UserPermissionsSeeder extends Seeder
                 'username' => 'MCZ',
                 'name' => 'Marlon C. Zinampan',
                 'email' => 'Marlon.Zinampan@philcom.com',
-                'password' => Hash::make('password'),
+                'password' => Hash::make('payables@philcom'),
                 'role' => UserRole::PURCHASING,
                 'email_verified_at' => now(),
                 'permissions' => [
@@ -108,7 +108,7 @@ class UserPermissionsSeeder extends Seeder
                 'username' => 'AMO',
                 'name' => 'Adiree Mae M. Oreo',
                 'email' => 'Adiree.Morada@philcom.com',
-                'password' => Hash::make('password'),
+                'password' => Hash::make('payables@philcom'),
                 'role' => UserRole::PURCHASING,
                 'email_verified_at' => now(),
                 'permissions' => [
@@ -120,7 +120,7 @@ class UserPermissionsSeeder extends Seeder
                 'username' => 'PCD',
                 'name' => 'Paulus Antonio C. DeDios',
                 'email' => 'Paulus.DeDios@philcom.com',
-                'password' => Hash::make('password'),
+                'password' => Hash::make('payables@philcom'),
                 'role' => UserRole::PURCHASING,
                 'email_verified_at' => now(),
                 'permissions' => [
@@ -132,7 +132,7 @@ class UserPermissionsSeeder extends Seeder
                 'username' => 'MBA',
                 'name' => 'Marymay Joy B. Alteza',
                 'email' => 'Marymay.Alteza@philcom.com',
-                'password' => Hash::make('password'),
+                'password' => Hash::make('payables@philcom'),
                 'role' => UserRole::PURCHASING,
                 'email_verified_at' => now(),
                 'permissions' => [
@@ -146,7 +146,7 @@ class UserPermissionsSeeder extends Seeder
                 'username' => 'JML',
                 'name' => 'Jose Bernardino M. Labay',
                 'email' => 'Jose.Labay@philcom.com',
-                'password' => Hash::make('password'),
+                'password' => Hash::make('payables@philcom'),
                 'role' => UserRole::DISBURSEMENT,
                 'email_verified_at' => now(),
                 'permissions' => [
@@ -158,7 +158,7 @@ class UserPermissionsSeeder extends Seeder
                 'username' => 'NED',
                 'name' => 'Nina Erica Domingo',
                 'email' => 'Nina.Domingo@philcom.com',
-                'password' => Hash::make('password'),
+                'password' => Hash::make('payables@philcom'),
                 'role' => UserRole::DISBURSEMENT,
                 'email_verified_at' => now(),
                 'permissions' => [
@@ -170,7 +170,7 @@ class UserPermissionsSeeder extends Seeder
                 'username' => 'MPR',
                 'name' => 'Margie Loraine P. Roset',
                 'email' => 'Margie.Roset@philcom.com',
-                'password' => Hash::make('password'),
+                'password' => Hash::make('payables@philcom'),
                 'role' => UserRole::DISBURSEMENT,
                 'email_verified_at' => now(),
                 'permissions' => [
