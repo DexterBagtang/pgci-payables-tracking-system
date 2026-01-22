@@ -13,7 +13,15 @@ return new class extends Migration
     {
         Schema::create('invoices', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('purchase_order_id')->constrained('purchase_orders')->onDelete('cascade');
+            $table->enum('invoice_type', ['purchase_order', 'direct'])->default('purchase_order');
+
+            // PO-based invoice fields
+            $table->foreignId('purchase_order_id')->nullable()->constrained('purchase_orders')->onDelete('cascade');
+
+            // Direct invoice fields
+            $table->foreignId('vendor_id')->nullable()->constrained('vendors')->nullOnDelete();
+            $table->foreignId('project_id')->nullable()->constrained('projects')->nullOnDelete();
+
             $table->string('si_number')->nullable();
             $table->date('si_date')->nullable();
             $table->date('si_received_at')->nullable();
@@ -40,6 +48,9 @@ return new class extends Migration
             $table->index('si_number');
             $table->index('invoice_status');
             $table->index('due_date');
+            $table->index('invoice_type');
+            $table->index('vendor_id');
+            $table->index('project_id');
 
             // Composite indexes for performance on common query patterns
             $table->index(['invoice_status', 'created_at'], 'idx_invoices_status_created');
