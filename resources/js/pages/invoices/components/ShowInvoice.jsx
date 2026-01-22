@@ -241,7 +241,11 @@ const ShowInvoice = ({ invoice }) => {
 
                         {/* Remarks Tab */}
                         <TabsContent value="remarks">
-                            <Remarks remarks={remarks} remarkableType={'Invoice'} remarkableId={invoice.id} />
+                            <Remarks
+                                remarks={remarks}
+                                remarkableType="Invoice"
+                                remarkableId={invoice.id}
+                            />
                         </TabsContent>
 
 

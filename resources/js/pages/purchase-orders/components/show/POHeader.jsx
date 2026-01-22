@@ -59,10 +59,12 @@ export default function POHeader({
                     {(user.role === 'purchasing' || user.role === 'admin') &&
                         purchaseOrder.po_status !== 'closed' &&
                         purchaseOrder.po_status !== 'cancelled' && (
-                        <Button variant="destructive" size="sm" onClick={onCloseClick}>
-                            <Lock className="mr-1.5 h-3.5 w-3.5" />
-                            Close
-                        </Button>
+                            canWrite('purchase_orders') && (
+                                <Button variant="destructive" size="sm" onClick={onCloseClick}>
+                                    <Lock className="mr-1.5 h-3.5 w-3.5" />
+                                    Close
+                                </Button>
+                            )
                     )}
                 </div>
             </div>

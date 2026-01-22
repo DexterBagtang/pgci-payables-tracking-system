@@ -14,10 +14,10 @@ import {
 import { Label } from "@/components/ui/label";
 import { MessageSquare, Plus } from "lucide-react";
 import { toast } from 'sonner';
+import { router } from '@inertiajs/react';
 
 export default function Remarks({ remarkableType, remarkableId, remarks = [] }) {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
-    const [currentRemarks, setCurrentRemarks] = useState(remarks);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [remarkText, setRemarkText] = useState('');
     const [error, setError] = useState('');
@@ -42,11 +42,12 @@ export default function Remarks({ remarkableType, remarkableId, remarks = [] }) 
             });
 
             if (response.data.success) {
-                // Add the new remark to the beginning of the list
-                setCurrentRemarks([response.data.remark, ...currentRemarks]);
                 setRemarkText('');
                 setIsDialogOpen(false);
                 toast.success(response.data.message);
+
+                // Reload the page to get fresh data for all entities
+                router.reload();
             }
         } catch (error) {
             console.error('Error creating remark:', error);
@@ -103,7 +104,7 @@ export default function Remarks({ remarkableType, remarkableId, remarks = [] }) 
                     <h3 className="text-sm font-medium text-slate-900">
                         Remarks
                         <span className="ml-1.5 text-xs text-slate-500 font-normal">
-                            ({currentRemarks.length})
+                            ({remarks.length})
                         </span>
                     </h3>
                 </div>
@@ -169,13 +170,13 @@ export default function Remarks({ remarkableType, remarkableId, remarks = [] }) 
 
             {/* Comments Area */}
             <div className="px-4 py-3">
-                {currentRemarks.length === 0 ? (
+                {remarks.length === 0 ? (
                     <div className="text-center py-6">
                         <p className="text-xs text-slate-400">No remarks yet</p>
                     </div>
                 ) : (
                     <div className="space-y-3">
-                        {currentRemarks.map((remark) => (
+                        {remarks.map((remark) => (
                             <div key={remark.id} className="flex gap-2.5 group">
                                 <Avatar className="h-7 w-7 mt-0.5 flex-shrink-0">
                                     <AvatarFallback className="bg-slate-200 text-slate-600 text-xs">

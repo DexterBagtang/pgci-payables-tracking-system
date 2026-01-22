@@ -1,4 +1,5 @@
 import { Badge } from '@/components/ui/badge';
+import StatusBadge from '@/components/custom/StatusBadge';
 import { Coins, FileText } from 'lucide-react';
 
 /**
@@ -43,19 +44,17 @@ export default function POOverviewTab({ purchaseOrder, formatDate, formatCurrenc
                                 <div className="flex-1">
                                     <div className="flex items-center gap-2">
                                         <span className="font-mono text-sm font-semibold text-gray-900 dark:text-gray-100">
-                                            {invoice.invoice_number}
+                                            {invoice.si_number}
                                         </span>
-                                        <Badge variant="outline" className="text-xs">
-                                            {invoice.status}
-                                        </Badge>
+                                        <StatusBadge status={invoice.invoice_status} size="xs" />
                                     </div>
                                     <div className="mt-0.5 text-xs text-gray-600 dark:text-gray-400">
-                                        {formatDate(invoice.invoice_date)}
+                                        {formatDate(invoice.si_date)}
                                     </div>
                                 </div>
                                 <div className="text-right">
                                     <div className="font-mono text-sm font-semibold text-gray-900 dark:text-gray-100">
-                                        {formatCurrency(invoice.total_amount, purchaseOrder.currency)}
+                                        {formatCurrency(invoice.net_amount, purchaseOrder.currency)}
                                     </div>
                                 </div>
                             </div>
