@@ -92,8 +92,14 @@ class InvoiceObserver
         // Sync purchase order financials
         $this->syncPurchaseOrderFinancials($invoice);
 
-        // If invoice was moved to a different PO, sync the old PO too
+        // If invoice was moved to a different PO or changed type, sync the old PO too
         if ($invoice->isDirty('purchase_order_id') && $original['purchase_order_id']) {
+            $oldPo = \App\Models\PurchaseOrder::find($original['purchase_order_id']);
+            $oldPo?->syncFinancials();
+        }
+
+        // If invoice changed from PO-based to direct, sync the old PO
+        if ($invoice->isDirty('invoice_type') && $original['invoice_type'] === 'purchase_order' && $original['purchase_order_id']) {
             $oldPo = \App\Models\PurchaseOrder::find($original['purchase_order_id']);
             $oldPo?->syncFinancials();
         }
@@ -124,10 +130,12 @@ class InvoiceObserver
     /**
      * Sync the purchase order's financial summary
      * Called after any invoice change (create/update/delete)
+     * Only syncs for PO-based invoices - direct invoices don't affect PO financials
      */
     private function syncPurchaseOrderFinancials(Invoice $invoice): void
     {
-        if ($invoice->purchaseOrder) {
+        // Only sync if this is a PO-based invoice
+        if ($invoice->invoice_type === 'purchase_order' && $invoice->purchaseOrder) {
             $invoice->purchaseOrder->syncFinancials();
         }
     }

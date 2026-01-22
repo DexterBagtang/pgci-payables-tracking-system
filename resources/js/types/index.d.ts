@@ -185,6 +185,7 @@ export interface PurchaseOrder {
 
 export interface Invoice {
     id: number;
+    invoice_type: 'purchase_order' | 'direct';
     si_number: string;
     si_received_at: string | null;
     invoice_date: string;
@@ -193,8 +194,17 @@ export interface Invoice {
     invoice_status: InvoiceStatus;
     currency: 'PHP' | 'USD';
     aging_days?: number | null;
+
+    // PO-based invoice fields
     purchase_order?: PurchaseOrder;
-    purchase_order_id: number;
+    purchase_order_id: number | null;
+
+    // Direct invoice fields
+    vendor_id: number | null;
+    project_id: number | null;
+    direct_vendor?: Vendor;
+    direct_project?: Project;
+
     created_at: string;
     updated_at: string;
     [key: string]: unknown;

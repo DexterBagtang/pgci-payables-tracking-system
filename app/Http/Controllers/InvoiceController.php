@@ -26,12 +26,13 @@ class InvoiceController extends Controller
     {
         $this->authorize('viewAny', Invoice::class);
 
-        // Optimized eager loading: Only load what's actually used in frontend
-        // Removed redundant 'vendor' and 'project' direct relationships (frontend uses purchaseOrder.vendor/project)
+        // Optimized eager loading: Load both PO-based and direct relationships
         $baseQuery = Invoice::with([
             'purchaseOrder' => function ($q) {
                 $q->with(['project', 'vendor']);
-            }
+            },
+            'directVendor',  // For direct invoices
+            'directProject', // For direct invoices
         ])
         ->select('invoices.*')
             ->leftJoin('purchase_orders', 'purchase_orders.id', '=', 'invoices.purchase_order_id');
@@ -39,6 +40,7 @@ class InvoiceController extends Controller
         if ($request->has('search')) {
             $baseQuery->where(function ($query) use ($request) {
                 $query->where('si_number', 'like', '%' . $request->search . '%')
+                    // PO-based invoice searches
                     ->orWhereHas('purchaseOrder.project', function ($q) use ($request) {
                         $q->where('project_title', 'like', '%' . $request->search . '%')
                             ->orWhere('cer_number', 'like', '%' . $request->search . '%');
@@ -48,19 +50,29 @@ class InvoiceController extends Controller
                     })
                     ->orWhereHas('purchaseOrder', function ($q) use ($request) {
                         $q->where('po_number', 'like', '%' . $request->search . '%');
+                    })
+                    // Direct invoice searches
+                    ->orWhereHas('directVendor', function ($q) use ($request) {
+                        $q->where('name', 'like', '%' . $request->search . '%');
+                    })
+                    ->orWhereHas('directProject', function ($q) use ($request) {
+                        $q->where('project_title', 'like', '%' . $request->search . '%')
+                          ->orWhere('cer_number', 'like', '%' . $request->search . '%');
                     });
             });
         }
 
         if ($request->has('vendor') && $request->vendor !== 'all') {
-            $baseQuery->whereHas('purchaseOrder.vendor', function ($q) use ($request) {
-                $q->where('vendor_id', $request->vendor);
+            $baseQuery->where(function($q) use ($request) {
+                $q->where('vendor_id', $request->vendor)
+                  ->orWhereHas('purchaseOrder', fn($q2) => $q2->where('vendor_id', $request->vendor));
             });
         }
 
         if ($request->has('project') && $request->project !== 'all') {
-            $baseQuery->whereHas('purchaseOrder.project', function ($q) use ($request) {
-                $q->where('project_id', $request->project);
+            $baseQuery->where(function($q) use ($request) {
+                $q->where('project_id', $request->project)
+                  ->orWhereHas('purchaseOrder', fn($q2) => $q2->where('project_id', $request->project));
             });
         }
 
@@ -181,6 +193,8 @@ class InvoiceController extends Controller
 
         return inertia('invoices/create', [
             'purchaseOrders' => PurchaseOrder::with(['project', 'vendor'])->where('po_status','open')->get(),
+            'vendors' => Vendor::where('is_active', true)->orderBy('name')->get(['id', 'name', 'category']),
+            'projects' => Project::where('project_status', 'active')->orderBy('project_title')->get(['id', 'project_title', 'cer_number']),
         ]);
     }
 
@@ -193,6 +207,8 @@ class InvoiceController extends Controller
 
         return inertia('invoices/create-bulk', [
             'purchaseOrders' => PurchaseOrder::with(['project', 'vendor'])->where('po_status','open')->get(),
+            'vendors' => Vendor::where('is_active', true)->orderBy('name')->get(['id', 'name', 'category']),
+            'projects' => Project::where('project_status', 'active')->orderBy('project_title')->get(['id', 'project_title', 'cer_number']),
         ]);
     }
 
@@ -235,7 +251,22 @@ class InvoiceController extends Controller
 
         $validator = Validator::make(['invoices' => $invoicesData], [
             'invoices' => 'required|array|min:1',
-            'invoices.*.purchase_order_id' => 'required|exists:purchase_orders,id',
+            'invoices.*.invoice_type' => 'required|in:purchase_order,direct',
+            'invoices.*.purchase_order_id' => [
+                'nullable',
+                'exists:purchase_orders,id',
+                'required_if:invoices.*.invoice_type,purchase_order'
+            ],
+            'invoices.*.vendor_id' => [
+                'nullable',
+                'exists:vendors,id',
+                'required_if:invoices.*.invoice_type,direct'
+            ],
+            'invoices.*.project_id' => [
+                'nullable',
+                'exists:projects,id',
+                'required_if:invoices.*.invoice_type,direct'
+            ],
             'invoices.*.si_number' => 'required|string|max:255',
             'invoices.*.si_date' => 'required|date',
             'invoices.*.si_received_at' => 'required|date',
@@ -260,17 +291,38 @@ class InvoiceController extends Controller
             $siNumbersInBatch = [];
 
             foreach ($invoices as $index => $invoice) {
-                // Get the vendor_id from the purchase order
-                $purchaseOrder = PurchaseOrder::find($invoice['purchase_order_id']);
+                $type = $invoice['invoice_type'] ?? 'purchase_order';
 
-                if ($purchaseOrder) {
-                    $vendorId = $purchaseOrder->vendor_id;
+                // Validate mutual exclusivity
+                if ($type === 'purchase_order' && ($invoice['vendor_id'] ?? null)) {
+                    $validator->errors()->add(
+                        "invoices.{$index}.vendor_id",
+                        "Purchase order invoices cannot have direct vendor/project."
+                    );
+                }
+
+                if ($type === 'direct' && ($invoice['purchase_order_id'] ?? null)) {
+                    $validator->errors()->add(
+                        "invoices.{$index}.purchase_order_id",
+                        "Direct invoices cannot have purchase order."
+                    );
+                }
+
+                // Get vendor_id for SI number uniqueness check
+                if ($type === 'purchase_order') {
+                    $purchaseOrder = PurchaseOrder::find($invoice['purchase_order_id'] ?? null);
+                    $vendorId = $purchaseOrder?->vendor_id;
+                } else {
+                    $vendorId = $invoice['vendor_id'] ?? null;
+                }
+
+                if ($vendorId) {
                     $siNumber = $invoice['si_number'];
 
                     // Check for duplicate SI number WITHIN the current batch
                     $batchKey = "{$vendorId}_{$siNumber}";
                     if (isset($siNumbersInBatch[$batchKey])) {
-                        $vendorName = $purchaseOrder->vendor->name ?? 'this vendor';
+                        $vendorName = Vendor::find($vendorId)?->name ?? 'this vendor';
                         $validator->errors()->add(
                             "invoices.{$index}.si_number",
                             "Duplicate SI number '{$siNumber}' for {$vendorName} in this batch. Each invoice must have a unique SI number per vendor."
@@ -279,30 +331,36 @@ class InvoiceController extends Controller
                         $siNumbersInBatch[$batchKey] = true;
                     }
 
-                    // Check for duplicate SI number from the same vendor in DATABASE
-                    $exists = \App\Models\Invoice::whereHas('purchaseOrder', function ($q) use ($purchaseOrder) {
-                        $q->where('vendor_id', $purchaseOrder->vendor_id);
+                    // Check for duplicate SI number from the same vendor in DATABASE (across both invoice types)
+                    $exists = \App\Models\Invoice::where(function($q) use ($vendorId) {
+                        $q->where('vendor_id', $vendorId)
+                          ->orWhereHas('purchaseOrder', fn($q) => $q->where('vendor_id', $vendorId));
                     })
                     ->where('si_number', $invoice['si_number'])
                     ->exists();
 
                     if ($exists) {
-                        $vendorName = $purchaseOrder->vendor->name ?? 'this vendor';
+                        $vendorName = Vendor::find($vendorId)?->name ?? 'this vendor';
                         $validator->errors()->add(
                             "invoices.{$index}.si_number",
                             "The SI number '{$invoice['si_number']}' already exists for {$vendorName}. Duplicate invoices from the same vendor are not allowed."
                         );
                     }
+                }
 
-                    // Check if invoice currency matches PO currency
-                    $invoiceCurrency = $invoice['currency'] ?? 'PHP';
-                    $poCurrency = $purchaseOrder->currency ?? 'PHP';
+                // Currency validation only for PO-based invoices
+                if ($type === 'purchase_order') {
+                    $purchaseOrder = PurchaseOrder::find($invoice['purchase_order_id'] ?? null);
+                    if ($purchaseOrder) {
+                        $invoiceCurrency = $invoice['currency'] ?? 'PHP';
+                        $poCurrency = $purchaseOrder->currency ?? 'PHP';
 
-                    if ($invoiceCurrency !== $poCurrency) {
-                        $validator->errors()->add(
-                            "invoices.{$index}.currency",
-                            "Invoice currency ({$invoiceCurrency}) must match the Purchase Order currency ({$poCurrency})."
-                        );
+                        if ($invoiceCurrency !== $poCurrency) {
+                            $validator->errors()->add(
+                                "invoices.{$index}.currency",
+                                "Invoice currency ({$invoiceCurrency}) must match the Purchase Order currency ({$poCurrency})."
+                            );
+                        }
                     }
                 }
             }
@@ -498,6 +556,8 @@ class InvoiceController extends Controller
         $invoice->load('purchaseOrder.project',
             'purchaseOrder.vendor',
             'purchaseOrder.files',
+            'directVendor',
+            'directProject',
             'files',
             'activityLogs.user',
             'checkRequisitions',
@@ -519,10 +579,12 @@ class InvoiceController extends Controller
         // Use policy to check if user can edit this invoice (checks permission AND status)
         $this->authorize('update', $invoice);
 
-        $invoice->load('purchaseOrder.project', 'purchaseOrder.vendor', 'files');
+        $invoice->load('purchaseOrder.project', 'purchaseOrder.vendor', 'directVendor', 'directProject', 'files');
         return inertia('invoices/edit', [
             'invoice' => $invoice,
             'purchaseOrders' => PurchaseOrder::with(['project', 'vendor'])->get(),
+            'vendors' => Vendor::where('is_active', true)->orderBy('name')->get(['id', 'name']),
+            'projects' => Project::where('project_status', 'active')->orderBy('project_title')->get(['id', 'project_title', 'cer_number']),
             'backUrl' => url()->previous() ?: '/invoices',
         ]);
     }

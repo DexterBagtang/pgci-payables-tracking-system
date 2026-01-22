@@ -30,8 +30,25 @@ class Invoice extends Model
         return $this->belongsToMany(CheckRequisition::class, 'check_requisition_invoices')
             ->withTimestamps();
     }
+
+    // Direct relationships for invoices without PO
+    public function directVendor()
+    {
+        return $this->belongsTo(Vendor::class, 'vendor_id');
+    }
+
+    public function directProject()
+    {
+        return $this->belongsTo(Project::class, 'project_id');
+    }
+
+    // Conditional vendor relationship - returns direct or through PO
     public function vendor()
     {
+        if ($this->invoice_type === 'direct' || $this->vendor_id) {
+            return $this->directVendor();
+        }
+
         return $this->hasOneThrough(
             Vendor::class,          // Final model
             PurchaseOrder::class,   // Intermediate model
@@ -42,8 +59,13 @@ class Invoice extends Model
         );
     }
 
+    // Conditional project relationship - returns direct or through PO
     public function project()
     {
+        if ($this->invoice_type === 'direct' || $this->project_id) {
+            return $this->directProject();
+        }
+
         return $this->hasOneThrough(
             Project::class,
             PurchaseOrder::class,
@@ -92,11 +114,37 @@ class Invoice extends Model
         return $query->where('invoice_status', 'paid');
     }
 
+    public function scopeDirectInvoices($query)
+    {
+        return $query->where('invoice_type', 'direct');
+    }
+
+    public function scopePurchaseOrderInvoices($query)
+    {
+        return $query->where('invoice_type', 'purchase_order');
+    }
+
+    public function scopeByVendor($query, $vendorId)
+    {
+        return $query->where(function($q) use ($vendorId) {
+            $q->where('vendor_id', $vendorId)
+              ->orWhereHas('purchaseOrder', fn($q) => $q->where('vendor_id', $vendorId));
+        });
+    }
+
     /**
      * Custom activity log messages
      */
     protected function getCreationMessage(): string
     {
+        if ($this->invoice_type === 'direct') {
+            $vendor = $this->directVendor?->name ?? 'Unknown Vendor';
+            $project = $this->directProject?->project_title ?? 'Unknown Project';
+            $amount = $this->formatCurrency($this->net_amount ?? $this->invoice_amount);
+
+            return "Direct invoice {$this->si_number} created for {$vendor} under {$project} ({$amount})";
+        }
+
         $vendor = $this->purchaseOrder?->vendor?->name ?? 'Unknown Vendor';
         $amount = $this->formatCurrency($this->net_amount ?? $this->invoice_amount);
 

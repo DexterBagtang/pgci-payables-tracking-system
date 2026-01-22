@@ -26,14 +26,25 @@ const ShowInvoice = ({ invoice }) => {
     const { canWrite } = usePermissions();
     const {
         purchase_order: po,
+        direct_vendor,
+        direct_project,
         files = [],
         check_requisitions = [],
         activity_logs,
         remarks = [],
     } = invoice;
 
-    const project = po?.project;
-    const vendor = po?.vendor;
+    // Helper functions to get vendor/project from either source
+    const getVendor = useCallback(() => {
+        return invoice.invoice_type === 'direct' ? direct_vendor : po?.vendor;
+    }, [invoice.invoice_type, direct_vendor, po]);
+
+    const getProject = useCallback(() => {
+        return invoice.invoice_type === 'direct' ? direct_project : po?.project;
+    }, [invoice.invoice_type, direct_project, po]);
+
+    const project = getProject();
+    const vendor = getVendor();
     const attachments = files;
     const { user } = usePage().props.auth;
 
@@ -120,21 +131,33 @@ const ShowInvoice = ({ invoice }) => {
                                 <div className="font-mono text-sm text-slate-600">CER: {project?.cer_number || 'N/A'}</div>
                             </div>
 
-                            <div>
-                                <div className="mb-2 flex items-center">
-                                    <FileText className="mr-2 h-4 w-4 text-green-600" />
-                                    <span className="text-sm font-medium text-slate-700">Purchase Order</span>
+                            {invoice.invoice_type === 'purchase_order' && (
+                                <div>
+                                    <div className="mb-2 flex items-center">
+                                        <FileText className="mr-2 h-4 w-4 text-green-600" />
+                                        <span className="text-sm font-medium text-slate-700">Purchase Order</span>
+                                    </div>
+                                    <div className="font-semibold text-slate-900">{po?.po_number || 'No PO'}</div>
+                                    <div className="text-sm text-slate-600">
+                                        {formatCurrency(po?.po_amount)} • <StatusBadge status={po?.po_status} size="xs" />
+                                    </div>
+                                    {po && (
+                                        <Link href={`/purchase-orders/${po.id}`} className="text-xs text-blue-600 hover:text-blue-800">
+                                            View Details
+                                        </Link>
+                                    )}
                                 </div>
-                                <div className="font-semibold text-slate-900">{po?.po_number || 'No PO'}</div>
-                                <div className="text-sm text-slate-600">
-                                    {formatCurrency(po?.po_amount)} • <StatusBadge status={po?.po_status} size="xs" />
+                            )}
+                            {invoice.invoice_type === 'direct' && (
+                                <div>
+                                    <div className="mb-2 flex items-center">
+                                        <FileText className="mr-2 h-4 w-4 text-blue-600" />
+                                        <span className="text-sm font-medium text-slate-700">Invoice Type</span>
+                                    </div>
+                                    <div className="font-semibold text-slate-900">Direct Invoice</div>
+                                    <div className="text-sm text-slate-600">No Purchase Order</div>
                                 </div>
-                                {po && (
-                                    <Link href={`/purchase-orders/${po.id}`} className="text-xs text-blue-600 hover:text-blue-800">
-                                        View Details
-                                    </Link>
-                                )}
-                            </div>
+                            )}
                         </div>
                     </div>
 

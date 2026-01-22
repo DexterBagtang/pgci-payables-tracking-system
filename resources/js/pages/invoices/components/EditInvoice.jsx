@@ -56,14 +56,22 @@ import { RequiredLabel } from '@/components/custom/RequiredLabel.jsx';
 import { PaymentTermsSelect } from '@/components/custom/PaymentTermsSelect.jsx';
 import { CurrencyToggle } from '@/components/custom/CurrencyToggle.jsx';
 import FileUpload from '@/components/custom/FileUpload';
+import { InvoiceTypeSelector } from '@/pages/invoices/components/create/InvoiceTypeSelector';
+import { DirectVendorProjectSelector } from '@/pages/invoices/components/create/DirectVendorProjectSelector';
 
-const EditInvoice = ({ invoice, purchaseOrders }) => {
+const EditInvoice = ({ invoice, purchaseOrders, vendors = [], projects = [] }) => {
     const [poComboboxOpen, setPoComboboxOpen] = useState(false);
+    const [vendorComboboxOpen, setVendorComboboxOpen] = useState(false);
+    const [projectComboboxOpen, setProjectComboboxOpen] = useState(false);
     const [selectedFiles, setSelectedFiles] = useState([]);
     const [showConfirmation, setShowConfirmation] = useState(false);
+    const [invoiceType, setInvoiceType] = useState(invoice.invoice_type || 'purchase_order');
 
     const { data, setData, post, processing, errors, reset } = useForm({
+        invoice_type: invoice.invoice_type || 'purchase_order',
         purchase_order_id: invoice.purchase_order_id?.toString() || '',
+        vendor_id: invoice.vendor_id?.toString() || '',
+        project_id: invoice.project_id?.toString() || '',
         si_number: invoice.si_number || '',
         si_date: invoice.si_date || '',
         si_received_at: invoice.si_received_at || '',
@@ -81,7 +89,10 @@ const EditInvoice = ({ invoice, purchaseOrders }) => {
     // Initialize form with invoice data on mount
     useEffect(() => {
         setData({
+            invoice_type: invoice.invoice_type || 'purchase_order',
             purchase_order_id: invoice.purchase_order_id?.toString() || '',
+            vendor_id: invoice.vendor_id?.toString() || '',
+            project_id: invoice.project_id?.toString() || '',
             si_number: invoice.si_number || '',
             si_date: invoice.si_date || '',
             si_received_at: invoice.si_received_at || '',
@@ -95,6 +106,7 @@ const EditInvoice = ({ invoice, purchaseOrders }) => {
             submitted_to: invoice.submitted_to || '',
             files: [],
         });
+        setInvoiceType(invoice.invoice_type || 'purchase_order');
     }, [invoice]);
 
     // Payment terms options (matching SingleMode)
@@ -221,7 +233,25 @@ const EditInvoice = ({ invoice, purchaseOrders }) => {
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         {/* Left Column - Main Form */}
                         <div className="lg:col-span-2 space-y-6">
-                            {/* Purchase Order Selection */}
+                            {/* Invoice Type Selection */}
+                            <InvoiceTypeSelector
+                                value={invoiceType}
+                                onChange={(type) => {
+                                    setInvoiceType(type);
+                                    setData({
+                                        ...data,
+                                        invoice_type: type,
+                                        // Clear opposite fields
+                                        ...(type === 'purchase_order'
+                                            ? { vendor_id: '', project_id: '' }
+                                            : { purchase_order_id: '' }
+                                        )
+                                    });
+                                }}
+                            />
+
+                            {/* Conditional: Purchase Order Selection or Direct Vendor/Project */}
+                            {invoiceType === 'purchase_order' ? (
                             <Card className="shadow-sm">
                                 <CardHeader className="pb-3">
                                     <CardTitle className="flex items-center text-lg">
@@ -315,6 +345,32 @@ const EditInvoice = ({ invoice, purchaseOrders }) => {
                                     </div>
                                 </CardContent>
                             </Card>
+                            ) : (
+                            <Card className="shadow-sm">
+                                <CardHeader className="pb-3">
+                                    <CardTitle className="flex items-center text-lg">
+                                        <Building2 className="mr-2 h-4 w-4 text-orange-600" />
+                                        Direct Invoice - Vendor & Project
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <DirectVendorProjectSelector
+                                        vendors={vendors}
+                                        projects={projects}
+                                        selectedVendorId={data.vendor_id}
+                                        selectedProjectId={data.project_id}
+                                        onVendorChange={(vendorId) => setData('vendor_id', vendorId)}
+                                        onProjectChange={(projectId) => setData('project_id', projectId)}
+                                    />
+                                    {errors.vendor_id && (
+                                        <p className="mt-2 text-xs text-red-600">{errors.vendor_id}</p>
+                                    )}
+                                    {errors.project_id && (
+                                        <p className="mt-2 text-xs text-red-600">{errors.project_id}</p>
+                                    )}
+                                </CardContent>
+                            </Card>
+                            )}
 
                             {/* Invoice Information - Using DatePicker and PaymentTermsSelect components */}
                             <Card className="shadow-sm">

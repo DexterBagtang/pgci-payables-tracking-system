@@ -2,6 +2,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import PurchaseOrderSelection from '@/pages/invoices/components/create/PurchaseOrderSelection.jsx';
+import { InvoiceTypeSelector } from '@/pages/invoices/components/create/InvoiceTypeSelector';
+import { DirectVendorProjectSelector } from '@/pages/invoices/components/create/DirectVendorProjectSelector';
 import { Link } from '@inertiajs/react';
 import { format } from 'date-fns';
 import { Eye, FileStack } from 'lucide-react';
@@ -27,15 +29,19 @@ import { submitToOptions, paymentTermsOptions } from '@/pages/invoices/component
 import { handleFileChange as handleFileChangeUtil, removeFile as removeFileUtil } from '@/pages/invoices/components/shared/InvoiceFileHandler.js';
 import { submitInvoices } from '@/pages/invoices/components/shared/InvoiceSubmission.js';
 
-const CreateSingleInvoice = ({ purchaseOrders = [] }) => {
+const CreateSingleInvoice = ({ purchaseOrders = [], vendors = [], projects = [] }) => {
     const [selectedFiles, setSelectedFiles] = useState([]);
     const [showConfirmation, setShowConfirmation] = useState(false);
     const [processing, setProcessing] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
+    const [invoiceType, setInvoiceType] = useState('purchase_order');
 
     // Single invoice data
     const [singleData, setSingleData] = useState({
+        invoice_type: 'purchase_order',
         purchase_order_id: '',
+        vendor_id: '',
+        project_id: '',
         si_number: '',
         si_date: '',
         si_received_at: '',
@@ -130,7 +136,10 @@ const CreateSingleInvoice = ({ purchaseOrders = [] }) => {
             onSuccess: () => {
                 // Reset form
                 setSingleData({
+                    invoice_type: 'purchase_order',
                     purchase_order_id: '',
+                    vendor_id: '',
+                    project_id: '',
                     si_number: '',
                     si_date: '',
                     si_received_at: '',
@@ -144,6 +153,7 @@ const CreateSingleInvoice = ({ purchaseOrders = [] }) => {
                     terms_of_payment: '',
                     other_payment_terms: '',
                 });
+                setInvoiceType('purchase_order');
                 setSelectedFiles([]);
                 setErrors({});
             },
@@ -181,14 +191,54 @@ const CreateSingleInvoice = ({ purchaseOrders = [] }) => {
                     <div className={cn('grid gap-4 grid-cols-1 lg:grid-cols-4')}>
                         {/* Main Form */}
                         <div className={cn('space-y-4 lg:col-span-3')}>
-                            {/* Purchase Order Selection */}
-                            <PurchaseOrderSelection
-                                selectedPO={selectedPO}
-                                poOptions={poOptions}
-                                isBulkMode={false}
-                                setSingleData={setSingleData}
-                                errors={errors}
+                            {/* Invoice Type Selection */}
+                            <InvoiceTypeSelector
+                                value={invoiceType}
+                                onChange={(type) => {
+                                    setInvoiceType(type);
+                                    setSingleData(prev => ({
+                                        ...prev,
+                                        invoice_type: type,
+                                        // Clear opposite fields
+                                        ...(type === 'purchase_order'
+                                            ? { vendor_id: '', project_id: '' }
+                                            : { purchase_order_id: '' }
+                                        )
+                                    }));
+                                }}
                             />
+
+                            {/* Conditional Rendering: PO Selection or Direct Vendor/Project */}
+                            {invoiceType === 'purchase_order' ? (
+                                <PurchaseOrderSelection
+                                    selectedPO={selectedPO}
+                                    poOptions={poOptions}
+                                    isBulkMode={false}
+                                    setSingleData={setSingleData}
+                                    errors={errors}
+                                />
+                            ) : (
+                                <Card className="shadow-sm">
+                                    <CardContent className="pt-6">
+                                        <DirectVendorProjectSelector
+                                            vendors={vendors}
+                                            projects={projects}
+                                            selectedVendorId={singleData.vendor_id?.toString() || ''}
+                                            selectedProjectId={singleData.project_id?.toString() || ''}
+                                            onVendorChange={(vendorId) => setSingleData(prev => ({
+                                                ...prev,
+                                                vendor_id: vendorId,
+                                                purchase_order_id: ''
+                                            }))}
+                                            onProjectChange={(projectId) => setSingleData(prev => ({
+                                                ...prev,
+                                                project_id: projectId,
+                                                purchase_order_id: ''
+                                            }))}
+                                        />
+                                    </CardContent>
+                                </Card>
+                            )}
 
                             {/* Single Invoice Mode */}
                             <Suspense fallback={<DialogLoadingFallback message="Loading invoice form..." />}>
