@@ -32,7 +32,7 @@ class UserPermissionsSeeder extends Seeder
                 'username' => 'payables.admin',
                 'name' => 'Payables Admin',
                 'email' => 'payables.admin@philcom.com',
-                'password' => Hash::make('payablesadmin2025'),
+                'password' => Hash::make('payablesadmin2026'),
                 'role' => UserRole::ADMIN,
                 'email_verified_at' => now(),
                 'permissions' => [
