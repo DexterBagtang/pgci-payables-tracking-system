@@ -15,18 +15,24 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 interface CreateBulkPageProps{
-    purchaseOrders:unknown[];
+    purchaseOrders: unknown[];
+    vendors: unknown[];
+    projects: unknown[];
 }
 
 
-export default function CreateBulkInvoicePage({purchaseOrders}: CreateBulkPageProps) {
+export default function CreateBulkInvoicePage({purchaseOrders, vendors, projects}: CreateBulkPageProps) {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Bulk Create Invoices" />
             <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
                 <div className="relative min-h-[100vh] flex-1 overflow-hidden rounded-xl border border-sidebar-border/70 md:min-h-min dark:border-sidebar-border">
 
-                    <CreateBulkInvoice purchaseOrders={purchaseOrders} />
+                    <CreateBulkInvoice
+                        purchaseOrders={purchaseOrders}
+                        vendors={vendors}
+                        projects={projects}
+                    />
 
                 </div>
             </div>

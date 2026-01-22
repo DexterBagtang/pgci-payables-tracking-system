@@ -101,4 +101,38 @@ class InvoiceFactory extends Factory
             ];
         });
     }
+
+    // State method for direct invoices (with project)
+    public function direct()
+    {
+        $vendor = \App\Models\Vendor::inRandomOrder()->first()
+            ?? \App\Models\Vendor::factory()->create();
+        $project = \App\Models\Project::inRandomOrder()->first()
+            ?? \App\Models\Project::factory()->create();
+
+        return $this->state(function (array $attributes) use ($vendor, $project) {
+            return [
+                'invoice_type' => 'direct',
+                'purchase_order_id' => null,
+                'vendor_id' => $vendor->id,
+                'project_id' => $project->id,
+            ];
+        });
+    }
+
+    // State method for direct invoices WITHOUT project
+    public function directWithoutProject()
+    {
+        $vendor = \App\Models\Vendor::inRandomOrder()->first()
+            ?? \App\Models\Vendor::factory()->create();
+
+        return $this->state(function (array $attributes) use ($vendor) {
+            return [
+                'invoice_type' => 'direct',
+                'purchase_order_id' => null,
+                'vendor_id' => $vendor->id,
+                'project_id' => null,
+            ];
+        });
+    }
 }

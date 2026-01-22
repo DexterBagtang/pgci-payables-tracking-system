@@ -28,6 +28,21 @@ class Project extends Model
         return $this->hasMany(PurchaseOrder::class);
     }
 
+    // 🧾 Project has many direct invoices (without PO)
+    public function directInvoices(): HasMany
+    {
+        return $this->hasMany(Invoice::class, 'project_id');
+    }
+
+    // 🧾 Get all invoices (both PO-based and direct)
+    public function allInvoices()
+    {
+        return Invoice::where(function($q) {
+            $q->where('project_id', $this->id)
+              ->orWhereHas('purchaseOrder', fn($q) => $q->where('project_id', $this->id));
+        });
+    }
+
     // Relationships
     public function creator(): BelongsTo
     {

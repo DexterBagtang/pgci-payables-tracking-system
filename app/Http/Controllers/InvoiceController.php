@@ -265,7 +265,6 @@ class InvoiceController extends Controller
             'invoices.*.project_id' => [
                 'nullable',
                 'exists:projects,id',
-                'required_if:invoices.*.invoice_type,direct'
             ],
             'invoices.*.si_number' => 'required|string|max:255',
             'invoices.*.si_date' => 'required|date',
@@ -392,6 +391,11 @@ class InvoiceController extends Controller
             foreach ($validated['invoices'] as $index => $invoiceData) {
                 $files = $invoiceData['files'] ?? [];
                 unset($invoiceData['files']);
+
+                // Convert empty strings to null for foreign key fields
+                $invoiceData['purchase_order_id'] = $invoiceData['purchase_order_id'] ?: null;
+                $invoiceData['vendor_id'] = $invoiceData['vendor_id'] ?: null;
+                $invoiceData['project_id'] = $invoiceData['project_id'] ?: null;
 
                 // Add computed fields
                 $invoiceData['net_amount'] = $invoiceData['invoice_amount'];
@@ -603,6 +607,11 @@ class InvoiceController extends Controller
         // Remove files array from validated data for mass assignment
         $fileData = $validated['files'] ?? [];
         unset($validated['files']);
+
+        // Convert empty strings to null for foreign key fields
+        $validated['purchase_order_id'] = $validated['purchase_order_id'] ?? null ?: null;
+        $validated['vendor_id'] = $validated['vendor_id'] ?? null ?: null;
+        $validated['project_id'] = $validated['project_id'] ?? null ?: null;
 
         $validated['net_amount'] = $validated['invoice_amount'];
         $validated['invoice_status'] = 'pending';

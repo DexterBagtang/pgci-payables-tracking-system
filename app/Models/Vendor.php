@@ -31,7 +31,7 @@ class Vendor extends Model
         return $this->hasMany(PurchaseOrder::class);
     }
 
-    // 🧾 Vendor has many invoices through purchase orders
+    // 🧾 Vendor has many invoices through purchase orders (PO-based only)
     public function invoices()
     {
         return $this->hasManyThrough(
@@ -42,6 +42,21 @@ class Vendor extends Model
             'id',                    // Local key on vendors
             'id'                     // Local key on purchase_orders
         );
+    }
+
+    // 🧾 Vendor has many direct invoices (without PO)
+    public function directInvoices()
+    {
+        return $this->hasMany(Invoice::class, 'vendor_id');
+    }
+
+    // 🧾 Get all invoices (both PO-based and direct)
+    public function allInvoices()
+    {
+        return Invoice::where(function($q) {
+            $q->where('vendor_id', $this->id)
+              ->orWhereHas('purchaseOrder', fn($q) => $q->where('vendor_id', $this->id));
+        });
     }
 
     public function projects()

@@ -47,7 +47,6 @@ class StoreInvoiceRequest extends FormRequest
             'invoices.*.project_id' => [
                 'nullable',
                 'exists:projects,id',
-                'required_if:invoices.*.invoice_type,direct'
             ],
 
             'invoices.*.si_number' => 'required|string|max:255',
@@ -83,7 +82,6 @@ class StoreInvoiceRequest extends FormRequest
             'invoices.*.purchase_order_id.exists' => 'Selected purchase order does not exist.',
             'invoices.*.vendor_id.required_if' => 'Vendor is required for direct invoices.',
             'invoices.*.vendor_id.exists' => 'Selected vendor does not exist.',
-            'invoices.*.project_id.required_if' => 'Project is required for direct invoices.',
             'invoices.*.project_id.exists' => 'Selected project does not exist.',
             'invoices.*.si_number.required' => 'SI number is required for each invoice.',
             'invoices.*.si_date.required' => 'SI date is required for each invoice.',

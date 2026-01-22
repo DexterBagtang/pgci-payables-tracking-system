@@ -40,6 +40,11 @@ export function DirectVendorProjectSelector({
   onVendorChange,
   onProjectChange,
 }: DirectVendorProjectSelectorProps) {
+  // Handle project change and convert "none" to empty string
+  const handleProjectChange = (value: string) => {
+    onProjectChange(value === 'none' ? '' : value);
+  };
+
   return (
     <div className="grid grid-cols-2 gap-4">
       {/* Vendor Selector */}
@@ -64,13 +69,14 @@ export function DirectVendorProjectSelector({
       {/* Project Selector */}
       <div>
         <Label>
-          Project <RequiredLabel />
+          Project <span className="text-muted-foreground text-xs">(Optional)</span>
         </Label>
-        <Select value={selectedProjectId} onValueChange={onProjectChange}>
+        <Select value={selectedProjectId || "none"} onValueChange={handleProjectChange}>
           <SelectTrigger>
-            <SelectValue placeholder="Select project..." />
+            <SelectValue placeholder="Select project (optional)..." />
           </SelectTrigger>
           <SelectContent>
+            <SelectItem value="none">No Project</SelectItem>
             {projects.map((project) => (
               <SelectItem key={project.id} value={project.id.toString()}>
                 {project.project_title} ({project.cer_number})

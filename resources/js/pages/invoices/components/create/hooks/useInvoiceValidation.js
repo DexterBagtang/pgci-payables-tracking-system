@@ -12,9 +12,18 @@ export function useInvoiceValidation() {
         const newErrors = {};
 
         if (isBulkMode) {
-            // Validate purchase order (required for all invoices)
-            if (!bulkConfig.sharedValues.purchase_order_id) {
-                newErrors.purchase_order_id = 'Purchase order is required';
+            // Validate based on invoice type
+            const invoiceType = bulkConfig.sharedValues.invoice_type || 'purchase_order';
+
+            if (invoiceType === 'purchase_order') {
+                if (!bulkConfig.sharedValues.purchase_order_id) {
+                    newErrors.purchase_order_id = 'Purchase order is required';
+                }
+            } else if (invoiceType === 'direct') {
+                if (!bulkConfig.sharedValues.vendor_id) {
+                    newErrors.vendor_id = 'Vendor is required for direct invoices';
+                }
+                // project_id is optional - no validation needed
             }
 
             // Validate each bulk invoice individually (since shared values can be edited)
@@ -32,8 +41,16 @@ export function useInvoiceValidation() {
                 }
             });
         } else {
-            // Validate single invoice
-            if (!singleData.purchase_order_id) newErrors.purchase_order_id = 'Purchase order is required';
+            // Validate single invoice based on type
+            const invoiceType = singleData.invoice_type || 'purchase_order';
+
+            if (invoiceType === 'purchase_order') {
+                if (!singleData.purchase_order_id) newErrors.purchase_order_id = 'Purchase order is required';
+            } else if (invoiceType === 'direct') {
+                if (!singleData.vendor_id) newErrors.vendor_id = 'Vendor is required for direct invoices';
+                // project_id is optional - no validation needed
+            }
+
             if (!singleData.si_number) newErrors.si_number = 'SI Number is required';
             if (!singleData.si_date) newErrors.si_date = 'SI Date is required';
             if (!singleData.si_received_at) newErrors.si_received_at = 'SI Received Date is required';

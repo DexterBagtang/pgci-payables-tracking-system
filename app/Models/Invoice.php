@@ -62,7 +62,7 @@ class Invoice extends Model
     // Conditional project relationship - returns direct or through PO
     public function project()
     {
-        if ($this->invoice_type === 'direct' || $this->project_id) {
+        if ($this->invoice_type === 'direct') {
             return $this->directProject();
         }
 
@@ -139,10 +139,17 @@ class Invoice extends Model
     {
         if ($this->invoice_type === 'direct') {
             $vendor = $this->directVendor?->name ?? 'Unknown Vendor';
-            $project = $this->directProject?->project_title ?? 'Unknown Project';
             $amount = $this->formatCurrency($this->net_amount ?? $this->invoice_amount);
 
-            return "Direct invoice {$this->si_number} created for {$vendor} under {$project} ({$amount})";
+            $message = "Direct invoice {$this->si_number} created for {$vendor}";
+
+            if ($this->directProject) {
+                $message .= " under {$this->directProject->project_title}";
+            }
+
+            $message .= " ({$amount})";
+
+            return $message;
         }
 
         $vendor = $this->purchaseOrder?->vendor?->name ?? 'Unknown Vendor';

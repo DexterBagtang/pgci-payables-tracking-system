@@ -50,7 +50,6 @@ class UpdateInvoiceRequest extends FormRequest
             'project_id' => [
                 'nullable',
                 'exists:projects,id',
-                'required_if:invoice_type,direct'
             ],
 
             'si_number' => 'required|string|max:255',
@@ -80,7 +79,6 @@ class UpdateInvoiceRequest extends FormRequest
             'purchase_order_id.exists' => 'Selected purchase order does not exist.',
             'vendor_id.required_if' => 'Vendor is required for direct invoices.',
             'vendor_id.exists' => 'Selected vendor does not exist.',
-            'project_id.required_if' => 'Project is required for direct invoices.',
             'project_id.exists' => 'Selected project does not exist.',
             'si_number.required' => 'SI number is required.',
             'si_number.max' => 'SI number must not exceed 255 characters.',

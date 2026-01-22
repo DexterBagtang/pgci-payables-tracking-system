@@ -30,7 +30,7 @@ import { submitToOptions, paymentTermsOptions, sharedFieldOptions } from '@/page
 import { handleBulkInvoiceFileChange as handleBulkInvoiceFileChangeUtil, removeBulkInvoiceFile as removeBulkInvoiceFileUtil } from '@/pages/invoices/components/shared/InvoiceFileHandler.js';
 import { submitInvoices } from '@/pages/invoices/components/shared/InvoiceSubmission.js';
 
-const CreateBulkInvoice = ({ purchaseOrders = [] }) => {
+const CreateBulkInvoice = ({ purchaseOrders = [], vendors = [], projects = [] }) => {
     const [showConfirmation, setShowConfirmation] = useState(false);
     const [processing, setProcessing] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
