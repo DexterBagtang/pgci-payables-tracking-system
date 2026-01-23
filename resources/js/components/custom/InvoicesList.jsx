@@ -309,36 +309,62 @@ export default function InvoicesList({
                         <>
                             {processedInvoices.map((invoice) => {
                                 const overdueFlag = isOverdue(invoice);
+                                const isDirect = invoice.invoice_type === 'direct';
+                                
+                                // Helper functions to get vendor/project from correct source
+                                const getVendorName = () => {
+                                    if (isDirect) {
+                                        return invoice.direct_vendor?.name || invoice.vendor_name;
+                                    }
+                                    return invoice.purchase_order?.vendor?.name || invoice.vendor_name;
+                                };
+                                
+                                const getProjectTitle = () => {
+                                    if (isDirect) {
+                                        return invoice.direct_project?.project_title || invoice.project_title;
+                                    }
+                                    return invoice.purchase_order?.project?.project_title || invoice.project_title;
+                                };
+                                
                                 return (
                                     <TableRow
                                         key={invoice.id}
                                         className={overdueFlag ? 'bg-red-50/50' : ''}
                                     >
                                         <TableCell className="font-medium">
-                                            {invoice.si_number}
+                                            <div className="flex items-center gap-2">
+                                                {invoice.si_number}
+                                                {isDirect && (
+                                                    <Badge variant="secondary" className="bg-purple-50 text-purple-700 text-[10px] h-4 px-1.5">
+                                                        Direct
+                                                    </Badge>
+                                                )}
+                                            </div>
                                         </TableCell>
                                         {isColumnVisible('poNumber') && (
                                             <TableCell>
-                                                {invoice.purchase_order_id ? (
+                                                {isDirect ? (
+                                                    <span className="text-gray-400 text-sm">N/A</span>
+                                                ) : invoice.purchase_order_id ? (
                                                     <Link
                                                         href={`/purchase-orders/${invoice.purchase_order_id}`}
                                                         className="text-blue-600 hover:underline"
                                                     >
-                                                        {invoice.po_number}
+                                                        {invoice.po_number || invoice.purchase_order?.po_number}
                                                     </Link>
                                                 ) : (
-                                                    invoice.po_number || 'N/A'
+                                                    <span className="text-gray-400 text-sm">{invoice.po_number || 'N/A'}</span>
                                                 )}
                                             </TableCell>
                                         )}
                                         {isColumnVisible('vendor') && (
                                             <TableCell className="max-w-xs truncate">
-                                                {invoice.vendor_name || 'N/A'}
+                                                {getVendorName() || 'N/A'}
                                             </TableCell>
                                         )}
                                         {isColumnVisible('project') && (
                                             <TableCell className="max-w-xs truncate">
-                                                {invoice.project_title || 'N/A'}
+                                                {getProjectTitle() || <span className="text-gray-400 text-sm">N/A</span>}
                                             </TableCell>
                                         )}
                                         <TableCell>
@@ -437,6 +463,8 @@ export default function InvoicesList({
             <div className="space-y-3">
                 {processedInvoices.map((invoice) => {
                     const overdueFlag = isOverdue(invoice);
+                    const isDirect = invoice.invoice_type === 'direct';
+                    
                     return (
                         <div
                             key={invoice.id}
@@ -449,6 +477,11 @@ export default function InvoicesList({
                                     <div className="font-medium text-slate-900">
                                         SI #{invoice.si_number}
                                     </div>
+                                    {isDirect && (
+                                        <Badge variant="secondary" className="bg-purple-50 text-purple-700 text-[10px] h-4 px-1.5">
+                                            Direct
+                                        </Badge>
+                                    )}
                                     <div className="text-xs text-slate-500">
                                         {formatDate(invoice.si_date)}
                                     </div>

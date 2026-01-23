@@ -177,24 +177,42 @@ class UnifiedMetricsService
      */
     public function getTopVendorsByOutstanding(?Carbon $start, ?Carbon $end, int $limit = 10): array
     {
-        // Get all unpaid invoices with vendor information
-        $unpaidInvoices = Invoice::with('purchaseOrder.vendor')
+        // Get all unpaid invoices with vendor information (both PO and direct)
+        $unpaidInvoices = Invoice::with([
+                'purchaseOrder.vendor',
+                'directVendor'  // Support for direct invoices
+            ])
             ->whereNotIn('invoice_status', ['paid', 'rejected'])
             ->inDateRange($start, $end)
             ->get();
 
         // Group by vendor and calculate totals
         $vendorData = $unpaidInvoices->groupBy(function ($invoice) {
+            // Get vendor ID from either source
+            if ($invoice->invoice_type === 'direct') {
+                return $invoice->directVendor?->id ?? $invoice->vendor_id;
+            }
             return $invoice->purchaseOrder?->vendor?->id;
         })->map(function ($invoices, $vendorId) {
             $firstInvoice = $invoices->first();
-            $vendor = $firstInvoice->purchaseOrder?->vendor;
+            
+            // Get vendor from either source
+            $vendor = null;
+            if ($firstInvoice->invoice_type === 'direct') {
+                $vendor = $firstInvoice->directVendor;
+            } else {
+                $vendor = $firstInvoice->purchaseOrder?->vendor;
+            }
 
             return [
                 'vendor_name' => $vendor?->name ?? 'Unknown Vendor',
                 'outstanding_amount' => (float) $invoices->sum('net_amount'),
                 'invoice_count' => $invoices->count(),
             ];
+        })
+        ->filter(function ($vendor) {
+            // Remove NULL vendor group (if any)
+            return $vendor['vendor_name'] !== 'Unknown Vendor';
         })
         ->sortByDesc('outstanding_amount')
         ->take($limit)

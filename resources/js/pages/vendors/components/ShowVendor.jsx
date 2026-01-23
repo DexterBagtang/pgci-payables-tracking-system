@@ -60,7 +60,7 @@ export default function ShowVendor({ vendor }) {
     const [activeTab, setActiveTab] = useRemember('overview','vendor-detail-tab');
     const [editDialogOpen, setEditDialogOpen] = useState(false);
 
-    const { purchase_orders, remarks, financial_summary, activity_logs = [] } = vendor;
+    const { purchase_orders, remarks, financial_summary, activity_logs = [], all_invoices = [] } = vendor;
 
     // Financial calculations from backend
     const {
@@ -629,15 +629,16 @@ export default function ShowVendor({ vendor }) {
                         <TabsContent value="invoices" className="mt-6">
                             <Suspense fallback={<Loader className="animate-spin mx-auto" />}>
                                 <InvoicesList
-                                    invoices={purchase_orders.flatMap(po =>
-                                        (po.invoices || []).map(invoice => ({
-                                            ...invoice,
-                                            po_number: po.po_number,
-                                            purchase_order_id: po.id,
-                                            project_title: po.project?.project_title,
-                                            vendor_name: vendor.name
-                                        }))
-                                    )}
+                                    invoices={all_invoices.map(invoice => ({
+                                        ...invoice,
+                                        // Add fields expected by InvoicesList component
+                                        po_number: invoice.purchase_order?.po_number || null,
+                                        purchase_order_id: invoice.purchase_order_id || null,
+                                        project_title: invoice.invoice_type === 'direct' 
+                                            ? invoice.direct_project?.project_title 
+                                            : invoice.purchase_order?.project?.project_title,
+                                        vendor_name: vendor.name
+                                    }))}
                                     variant="table"
                                     hideColumns={['vendor']}
                                     showSummaryCards

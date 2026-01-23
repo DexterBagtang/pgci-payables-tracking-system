@@ -124,8 +124,12 @@ class VendorController extends Controller
             'activityLogs.user:id,name',
         ]);
 
-        // Get all invoices for this vendor
-        $invoices = $vendor->invoices()->with(['checkRequisitions'])->get();
+        // Get all invoices for this vendor (both PO-based and direct)
+        $invoices = $vendor->allInvoices()->with([
+            'checkRequisitions',
+            'purchaseOrder.project',  // For PO invoices
+            'directProject'            // For direct invoices
+        ])->get();
 
         // Total paid is based on invoices marked as 'paid'
         $totalPaid = $invoices->where('invoice_status', 'paid')->sum('invoice_amount');
@@ -187,6 +191,7 @@ class VendorController extends Controller
         return inertia('vendors/show', [
             'vendor' => array_merge($vendor->toArray(), [
                 'financial_summary' => $financialSummary,
+                'all_invoices' => $invoices,  // Add all invoices (PO + direct)
             ]),
         ]);
     }
