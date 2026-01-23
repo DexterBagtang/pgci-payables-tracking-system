@@ -2,102 +2,63 @@ flowchart TD
     Start([Start: PGCI Payables System]) --> VendorSetup
 
     %% Vendor & Project Setup Phase
-    VendorSetup[Purchasing: Setup Vendor]
-    VendorSetup --> VendorDetails[Enter Vendor Details:<br/>Name, Contact, Category,<br/>Payment Terms]
-    VendorDetails --> ProjectSetup[Purchasing: Create Project]
-    ProjectSetup --> ProjectDetails[Enter Project Details:<br/>Title, CER Number, Type,<br/>Total Costs, Status]
+    VendorSetup[Setup Vendor]
+    VendorSetup --> ProjectSetup[Create Project]
+    ProjectSetup --> InvoiceChoice{Invoice Type?}
 
-    %% Purchase Order Phase
-    ProjectDetails --> POCreation[Purchasing: Create Purchase Order]
-    POCreation --> PODetails[Enter PO Details:<br/>• Link Vendor & Project<br/>• PO Number & Amount<br/>• Currency: PHP/USD<br/>• Payment Terms<br/>]
-    PODetails --> POFinalize{Finalize PO?}
+    %% Purchase Order Path
+    InvoiceChoice -->|With PO| POCreation[Create Purchase Order]
+    POCreation --> POOpen[PO Status: Open]
+    POOpen --> WaitInvoice[Wait for Invoice]
+    WaitInvoice --> CreatePOInvoice[Create PO Invoice]
+    CreatePOInvoice --> InvoicePending
 
-    POFinalize -->|Save as Draft| PODraft[PO Status: Draft]
-    PODraft --> MorePO{Create<br/>Another PO?}
-    POFinalize -->|Finalize| POOpen[PO Status: Open<br/>Ready for Invoicing]
+    %% Direct Invoice Path
+    InvoiceChoice -->|Direct No PO| CreateDirectInvoice[Create Direct Invoice]
+    CreateDirectInvoice --> InvoicePending
 
-    POOpen --> MorePO
-    MorePO -->|Yes| POCreation
-    MorePO -->|No| WaitInvoice
+    %% Unified Invoice Processing
+    InvoicePending[Invoice Status: Pending]
+    InvoicePending --> TransferAccounting[Transfer to Accounting]
+    TransferAccounting --> MarkReceived[Mark Files Received]
+    MarkReceived --> ReviewInvoice[Review Invoice]
 
-    %% Invoice Receipt Phase
-    WaitInvoice[Wait for Vendor Invoice] --> InvoiceReceived[Invoice Received from Vendor]
-    InvoiceReceived --> AddInvoice[Purchasing: Create Invoice Record]
-    AddInvoice --> InvoiceDetails[Enter Invoice Details:<br/>• SI Number & Date<br/>• Invoice Amount & Currency<br/>• Tax & Discount<br/>• Net Amount<br/>• Payment Type & Terms<br/>• Upload SI Documents]
-    InvoiceDetails --> InvoiceCreated[Invoice Status: Pending]
+    ReviewInvoice --> ReviewCheck{Approve?}
+    ReviewCheck -->|Reject| RejectInvoice[Status: Rejected]
+    RejectInvoice --> InvoicePending
+    ReviewCheck -->|Approve| ApproveInvoice[Status: Approved]
 
-    %% Transfer to Accounting
-    InvoiceCreated --> AccountingReceive[Transfer to Accounting Department]
-    AccountingReceive --> PhysicalFiles[Accounting: Receive Physical Files]
-    PhysicalFiles --> MarkReceived[Update Invoice:<br/>Status → Received<br/>Record Files Received Date]
+    %% Check Requisition
+    ApproveInvoice --> CreateCheckReq[Create Check Requisition]
+    CreateCheckReq --> CheckReqApproval{Approve?}
+    CheckReqApproval -->|Reject| CreateCheckReq
+    CheckReqApproval -->|Approve| CheckReqApproved[CR Approved]
 
-    %% Invoice Review Phase
-    MarkReceived --> ReviewOption{Review<br/>Method?}
-    ReviewOption -->|Single Invoice| SingleReview[Review Single Invoice]
-    ReviewOption -->|Multiple Invoices| BulkReview[Bulk Review:<br/>• Select Multiple Invoices<br/>• Performance Optimized<br/>• Virtual Scrolling]
+    %% Disbursement
+    CheckReqApproved --> CreateDisbursement[Create Disbursement]
+    CreateDisbursement --> PrintCheck[Print Check]
+    PrintCheck --> ReleaseCheck[Release to Vendor]
 
-    SingleReview --> ReviewCheck{Details<br/>Correct?}
-    BulkReview --> ReviewCheck
-
-    ReviewCheck -->|No - Issues| AddRemarks[Add Remarks & Notes]
-    AddRemarks --> RejectInvoice[Status: Rejected]
-    RejectInvoice --> NotifyPurchasing[Notify Purchasing]
-    NotifyPurchasing --> InvoiceDetails
-
-    ReviewCheck -->|Yes - Approved| ApproveInvoice[Approve Invoice:<br/>Status → Approved<br/>Record Reviewer & Date]
-
-    %% Check Requisition Phase
-    ApproveInvoice --> CheckReqCreation[Accounting: Create Check Requisition]
-    CheckReqCreation --> SelectInvoices[Select Approved Invoices:<br/>• Single or Multiple<br/>• Same Vendor/Project<br/>• Paginated List]
-    SelectInvoices --> CheckReqDetails[Enter Check Requisition:<br/>• Auto-generate Number<br/>• PHP Amount<br/>• Payee Name & Purpose<br/>• PO/CER/SI Numbers<br/>• Account Charge<br/>• Approval Fields]
-    CheckReqDetails --> CheckReqStatus{Submit for<br/>Approval?}
-
-%%    CheckReqStatus -->|No| SaveDraft[Save as Draft]
-    CheckReqStatus -->|Yes| SubmitApproval[Status: Pending Approval]
-
-    %% Check Requisition Approval
-    SubmitApproval --> ReviewCR[Management: Review Check Requisition]
-    ReviewCR --> CRDecision{Approve?}
-
-    CRDecision -->|Reject| RejectCR[Status: Rejected<br/>Add Notes]
-    RejectCR --> NotifyAcct[Notify Accounting]
-    NotifyAcct --> CheckReqDetails
-
-    CRDecision -->|Approve| ApproveCR[Status: Approved<br/>Update Linked Invoices:<br/>Status → Pending Disbursement]
-
-    %% Disbursement Phase
-    ApproveCR --> CreateDisbursement[Accounting: Create Disbursement]
-    CreateDisbursement --> DisbursementDetails[Enter Disbursement:<br/>• Check Voucher Number<br/>• Link Check Requisitions<br/>• Schedule Check Date<br/>• Add Remarks]
-    DisbursementDetails --> DisbursementCreated[Disbursement Created]
-
-    DisbursementCreated --> PrintCheck[Print Check:<br/>• Record Printing Date<br/>• Status: Processed]
-    PrintCheck --> ReleaseCheck[Release Check to Vendor:<br/>• Record Release Date<br/>• Invoice Status → Paid<br/>• STOP Aging Calculation]
-
-    %% Purchase Order Closure
-    ReleaseCheck --> CheckAllPaid{All PO<br/>Invoices Paid?}
-    CheckAllPaid -->|No| WaitMore[Wait for Remaining Invoices]
-    WaitMore --> WaitInvoice
-
-    CheckAllPaid -->|Yes| ClosePO[Close Purchase Order:<br/>• Status: Closed<br/>• Record Closed By & Date<br/>• Add Closure Remarks]
-
-    ClosePO --> Complete([Process Complete])
-
-    %% System Features
-    Complete -.-> SystemFeatures[Key System Features:<br/>✓ Multi-currency Support<br/>✓ Bulk Operations<br/>✓ File Version Tracking<br/>✓ Activity Logs<br/>✓ Polymorphic Attachments<br/>✓ Role-based Access]
+    %% Completion
+    ReleaseCheck --> TypeCheck{Invoice Type?}
+    TypeCheck -->|Direct| DirectComplete[Complete]
+    TypeCheck -->|PO| CheckPOComplete{All PO Invoices Paid?}
+    CheckPOComplete -->|No| WaitInvoice
+    CheckPOComplete -->|Yes| ClosePO[Close PO]
+    ClosePO --> Complete([End])
+    DirectComplete --> Complete
 
     %% Styling
     classDef startEnd fill:#e3f2fd,stroke:#1976d2,stroke-width:3px
     classDef purchasingTask fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
     classDef accountingTask fill:#e8f5e9,stroke:#388e3c,stroke-width:2px
-    classDef managementTask fill:#fff9c4,stroke:#f9a825,stroke-width:2px
     classDef decision fill:#fff3e0,stroke:#f57c00,stroke-width:2px
     classDef status fill:#fce4ec,stroke:#c2185b,stroke-width:2px
-    classDef features fill:#e0f2f1,stroke:#00897b,stroke-width:2px,stroke-dasharray: 5 5
+    classDef directPath fill:#e1f5fe,stroke:#0277bd,stroke-width:2px
 
     class Start,Complete startEnd
-    class VendorSetup,VendorDetails,ProjectSetup,ProjectDetails,POCreation,PODetails,AddInvoice,InvoiceDetails purchasingTask
-    class AccountingReceive,PhysicalFiles,MarkReceived,ReviewOption,SingleReview,BulkReview,AddRemarks,CheckReqCreation,SelectInvoices,CheckReqDetails,CreateDisbursement,DisbursementDetails,PrintCheck,ReleaseCheck accountingTask
-    class ReviewCR managementTask
-    class POFinalize,MorePO,ReviewCheck,CheckReqStatus,CRDecision,CheckAllPaid decision
-    class PODraft,POOpen,InvoiceCreated,RejectInvoice,ApproveInvoice,SaveDraft,SubmitApproval,RejectCR,ApproveCR,DisbursementCreated,ClosePO status
-    class SystemFeatures features
+    class VendorSetup,ProjectSetup,POCreation,CreatePOInvoice purchasingTask
+    class CreateDirectInvoice directPath
+    class TransferAccounting,MarkReceived,ReviewInvoice,CreateCheckReq,CreateDisbursement,PrintCheck,ReleaseCheck accountingTask
+    class InvoiceChoice,ReviewCheck,CheckReqApproval,TypeCheck,CheckPOComplete decision
+    class POOpen,InvoicePending,RejectInvoice,ApproveInvoice,CheckReqApproved,ClosePO status

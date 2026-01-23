@@ -3,10 +3,11 @@ erDiagram
         int id PK
         varchar name
         varchar username UK
-        enum role "admin, purchasing, accounting"
+        enum role
         varchar email UK
         timestamp email_verified_at
         varchar password
+        json permissions
         varchar remember_token
         datetime created_at
         datetime updated_at
@@ -19,10 +20,10 @@ erDiagram
         varchar email
         varchar phone
         text address
-        enum category "SAP, Manual"
+        enum category
         varchar payment_terms
         boolean is_active
-        enum vendor_type "supplier, contractor, service_provider, other"
+        enum vendor_type
         int created_by FK
         datetime created_at
         datetime updated_at
@@ -34,11 +35,11 @@ erDiagram
         varchar cer_number
         numeric total_project_cost
         numeric total_contract_cost
-        enum project_status "active, on_hold, completed, cancelled"
+        enum project_status
         text description
-        enum project_type "sm_project, philcom_project"
-        varchar smpo_number "For SM Project type"
-        enum philcom_category "profit_and_loss, capital_expenditure, others"
+        enum project_type
+        varchar smpo_number
+        enum philcom_category
         varchar team
         int created_by FK
         datetime created_at
@@ -51,12 +52,12 @@ erDiagram
         int project_id FK
         int vendor_id FK
         numeric po_amount
-        numeric total_invoiced "Sum of all invoice amounts"
-        numeric total_paid "Sum of net_amount from paid invoices"
-        numeric outstanding_amount "po_amount - total_paid"
-        datetime financials_updated_at "Last time financial summary was synced"
-        enum currency "PHP, USD"
-        enum po_status "draft, open, closed, cancelled"
+        numeric total_invoiced
+        numeric total_paid
+        numeric outstanding_amount
+        datetime financials_updated_at
+        enum currency
+        enum po_status
         varchar payment_term
         date po_date
         date expected_delivery_date
@@ -77,7 +78,7 @@ erDiagram
         varchar item_description
         numeric quantity
         numeric unit_price
-        numeric total_amount "GENERATED"
+        numeric total_amount
         varchar unit_of_measure
         datetime created_at
         datetime updated_at
@@ -85,19 +86,22 @@ erDiagram
 
     invoices {
         int id PK
+        enum invoice_type
         int purchase_order_id FK
+        int vendor_id FK
+        int project_id FK
         varchar si_number
         date si_date
         date si_received_at
-        enum payment_type "cash, check, bank_transfer, credit_card, other"
+        enum payment_type
         numeric invoice_amount
-        enum currency "PHP, USD"
+        enum currency
         numeric tax_amount
         numeric discount_amount
         numeric net_amount
         varchar terms_of_payment
         varchar other_payment_terms
-        enum invoice_status "pending, received, in_progress, approved, pending_disbursement, rejected, paid, overdue"
+        enum invoice_status
         date due_date
         text notes
         date files_received_at
@@ -114,7 +118,7 @@ erDiagram
     check_requisitions {
         int id PK
         varchar requisition_number UK
-        enum requisition_status "draft, pending_approval, approved, rejected, processed, paid"
+        enum requisition_status
         numeric php_amount
         date request_date
         varchar payee_name
@@ -148,7 +152,7 @@ erDiagram
         int id PK
         varchar check_voucher_number UK
         date date_check_scheduled
-        date date_check_released_to_vendor "Stops aging calculation"
+        date date_check_released_to_vendor
         date date_check_printing
         text remarks
         int created_by FK
@@ -166,8 +170,8 @@ erDiagram
 
     remarks {
         int id PK
-        varchar remarkable_type "Polymorphic type"
-        int remarkable_id "Polymorphic ID"
+        varchar remarkable_type
+        int remarkable_id
         text remark_text
         int created_by FK
         datetime created_at
@@ -176,18 +180,18 @@ erDiagram
 
     files {
         int id PK
-        varchar fileable_type "Polymorphic type"
-        int fileable_id "Polymorphic ID"
+        varchar fileable_type
+        int fileable_id
         varchar file_name
         varchar file_path
         varchar file_type
-        varchar file_category "document, image, spreadsheet, etc."
-        varchar file_purpose "original_po, revised_po, invoice_copy, check_requisition, etc."
-        int file_size "bytes"
-        varchar disk "local, s3, etc."
+        varchar file_category
+        varchar file_purpose
+        int file_size
+        varchar disk
         text description
         boolean is_active
-        int version "File version number for tracking revisions"
+        int version
         int uploaded_by FK
         datetime created_at
         datetime updated_at
@@ -195,10 +199,10 @@ erDiagram
 
     activity_logs {
         int id PK
-        varchar loggable_type "Polymorphic type"
-        int loggable_id "Polymorphic ID"
-        varchar action "created, updated, deleted, approved, etc."
-        json changes "before/after values"
+        varchar loggable_type
+        int loggable_id
+        varchar action
+        json changes
         int user_id FK
         varchar ip_address
         text notes
@@ -210,64 +214,62 @@ erDiagram
         int id PK
         varchar table_name
         int record_id
-        enum action "create, update, delete"
-        json changes "simplified: only what changed"
+        enum action
+        json changes
         int user_id FK
         datetime performed_at
         varchar ip_address
         text user_agent
     }
 
-%% Core Relationships
-    users ||--o{ vendors : "created_by"
-    users ||--o{ projects : "created_by"
-    users ||--o{ purchase_orders : "created_by"
-    users ||--o{ purchase_orders : "finalized_by"
-    users ||--o{ purchase_orders : "closed_by"
-    users ||--o{ invoices : "created_by"
-    users ||--o{ invoices : "reviewed_by"
-    users ||--o{ check_requisitions : "generated_by"
-    users ||--o{ check_requisitions : "processed_by"
-    users ||--o{ disbursements : "created_by"
-    users ||--o{ remarks : "created_by"
-    users ||--o{ files : "uploaded_by"
-    users ||--o{ activity_logs : "user_id"
-    users ||--o{ audit_trails : "user_id"
+    users ||--o{ vendors : created_by
+    users ||--o{ projects : created_by
+    users ||--o{ purchase_orders : created_by
+    users ||--o{ purchase_orders : finalized_by
+    users ||--o{ purchase_orders : closed_by
+    users ||--o{ invoices : created_by
+    users ||--o{ invoices : reviewed_by
+    users ||--o{ check_requisitions : generated_by
+    users ||--o{ check_requisitions : processed_by
+    users ||--o{ disbursements : created_by
+    users ||--o{ remarks : created_by
+    users ||--o{ files : uploaded_by
+    users ||--o{ activity_logs : user_id
+    users ||--o{ audit_trails : user_id
 
-    vendors ||--o{ purchase_orders : "has"
-    projects ||--o{ purchase_orders : "has"
-    purchase_orders ||--o{ po_line_items : "has"
-    purchase_orders ||--o{ invoices : "has"
+    vendors ||--o{ purchase_orders : has
+    projects ||--o{ purchase_orders : has
+    purchase_orders ||--o{ po_line_items : has
+    purchase_orders ||--o{ invoices : "has PO invoices"
 
-%% Junction Table Relationships
-    check_requisitions ||--o{ check_requisition_invoices : "links_to"
-    invoices ||--o{ check_requisition_invoices : "linked_by"
+    vendors ||--o{ invoices : "has direct invoices"
+    projects ||--o{ invoices : "optional direct invoices"
+
+    check_requisitions ||--o{ check_requisition_invoices : links_to
+    invoices ||--o{ check_requisition_invoices : linked_by
     
-    check_requisitions ||--o{ check_requisition_disbursement : "links_to"
-    disbursements ||--o{ check_requisition_disbursement : "linked_by"
+    check_requisitions ||--o{ check_requisition_disbursement : links_to
+    disbursements ||--o{ check_requisition_disbursement : linked_by
 
-%% Polymorphic Relationships - remarks
-    remarks }o--o{ vendors : "remarkable"
-    remarks }o--o{ projects : "remarkable"
-    remarks }o--o{ purchase_orders : "remarkable"
-    remarks }o--o{ invoices : "remarkable"
-    remarks }o--o{ check_requisitions : "remarkable"
-    remarks }o--o{ disbursements : "remarkable"
+    remarks }o--o{ vendors : remarkable
+    remarks }o--o{ projects : remarkable
+    remarks }o--o{ purchase_orders : remarkable
+    remarks }o--o{ invoices : remarkable
+    remarks }o--o{ check_requisitions : remarkable
+    remarks }o--o{ disbursements : remarkable
 
-%% Polymorphic Relationships - files
-    files }o--o{ users : "fileable"
-    files }o--o{ vendors : "fileable"
-    files }o--o{ projects : "fileable"
-    files }o--o{ purchase_orders : "fileable"
-    files }o--o{ invoices : "fileable"
-    files }o--o{ check_requisitions : "fileable"
-    files }o--o{ disbursements : "fileable"
+    files }o--o{ users : fileable
+    files }o--o{ vendors : fileable
+    files }o--o{ projects : fileable
+    files }o--o{ purchase_orders : fileable
+    files }o--o{ invoices : fileable
+    files }o--o{ check_requisitions : fileable
+    files }o--o{ disbursements : fileable
 
-%% Polymorphic Relationships - activity_logs
-    activity_logs }o--o{ users : "loggable"
-    activity_logs }o--o{ vendors : "loggable"
-    activity_logs }o--o{ projects : "loggable"
-    activity_logs }o--o{ purchase_orders : "loggable"
-    activity_logs }o--o{ invoices : "loggable"
-    activity_logs }o--o{ check_requisitions : "loggable"
-    activity_logs }o--o{ disbursements : "loggable"
+    activity_logs }o--o{ users : loggable
+    activity_logs }o--o{ vendors : loggable
+    activity_logs }o--o{ projects : loggable
+    activity_logs }o--o{ purchase_orders : loggable
+    activity_logs }o--o{ invoices : loggable
+    activity_logs }o--o{ check_requisitions : loggable
+    activity_logs }o--o{ disbursements : loggable
