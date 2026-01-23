@@ -13,19 +13,10 @@ interface Vendor {
   category?: string;
 }
 
-interface Project {
-  id: number;
-  project_title: string;
-  cer_number: string;
-}
-
 interface DirectVendorProjectSelectorProps {
   vendors: Vendor[];
-  projects: Project[];
   selectedVendorId: string;
-  selectedProjectId: string;
   onVendorChange: (vendorId: string) => void;
-  onProjectChange: (projectId: string) => void;
 }
 
 function RequiredLabel() {
@@ -34,57 +25,27 @@ function RequiredLabel() {
 
 export function DirectVendorProjectSelector({
   vendors,
-  projects,
   selectedVendorId,
-  selectedProjectId,
   onVendorChange,
-  onProjectChange,
 }: DirectVendorProjectSelectorProps) {
-  // Handle project change and convert "none" to empty string
-  const handleProjectChange = (value: string) => {
-    onProjectChange(value === 'none' ? '' : value);
-  };
-
   return (
-    <div className="grid grid-cols-2 gap-4">
+    <div>
       {/* Vendor Selector */}
-      <div>
-        <Label>
-          Vendor <RequiredLabel />
-        </Label>
-        <Select value={selectedVendorId} onValueChange={onVendorChange}>
-          <SelectTrigger>
-            <SelectValue placeholder="Select vendor..." />
-          </SelectTrigger>
-          <SelectContent>
-            {vendors.map((vendor) => (
-              <SelectItem key={vendor.id} value={vendor.id.toString()}>
-                {vendor.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Project Selector */}
-      <div>
-        <Label>
-          Project <span className="text-muted-foreground text-xs">(Optional)</span>
-        </Label>
-        <Select value={selectedProjectId || "none"} onValueChange={handleProjectChange}>
-          <SelectTrigger>
-            <SelectValue placeholder="Select project (optional)..." />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="none">No Project</SelectItem>
-            {projects.map((project) => (
-              <SelectItem key={project.id} value={project.id.toString()}>
-                {project.project_title} ({project.cer_number})
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      <Label>
+        Vendor <RequiredLabel />
+      </Label>
+      <Select value={selectedVendorId} onValueChange={onVendorChange}>
+        <SelectTrigger>
+          <SelectValue placeholder="Select vendor..." />
+        </SelectTrigger>
+        <SelectContent>
+          {vendors.map((vendor) => (
+            <SelectItem key={vendor.id} value={vendor.id.toString()}>
+              {vendor.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     </div>
   );
 }

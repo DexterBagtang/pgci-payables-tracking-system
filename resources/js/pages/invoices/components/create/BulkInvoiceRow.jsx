@@ -34,61 +34,36 @@ const BulkInvoiceRow = memo(
             [vendors],
         );
 
-        const projectOptions = useMemo(
-            () =>
-                projects.map((project) => ({
-                    value: project.id.toString(),
-                    label: project.project_title,
-                })),
-            [projects],
-        );
-
         return (
             <TableRow className="hover:bg-slate-50">
                 {/* Index */}
                 <TableCell className="text-xs font-medium text-slate-600">{index + 1}</TableCell>
 
-                {/* Vendor and Project for Direct Invoices */}
+                {/* Vendor for Direct Invoices */}
                 {bulkConfig.sharedValues.invoice_type === 'direct' && (
-                    <>
-                        <TableCell>
-                            <Select
-                                value={invoice.vendor_id?.toString() || ''}
-                                onValueChange={(value) => onUpdate(index, 'vendor_id', value)}
-                            >
-                                <SelectTrigger className="h-8 text-xs">
-                                    <SelectValue placeholder="Select Vendor" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {vendorOptions.map((option) => (
-                                        <SelectItem key={option.value} value={option.value}>
-                                            {option.label}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            {errors[`bulk_${index}_vendor_id`] && (
-                                <p className="mt-1 text-xs text-red-600">{errors[`bulk_${index}_vendor_id`]}</p>
-                            )}
-                        </TableCell>
-                        <TableCell>
-                            <Select
-                                value={invoice.project_id?.toString() || ''}
-                                onValueChange={(value) => onUpdate(index, 'project_id', value)}
-                            >
-                                <SelectTrigger className="h-8 text-xs">
-                                    <SelectValue placeholder="Select Project" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {projectOptions.map((option) => (
-                                        <SelectItem key={option.value} value={option.value}>
-                                            {option.label}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </TableCell>
-                    </>
+                    <TableCell>
+                        <Select
+                            value={invoice.vendor_id?.toString() || ''}
+                            onValueChange={(value) => {
+                                onUpdate(index, 'vendor_id', value);
+                                onUpdate(index, 'project_id', ''); // Clear project when vendor changes
+                            }}
+                        >
+                            <SelectTrigger className="h-8 text-xs">
+                                <SelectValue placeholder="Select Vendor" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {vendorOptions.map((option) => (
+                                    <SelectItem key={option.value} value={option.value}>
+                                        {option.label}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        {errors[`bulk_${index}_vendor_id`] && (
+                            <p className="mt-1 text-xs text-red-600">{errors[`bulk_${index}_vendor_id`]}</p>
+                        )}
+                    </TableCell>
                 )}
 
                 {/* SI Number */}

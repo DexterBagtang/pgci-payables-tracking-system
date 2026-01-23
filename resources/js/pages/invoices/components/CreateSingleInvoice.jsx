@@ -222,20 +222,17 @@ const CreateSingleInvoice = ({ purchaseOrders = [], vendors = [], projects = [] 
                                     <CardContent className="pt-6">
                                         <DirectVendorProjectSelector
                                             vendors={vendors}
-                                            projects={projects}
                                             selectedVendorId={singleData.vendor_id?.toString() || ''}
-                                            selectedProjectId={singleData.project_id?.toString() || ''}
                                             onVendorChange={(vendorId) => setSingleData(prev => ({
                                                 ...prev,
                                                 vendor_id: vendorId,
-                                                purchase_order_id: ''
-                                            }))}
-                                            onProjectChange={(projectId) => setSingleData(prev => ({
-                                                ...prev,
-                                                project_id: projectId,
+                                                project_id: '', // Clear project when vendor changes
                                                 purchase_order_id: ''
                                             }))}
                                         />
+                                        {errors.vendor_id && (
+                                            <p className="mt-2 text-xs text-red-600">{errors.vendor_id}</p>
+                                        )}
                                     </CardContent>
                                 </Card>
                             )}

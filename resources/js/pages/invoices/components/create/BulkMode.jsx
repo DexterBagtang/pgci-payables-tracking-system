@@ -128,10 +128,7 @@ export default function BulkMode({
                                 <TableRow className="bg-slate-100 hover:bg-slate-100">
                                     <TableHead className="w-[50px] text-xs font-medium">#</TableHead>
                                     {bulkConfig.sharedValues.invoice_type === 'direct' && (
-                                        <>
-                                            <TableHead className="text-xs font-medium">Vendor *</TableHead>
-                                            <TableHead className="text-xs font-medium">Project</TableHead>
-                                        </>
+                                        <TableHead className="text-xs font-medium">Vendor *</TableHead>
                                     )}
                                     <TableHead className="w-[180px] text-xs font-medium">SI Number *</TableHead>
                                     <TableHead className="text-xs font-medium">SI Date *</TableHead>

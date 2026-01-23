@@ -368,17 +368,14 @@ const EditInvoice = ({ invoice, purchaseOrders, vendors = [], projects = [] }) =
                                 <CardContent>
                                     <DirectVendorProjectSelector
                                         vendors={vendors}
-                                        projects={projects}
                                         selectedVendorId={data.vendor_id}
-                                        selectedProjectId={data.project_id}
-                                        onVendorChange={(vendorId) => setData('vendor_id', vendorId)}
-                                        onProjectChange={(projectId) => setData('project_id', projectId)}
+                                        onVendorChange={(vendorId) => {
+                                            setData('vendor_id', vendorId);
+                                            setData('project_id', ''); // Clear project when vendor changes
+                                        }}
                                     />
                                     {errors.vendor_id && (
                                         <p className="mt-2 text-xs text-red-600">{errors.vendor_id}</p>
-                                    )}
-                                    {errors.project_id && (
-                                        <p className="mt-2 text-xs text-red-600">{errors.project_id}</p>
                                     )}
                                 </CardContent>
                             </Card>

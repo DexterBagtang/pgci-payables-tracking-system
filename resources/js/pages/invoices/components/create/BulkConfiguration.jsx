@@ -326,7 +326,8 @@ export default function BulkConfiguration({
                             {sharedFieldOptions
                                 .filter((option) => {
                                     if (option.key === 'purchase_order_id' && bulkConfig.sharedValues.invoice_type !== 'purchase_order') return false;
-                                    if (['vendor_id', 'project_id'].includes(option.key) && bulkConfig.sharedValues.invoice_type !== 'direct') return false;
+                                    if (option.key === 'vendor_id' && bulkConfig.sharedValues.invoice_type !== 'direct') return false;
+                                    if (option.key === 'project_id') return false; // Hide project for all invoice types
                                     return !option.required;
                                 })
                                 .map((field) => {
@@ -414,6 +415,7 @@ export default function BulkConfiguration({
                                                             sharedValues: {
                                                                 ...prev.sharedValues,
                                                                 vendor_id: value,
+                                                                project_id: '', // Clear project when vendor changes
                                                             },
                                                         }))
                                                     }
@@ -434,66 +436,34 @@ export default function BulkConfiguration({
                                         );
                                     }
 
-                                    if (fieldKey === 'project_id' && bulkConfig.sharedValues.invoice_type === 'direct') {
-                                        return (
-                                            <div key={fieldKey} className="">
-                                                <Label className="text-xs ">Project</Label>
-                                                <Select
-                                                    value={bulkConfig.sharedValues.project_id?.toString() || ''}
-                                                    onValueChange={(value) =>
-                                                        setBulkConfig((prev) => ({
-                                                            ...prev,
-                                                            sharedValues: {
-                                                                ...prev.sharedValues,
-                                                                project_id: value,
-                                                            },
-                                                        }))
-                                                    }
-                                                >
-                                                    <SelectTrigger className="h-8 mt-1 text-xs">
-                                                        <SelectValue placeholder="Select Project" />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        {projects.map((project) => (
-                                                            <SelectItem key={project.id} value={project.id.toString()}>
-                                                                {project.project_title}
-                                                            </SelectItem>
-                                                        ))}
-                                                    </SelectContent>
-                                                </Select>
-                                                {errors[fieldKey] && <p className="mt-1 text-xs text-red-600">{errors[fieldKey]}</p>}
-                                            </div>
-                                        );
+                                    // Skip currency field as it will be combined with invoice_amount
+                                    if (fieldKey === 'currency') {
+                                        return null;
                                     }
 
-                                    if (fieldKey === 'currency') {
+                                    // Invoice Amount Field (combined with Currency)
+                                    if (fieldKey === 'invoice_amount') {
+                                        const isCurrencyShared = bulkConfig.sharedFields.currency;
                                         return (
                                             <div key={fieldKey} className="">
-                                                <Label className="text-xs">Currency<RequiredLabel/></Label>
-                                                <div className="mt-1">
+                                                <Label className="text-xs inline-block">
+                                                    Invoice Amount{isCurrencyShared && <RequiredLabel/>}
+                                                </Label>
+                                                {isCurrencyShared && (
                                                     <CurrencyToggle
-                                                        value={bulkConfig.sharedValues[fieldKey] || 'PHP'}
+                                                        value={bulkConfig.sharedValues.currency || 'PHP'}
                                                         onChange={(value) =>
                                                             setBulkConfig((prev) => ({
                                                                 ...prev,
                                                                 sharedValues: {
                                                                     ...prev.sharedValues,
-                                                                    [fieldKey]: value,
+                                                                    currency: value,
                                                                 },
                                                             }))
                                                         }
+                                                        className="ml-1"
                                                     />
-                                                </div>
-                                                {errors[fieldKey] && <p className="mt-1 text-xs text-red-600">{errors[fieldKey]}</p>}
-                                            </div>
-                                        );
-                                    }
-
-                                    // Invoice Amount Field
-                                    if (fieldKey === 'invoice_amount') {
-                                        return (
-                                            <div key={fieldKey} className="">
-                                                <Label className="text-xs">Invoice Amount</Label>
+                                                )}
                                                 <Input
                                                     type="number"
                                                     step="0.01"
@@ -510,7 +480,9 @@ export default function BulkConfiguration({
                                                     placeholder="0.00"
                                                     className="h-8 mt-1 text-xs"
                                                 />
-                                                {errors[fieldKey] && <p className="mt-1 text-xs text-red-600">{errors[fieldKey]}</p>}
+                                                {(errors[fieldKey] || errors.currency) && (
+                                                    <p className="mt-1 text-xs text-red-600">{errors[fieldKey] || errors.currency}</p>
+                                                )}
                                             </div>
                                         );
                                     }
