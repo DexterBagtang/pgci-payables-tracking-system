@@ -42,38 +42,22 @@ class Invoice extends Model
         return $this->belongsTo(Project::class, 'project_id');
     }
 
-    // Conditional vendor relationship - returns direct or through PO
-    public function vendor()
+    // Accessor attribute for vendor - returns vendor from either direct or PO relationship
+    public function getVendorAttribute()
     {
         if ($this->invoice_type === 'direct' || $this->vendor_id) {
-            return $this->directVendor();
+            return $this->directVendor;
         }
-
-        return $this->hasOneThrough(
-            Vendor::class,          // Final model
-            PurchaseOrder::class,   // Intermediate model
-            'id',                   // Foreign key on purchase_orders (to match with invoices.purchase_order_id)
-            'id',                   // Foreign key on vendors (to match with purchase_orders.vendor_id)
-            'purchase_order_id',    // Foreign key on invoices
-            'vendor_id'             // Foreign key on purchase_orders
-        );
+        return $this->purchaseOrder?->vendor;
     }
 
-    // Conditional project relationship - returns direct or through PO
-    public function project()
+    // Accessor attribute for project - returns project from either direct or PO relationship
+    public function getProjectAttribute()
     {
-        if ($this->invoice_type === 'direct') {
-            return $this->directProject();
+        if ($this->invoice_type === 'direct' || $this->project_id) {
+            return $this->directProject;
         }
-
-        return $this->hasOneThrough(
-            Project::class,
-            PurchaseOrder::class,
-            'id',
-            'id',
-            'purchase_order_id',
-            'project_id'
-        );
+        return $this->purchaseOrder?->project;
     }
 
     /**

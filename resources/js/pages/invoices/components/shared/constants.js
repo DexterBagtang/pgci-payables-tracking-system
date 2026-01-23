@@ -13,7 +13,9 @@ export const paymentTermsOptions = [
 
 // Shared field options for bulk mode configuration
 export const sharedFieldOptions = [
-    { key: 'purchase_order_id', label: 'Purchase Order', required: true },
+    { key: 'purchase_order_id', label: 'Purchase Order', required: true, type: 'po' },
+    { key: 'vendor_id', label: 'Vendor', required: true, type: 'direct' },
+    { key: 'project_id', label: 'Project', required: false, type: 'direct' },
     { key: 'currency', label: 'Currency', required: true },
     { key: 'invoice_amount', label: 'Invoice Amount' },
     { key: 'si_date', label: 'SI Date' },

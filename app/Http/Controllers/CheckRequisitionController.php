@@ -120,13 +120,24 @@ class CheckRequisitionController extends Controller
     {
         $this->authorize('create', CheckRequisition::class);
 
-        $query = Invoice::with(['purchaseOrder.vendor', 'purchaseOrder.project'])
+        $query = Invoice::with([
+                'purchaseOrder.vendor',
+                'purchaseOrder.project',
+                'directVendor',
+                'directProject'
+            ])
             ->where('invoice_status', 'approved');
 
-        // Filter by vendor
+        // Filter by vendor (handle both PO and direct invoices)
         if ($request->filled('vendor') && $request->vendor !== 'all') {
-            $query->whereHas('purchaseOrder', function ($q) use ($request) {
-                $q->where('vendor_id', $request->vendor);
+            $query->where(function ($q) use ($request) {
+                $q->whereHas('purchaseOrder', function ($poQuery) use ($request) {
+                    $poQuery->where('vendor_id', $request->vendor);
+                })
+                ->orWhere(function ($directQuery) use ($request) {
+                    $directQuery->where('invoice_type', 'direct')
+                        ->where('vendor_id', $request->vendor);
+                });
             });
         }
 
@@ -135,7 +146,7 @@ class CheckRequisitionController extends Controller
             $query->where('purchase_order_id', $request->purchase_order);
         }
 
-        // Search
+        // Search (handle both PO and direct invoices)
         if ($request->filled('search')) {
             $query->where(function ($q) use ($request) {
                 $q->where('si_number', 'like', '%' . $request->search . '%')
@@ -144,6 +155,9 @@ class CheckRequisitionController extends Controller
                             ->orWhereHas('vendor', function ($vr) use ($request) {
                                 $vr->where('name', 'like', '%' . $request->search . '%');
                             });
+                    })
+                    ->orWhereHas('directVendor', function ($dv) use ($request) {
+                        $dv->where('name', 'like', '%' . $request->search . '%');
                     });
             });
         }
@@ -274,10 +288,14 @@ class CheckRequisitionController extends Controller
 
         $this->authorize('view', $checkRequisition);
 
-        // Get associated invoices through the junction table
+        // Get associated invoices through the junction table (include vendor/project relationships)
         $invoices = $checkRequisition->invoices()
             ->select([
                 'invoices.id',
+                'invoices.invoice_type',
+                'invoices.purchase_order_id',
+                'invoices.vendor_id',
+                'invoices.project_id',
                 'invoices.si_number',
                 'invoices.si_date',
                 'invoices.invoice_amount',
@@ -286,6 +304,12 @@ class CheckRequisitionController extends Controller
                 'invoices.net_amount',
                 'invoices.invoice_status',
                 'invoices.payment_type'
+            ])
+            ->with([
+                'purchaseOrder.vendor',
+                'purchaseOrder.project',
+                'directVendor',
+                'directProject'
             ])
             ->get();
 
@@ -317,9 +341,14 @@ class CheckRequisitionController extends Controller
         // Use policy to check both permission and status restrictions
         $this->authorize('update', $checkRequisition);
 
-        // Get current invoices attached to this requisition
+        // Get current invoices attached to this requisition (include direct invoice relationships)
         $currentInvoices = $checkRequisition->invoices()
-            ->with(['purchaseOrder.vendor', 'purchaseOrder.project'])
+            ->with([
+                'purchaseOrder.vendor',
+                'purchaseOrder.project',
+                'directVendor',
+                'directProject'
+            ])
             ->get();
 
         // Get available approved invoices that can be added
@@ -327,7 +356,12 @@ class CheckRequisitionController extends Controller
         $currentInvoiceIds = $currentInvoices->pluck('id')->toArray();
 
         $availableInvoices = Invoice::query()
-            ->with(['purchaseOrder.vendor', 'purchaseOrder.project'])
+            ->with([
+                'purchaseOrder.vendor',
+                'purchaseOrder.project',
+                'directVendor',
+                'directProject'
+            ])
             ->where(function($query) use ($currentInvoiceIds) {
                 $query->where('invoice_status', 'approved')
                       ->orWhereIn('id', $currentInvoiceIds);
@@ -467,13 +501,24 @@ class CheckRequisitionController extends Controller
     {
         $this->authorize('create', CheckRequisition::class);
 
-        $query = Invoice::with(['purchaseOrder.vendor', 'purchaseOrder.project'])
+        $query = Invoice::with([
+                'purchaseOrder.vendor',
+                'purchaseOrder.project',
+                'directVendor',
+                'directProject'
+            ])
             ->where('invoice_status', 'approved');
 
-        // Filter by vendor
+        // Filter by vendor (handle both PO and direct invoices)
         if ($request->filled('vendor') && $request->vendor !== 'all') {
-            $query->whereHas('purchaseOrder', function ($q) use ($request) {
-                $q->where('vendor_id', $request->vendor);
+            $query->where(function ($q) use ($request) {
+                $q->whereHas('purchaseOrder', function ($poQuery) use ($request) {
+                    $poQuery->where('vendor_id', $request->vendor);
+                })
+                ->orWhere(function ($directQuery) use ($request) {
+                    $directQuery->where('invoice_type', 'direct')
+                        ->where('vendor_id', $request->vendor);
+                });
             });
         }
 
@@ -482,7 +527,7 @@ class CheckRequisitionController extends Controller
             $query->where('purchase_order_id', $request->purchase_order);
         }
 
-        // Search
+        // Search (handle both PO and direct invoices)
         if ($request->filled('search')) {
             $query->where(function ($q) use ($request) {
                 $q->where('si_number', 'like', '%' . $request->search . '%')
@@ -491,6 +536,9 @@ class CheckRequisitionController extends Controller
                             ->orWhereHas('vendor', function ($vr) use ($request) {
                                 $vr->where('name', 'like', '%' . $request->search . '%');
                             });
+                    })
+                    ->orWhereHas('directVendor', function ($dv) use ($request) {
+                        $dv->where('name', 'like', '%' . $request->search . '%');
                     });
             });
         }
@@ -530,16 +578,27 @@ class CheckRequisitionController extends Controller
         // Get current invoice IDs
         $currentInvoiceIds = $checkRequisition->invoices()->pluck('invoices.id')->toArray();
 
-        $query = Invoice::with(['purchaseOrder.vendor', 'purchaseOrder.project'])
+        $query = Invoice::with([
+                'purchaseOrder.vendor',
+                'purchaseOrder.project',
+                'directVendor',
+                'directProject'
+            ])
             ->where(function($q) use ($currentInvoiceIds) {
                 $q->where('invoice_status', 'approved')
                   ->orWhereIn('id', $currentInvoiceIds);
             });
 
-        // Filter by vendor
+        // Filter by vendor (handle both PO and direct invoices)
         if ($request->filled('vendor') && $request->vendor !== 'all') {
-            $query->whereHas('purchaseOrder', function ($q) use ($request) {
-                $q->where('vendor_id', $request->vendor);
+            $query->where(function ($q) use ($request) {
+                $q->whereHas('purchaseOrder', function ($poQuery) use ($request) {
+                    $poQuery->where('vendor_id', $request->vendor);
+                })
+                ->orWhere(function ($directQuery) use ($request) {
+                    $directQuery->where('invoice_type', 'direct')
+                        ->where('vendor_id', $request->vendor);
+                });
             });
         }
 
@@ -548,7 +607,7 @@ class CheckRequisitionController extends Controller
             $query->where('purchase_order_id', $request->purchase_order);
         }
 
-        // Search
+        // Search (handle both PO and direct invoices)
         if ($request->filled('search')) {
             $query->where(function ($q) use ($request) {
                 $q->where('si_number', 'like', '%' . $request->search . '%')
@@ -557,6 +616,9 @@ class CheckRequisitionController extends Controller
                             ->orWhereHas('vendor', function ($vr) use ($request) {
                                 $vr->where('name', 'like', '%' . $request->search . '%');
                             });
+                    })
+                    ->orWhereHas('directVendor', function ($dv) use ($request) {
+                        $dv->where('name', 'like', '%' . $request->search . '%');
                     });
             });
         }
@@ -576,8 +638,14 @@ class CheckRequisitionController extends Controller
      */
     public function review(CheckRequisition $checkRequisition)
     {
-        // Load relationships
-        $checkRequisition->load(['invoices', 'activityLogs.user']);
+        // Load relationships (include direct invoice relationships)
+        $checkRequisition->load([
+            'invoices.purchaseOrder.vendor',
+            'invoices.purchaseOrder.project',
+            'invoices.directVendor',
+            'invoices.directProject',
+            'activityLogs.user'
+        ]);
 
         // Get files with proper ordering (latest check_requisition PDF first)
         $files = $checkRequisition->files()

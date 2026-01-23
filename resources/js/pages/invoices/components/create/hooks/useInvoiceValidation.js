@@ -20,14 +20,20 @@ export function useInvoiceValidation() {
                     newErrors.purchase_order_id = 'Purchase order is required';
                 }
             } else if (invoiceType === 'direct') {
-                if (!bulkConfig.sharedValues.vendor_id) {
-                    newErrors.vendor_id = 'Vendor is required for direct invoices';
+                if (bulkConfig.sharedFields.vendor_id && !bulkConfig.sharedValues.vendor_id) {
+                    newErrors.vendor_id = 'Shared vendor is required for direct invoices';
                 }
-                // project_id is optional - no validation needed
             }
 
-            // Validate each bulk invoice individually (since shared values can be edited)
+            // Validate each bulk invoice individually
             bulkInvoices.forEach((invoice, index) => {
+                // For direct invoices, if vendor is not shared, validate each row
+                if (invoiceType === 'direct' && !bulkConfig.sharedFields.vendor_id) {
+                    if (!invoice.vendor_id) {
+                        newErrors[`bulk_${index}_vendor_id`] = `Invoice ${index + 1}: Vendor is required`;
+                    }
+                }
+
                 if (!invoice.si_number)
                     newErrors[`bulk_${index}_si_number`] = `Invoice ${index + 1}: SI Number is required`;
                 if (!invoice.si_date)

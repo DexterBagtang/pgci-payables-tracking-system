@@ -62,6 +62,20 @@ const InvoicesTable = ({ invoices, filters, filterOptions, statusCounts, current
 
     const invoiceStatuses = ['all', 'pending', 'received', 'approved', 'rejected', 'pending_disbursement'];
 
+    // Helper functions to get vendor/project from either PO or direct invoice
+    const getVendorInfo = (invoice) => {
+        if (invoice.invoice_type === 'direct') {
+            return invoice.direct_vendor || null;
+        }
+        return invoice.purchase_order?.vendor || null;
+    };
+
+    const getProjectInfo = (invoice) => {
+        if (invoice.invoice_type === 'direct') {
+            return invoice.direct_project || null;
+        }
+        return invoice.purchase_order?.project || null;
+    };
 
     const formatCurrency = (amount, currency = 'PHP') => {
         const currencyCode = currency === 'USD' ? 'USD' : 'PHP';
@@ -660,9 +674,12 @@ const InvoicesTable = ({ invoices, filters, filterOptions, statusCounts, current
                                                                     </TooltipContent>
                                                                 </Tooltip>
                                                             </TooltipProvider>
-                                                            <div className="text-xs text-gray-500">
-                                                                <span className="font-medium">PO:</span> {invoice.purchase_order?.po_number || '-'}
-                                                            </div>
+                                                            {/* Only show PO if it exists (purchase_order type) */}
+                                                            {invoice.purchase_order?.po_number && (
+                                                                <div className="text-xs text-gray-500">
+                                                                    <span className="font-medium">PO:</span> {invoice.purchase_order.po_number}
+                                                                </div>
+                                                            )}
                                                             <div className="text-xs text-gray-500">
                                                                 <span className="font-medium">Date:</span> {formatDate(invoice.si_date)}
                                                             </div>
@@ -671,26 +688,40 @@ const InvoicesTable = ({ invoices, filters, filterOptions, statusCounts, current
 
                                                     {/* Vendor & Project */}
                                                     <TableCell>
-                                                        <div className="flex flex-col space-y-1">
-                                                            <div className="flex items-center">
-                                                                <Building2 className="mr-1 h-4 w-4 text-gray-500" />
-                                                                <span className="font-medium text-sm mr-1">{invoice.purchase_order?.vendor?.name || 'Unknown Vendor'}</span>
-                                                                {invoice.purchase_order?.vendor?.category && (
-                                                                    <StatusBadge
-                                                                        status={invoice.purchase_order.vendor.category}
-                                                                        showIcon={false}
-                                                                        size="xs"
-                                                                        variant="outline"
-                                                                    />
-                                                                )}
-                                                            </div>
-                                                            <div className="mt-1 text-xs text-gray-600">
-                                                                {invoice.purchase_order?.project?.project_title || 'Unknown Project'}
-                                                            </div>
-                                                            <div className="text-xs text-gray-500">
-                                                                CER: {invoice.purchase_order?.project?.cer_number || '-'}
-                                                            </div>
-                                                        </div>
+                                                        {(() => {
+                                                            const vendor = getVendorInfo(invoice);
+                                                            const project = getProjectInfo(invoice);
+                                                            return (
+                                                                <div className="flex flex-col space-y-1">
+                                                                    <div className="flex items-center">
+                                                                        <Building2 className="mr-1 h-4 w-4 text-gray-500" />
+                                                                        <span className="font-medium text-sm mr-1">{vendor?.name || 'Unknown Vendor'}</span>
+                                                                        {vendor?.category && (
+                                                                            <StatusBadge
+                                                                                status={vendor.category}
+                                                                                showIcon={false}
+                                                                                size="xs"
+                                                                                variant="outline"
+                                                                            />
+                                                                        )}
+                                                                        {invoice.invoice_type === 'direct' && (
+                                                                            <Badge variant="outline" className="ml-1 bg-orange-50 text-orange-700 border-orange-300 text-[10px] px-1 py-0">
+                                                                                Direct
+                                                                            </Badge>
+                                                                        )}
+                                                                    </div>
+                                                                    <div className="mt-1 text-xs text-gray-600">
+                                                                        {project?.project_title || 'No Project'}
+                                                                    </div>
+                                                                    {/* Only show CER if it exists */}
+                                                                    {project?.cer_number && (
+                                                                        <div className="text-xs text-gray-500">
+                                                                            <span className="font-medium">CER:</span> {project.cer_number}
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            );
+                                                        })()}
                                                     </TableCell>
 
                                                     {/* Amount */}

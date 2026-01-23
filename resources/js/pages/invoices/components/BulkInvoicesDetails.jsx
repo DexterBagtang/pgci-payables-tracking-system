@@ -86,7 +86,7 @@ const BulkInvoiceDetails = memo(function BulkInvoiceDetails({
 
             {/* Content - Compact Grid Layout */}
             <div className="flex-1 overflow-hidden">
-                <ScrollArea className="h-97 w-full">
+                <ScrollArea className="h-full w-full">
                     <div className="p-2 space-y-2">
                         {/* Primary Info Row - Super Compact */}
                         <div className="grid grid-cols-4 gap-1.5">
@@ -134,37 +134,82 @@ const BulkInvoiceDetails = memo(function BulkInvoiceDetails({
                         <div className="border border-slate-200 rounded bg-white">
                             <table className="w-full text-[10px]">
                                 <tbody className="divide-y divide-slate-100">
+                                {/* Invoice Type Badge */}
+                                {currentInvoice.invoice_type === 'direct' && (
+                                    <tr>
+                                        <td className="px-2 py-1.5 w-20 text-slate-500 font-semibold bg-slate-50">Type</td>
+                                        <td colSpan="3" className="px-2 py-1.5">
+                                            <Badge variant="secondary" className="bg-purple-50 text-purple-700 text-[9px]">
+                                                Direct Invoice (No PO)
+                                            </Badge>
+                                        </td>
+                                    </tr>
+                                )}
+
+                                {/* Vendor Row */}
                                 <tr>
                                     <td className="px-2 py-1.5 w-20 text-slate-500 font-semibold bg-slate-50">Vendor</td>
-                                    <td className="px-2 py-1.5 font-bold text-slate-900">{currentInvoice.purchase_order?.vendor?.name}</td>
-                                    <td className="px-2 py-1.5 w-20 text-slate-500 font-semibold bg-slate-50">PO #</td>
-                                    <td className="px-2 py-1.5 font-mono font-bold text-blue-700">{currentInvoice.purchase_order?.po_number}</td>
-                                </tr>
-                                <tr>
-                                    <td className="px-2 py-1.5 text-slate-500 font-semibold bg-slate-50">PO Amount</td>
-                                    <td className="px-2 py-1.5 font-bold text-emerald-700">
-                                        {formatCurrency(currentInvoice.purchase_order?.po_amount || 0, currentInvoice.currency)}
+                                    <td className="px-2 py-1.5 font-bold text-slate-900" colSpan={currentInvoice.invoice_type === 'direct' ? '3' : '1'}>
+                                        {currentInvoice.invoice_type === 'direct' 
+                                            ? currentInvoice.direct_vendor?.name || 'N/A'
+                                            : currentInvoice.purchase_order?.vendor?.name || 'N/A'
+                                        }
                                     </td>
-                                    <td className="px-2 py-1.5 text-slate-500 font-semibold bg-slate-50">Balance</td>
-                                    <td className="px-2 py-1.5 font-bold text-slate-700">
-                                        {formatCurrency(
-                                            (currentInvoice.purchase_order?.po_amount || 0) -
-                                            (currentInvoice.invoice_amount || 0),
-                                            currentInvoice.currency
-                                        )}
-                                    </td>
+                                    {/* PO Number - Only show for PO invoices */}
+                                    {currentInvoice.invoice_type === 'purchase_order' && (
+                                        <>
+                                            <td className="px-2 py-1.5 w-20 text-slate-500 font-semibold bg-slate-50">PO #</td>
+                                            <td className="px-2 py-1.5 font-mono font-bold text-blue-700">{currentInvoice.purchase_order?.po_number || 'N/A'}</td>
+                                        </>
+                                    )}
                                 </tr>
-                                <tr>
-                                    <td className="px-2 py-1.5 text-slate-500 font-semibold bg-slate-50">Project</td>
-                                    <td colSpan="3" className="px-2 py-1.5 font-bold text-slate-900">
-                                        {currentInvoice.purchase_order?.project?.project_title}
-                                    </td>
-                                </tr>
-                                {currentInvoice.purchase_order?.project?.cer_number && (
+
+                                {/* PO Amount & Balance - Only show for PO invoices */}
+                                {currentInvoice.invoice_type === 'purchase_order' && (
+                                    <tr>
+                                        <td className="px-2 py-1.5 text-slate-500 font-semibold bg-slate-50">PO Amount</td>
+                                        <td className="px-2 py-1.5 font-bold text-emerald-700">
+                                            {formatCurrency(currentInvoice.purchase_order?.po_amount || 0, currentInvoice.currency)}
+                                        </td>
+                                        <td className="px-2 py-1.5 text-slate-500 font-semibold bg-slate-50">Balance</td>
+                                        <td className="px-2 py-1.5 font-bold text-slate-700">
+                                            {formatCurrency(
+                                                (currentInvoice.purchase_order?.po_amount || 0) -
+                                                (currentInvoice.invoice_amount || 0),
+                                                currentInvoice.currency
+                                            )}
+                                        </td>
+                                    </tr>
+                                )}
+
+                                {/* Project - Show for both types but from different sources */}
+                                {(currentInvoice.invoice_type === 'direct' 
+                                    ? currentInvoice.direct_project 
+                                    : currentInvoice.purchase_order?.project
+                                ) && (
+                                    <tr>
+                                        <td className="px-2 py-1.5 text-slate-500 font-semibold bg-slate-50">Project</td>
+                                        <td colSpan="3" className="px-2 py-1.5 font-bold text-slate-900">
+                                            {currentInvoice.invoice_type === 'direct'
+                                                ? currentInvoice.direct_project?.project_title
+                                                : currentInvoice.purchase_order?.project?.project_title
+                                            }
+                                        </td>
+                                    </tr>
+                                )}
+
+                                {/* CER Number - Show for both types but from different sources */}
+                                {(currentInvoice.invoice_type === 'direct' 
+                                    ? currentInvoice.direct_project?.cer_number
+                                    : currentInvoice.purchase_order?.project?.cer_number
+                                ) && (
                                     <tr>
                                         <td className="px-2 py-1.5 text-slate-500 font-semibold bg-slate-50">CER #</td>
                                         <td colSpan="3" className="px-2 py-1.5 font-mono font-bold text-indigo-700">
-                                            {currentInvoice.purchase_order?.project?.cer_number}
+                                            {currentInvoice.invoice_type === 'direct'
+                                                ? currentInvoice.direct_project?.cer_number
+                                                : currentInvoice.purchase_order?.project?.cer_number
+                                            }
                                         </td>
                                     </tr>
                                 )}

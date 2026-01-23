@@ -4,7 +4,8 @@ import { TableCell, TableRow } from '@/components/ui/table.js';
 import { DatePicker } from '@/components/custom/DatePicker.jsx';
 import { PaymentTermsSelect } from '@/components/custom/PaymentTermsSelect.jsx';
 import { Copy, Trash2 } from 'lucide-react';
-import { memo } from 'react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select.js';
+import { memo, useMemo } from 'react';
 
 const BulkInvoiceRow = memo(
     ({
@@ -21,11 +22,74 @@ const BulkInvoiceRow = memo(
         onDuplicate,
         onDelete,
         onDateChange,
+        vendors,
+        projects,
     }) => {
+        const vendorOptions = useMemo(
+            () =>
+                vendors.map((vendor) => ({
+                    value: vendor.id.toString(),
+                    label: vendor.name,
+                })),
+            [vendors],
+        );
+
+        const projectOptions = useMemo(
+            () =>
+                projects.map((project) => ({
+                    value: project.id.toString(),
+                    label: project.project_title,
+                })),
+            [projects],
+        );
+
         return (
             <TableRow className="hover:bg-slate-50">
                 {/* Index */}
                 <TableCell className="text-xs font-medium text-slate-600">{index + 1}</TableCell>
+
+                {/* Vendor and Project for Direct Invoices */}
+                {bulkConfig.sharedValues.invoice_type === 'direct' && (
+                    <>
+                        <TableCell>
+                            <Select
+                                value={invoice.vendor_id?.toString() || ''}
+                                onValueChange={(value) => onUpdate(index, 'vendor_id', value)}
+                            >
+                                <SelectTrigger className="h-8 text-xs">
+                                    <SelectValue placeholder="Select Vendor" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {vendorOptions.map((option) => (
+                                        <SelectItem key={option.value} value={option.value}>
+                                            {option.label}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            {errors[`bulk_${index}_vendor_id`] && (
+                                <p className="mt-1 text-xs text-red-600">{errors[`bulk_${index}_vendor_id`]}</p>
+                            )}
+                        </TableCell>
+                        <TableCell>
+                            <Select
+                                value={invoice.project_id?.toString() || ''}
+                                onValueChange={(value) => onUpdate(index, 'project_id', value)}
+                            >
+                                <SelectTrigger className="h-8 text-xs">
+                                    <SelectValue placeholder="Select Project" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {projectOptions.map((option) => (
+                                        <SelectItem key={option.value} value={option.value}>
+                                            {option.label}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </TableCell>
+                    </>
+                )}
 
                 {/* SI Number */}
                 <TableCell>

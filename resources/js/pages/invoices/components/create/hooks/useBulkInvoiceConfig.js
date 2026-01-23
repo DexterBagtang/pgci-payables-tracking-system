@@ -15,7 +15,10 @@ export function useBulkInvoiceConfig() {
         rangeStart: '',
         rangeEnd: '',
         sharedFields: {
+            invoice_type: true,
             purchase_order_id: true,
+            vendor_id: true,
+            project_id: true,
             currency: true,
             invoice_amount: false,
             si_date: false,
@@ -28,7 +31,10 @@ export function useBulkInvoiceConfig() {
             notes: false,
         },
         sharedValues: {
+            invoice_type: 'purchase_order',
             purchase_order_id: '',
+            vendor_id: '',
+            project_id: '',
             currency: 'PHP',
             invoice_amount: '',
             si_date: '',
@@ -71,6 +77,10 @@ export function useBulkInvoiceConfig() {
 
         // Always populate shared values for flexibility, regardless of sharedFields setting
         const invoice = {
+            invoice_type: bulkConfig.sharedValues.invoice_type || 'purchase_order',
+            purchase_order_id: bulkConfig.sharedValues.purchase_order_id || '',
+            vendor_id: bulkConfig.sharedValues.vendor_id || '',
+            project_id: bulkConfig.sharedValues.project_id || '',
             si_number: siNumber,
             si_date: bulkConfig.sharedValues.si_date || '',
             si_received_at: bulkConfig.sharedValues.si_received_at || '',
@@ -154,7 +164,10 @@ export function useBulkInvoiceConfig() {
             rangeStart: '',
             rangeEnd: '',
             sharedFields: {
+                invoice_type: true,
                 purchase_order_id: true,
+                vendor_id: true,
+                project_id: true,
                 currency: true,
                 invoice_amount: false,
                 si_date: false,
@@ -167,7 +180,10 @@ export function useBulkInvoiceConfig() {
                 notes: false,
             },
             sharedValues: {
+                invoice_type: 'purchase_order',
                 purchase_order_id: '',
+                vendor_id: '',
+                project_id: '',
                 currency: 'PHP',
                 invoice_amount: '',
                 si_date: '',

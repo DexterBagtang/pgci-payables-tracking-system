@@ -17,6 +17,7 @@ import { RequiredLabel } from '@/components/custom/RequiredLabel.jsx';
 import { CurrencyToggle } from '@/components/custom/CurrencyToggle.jsx';
 import { useEffect, useState } from 'react';
 import { validateRange, generatePreview, parseInvoiceNumber, formatInvoiceNumber } from '@/pages/invoices/components/create/utils/rangeParser.js';
+import PurchaseOrderSelection from '@/pages/invoices/components/create/PurchaseOrderSelection.jsx';
 
 export default function BulkConfiguration({
     bulkConfig,
@@ -27,6 +28,8 @@ export default function BulkConfiguration({
     submitToOptions,
     paymentTermsOptions,
     errors,
+    vendors = [],
+    projects = [],
 }) {
     const selectedFieldsCount = Object.values(bulkConfig.sharedFields).filter(Boolean).length;
     const [rangeError, setRangeError] = useState(null);
@@ -321,7 +324,11 @@ export default function BulkConfiguration({
                         <Label className="text-sm font-medium text-slate-700">Shared Fields</Label>
                         <div className="space-y-1">
                             {sharedFieldOptions
-                                .filter((option) => !option.required)
+                                .filter((option) => {
+                                    if (option.key === 'purchase_order_id' && bulkConfig.sharedValues.invoice_type !== 'purchase_order') return false;
+                                    if (['vendor_id', 'project_id'].includes(option.key) && bulkConfig.sharedValues.invoice_type !== 'direct') return false;
+                                    return !option.required;
+                                })
                                 .map((field) => {
                                     const isSelected = bulkConfig.sharedFields[field.key];
                                     return (
@@ -373,11 +380,92 @@ export default function BulkConfiguration({
                                 </div>
                             ) : (
                                 Object.entries(bulkConfig.sharedFields).map(([fieldKey, isShared]) => {
-                                    if (!isShared || fieldKey === 'purchase_order_id') return null;
+                                    if (!isShared) return null;
 
-                                    const fieldConfig = sharedFieldOptions.find((f) => f.key === fieldKey);
+                                    // Don't show purchase_order_id in BulkConfiguration when invoice_type is 'direct'
+                                    if (fieldKey === 'purchase_order_id' && bulkConfig.sharedValues.invoice_type === 'direct') {
+                                        return null;
+                                    }
 
-                                    // Currency Field
+                                    if (fieldKey === 'purchase_order_id' && bulkConfig.sharedValues.invoice_type === 'purchase_order') {
+                                        return (
+                                            <div key={fieldKey} className="col-span-3">
+                                                <PurchaseOrderSelection
+                                                    setBulkConfig={setBulkConfig}
+                                                    selectedPO={bulkConfig.sharedValues.purchase_order_id} // Pass the selected PO ID
+                                                    poOptions={[]} // Not needed here as the main component handles PO options
+                                                    isBulkMode={true}
+                                                    errors={errors}
+                                                    isSharedField={true}
+                                                />
+                                            </div>
+                                        );
+                                    }
+
+                                    if (fieldKey === 'vendor_id' && bulkConfig.sharedValues.invoice_type === 'direct') {
+                                        return (
+                                            <div key={fieldKey} className="">
+                                                <Label className="text-xs ">Vendor<RequiredLabel/></Label>
+                                                <Select
+                                                    value={bulkConfig.sharedValues.vendor_id?.toString() || ''}
+                                                    onValueChange={(value) =>
+                                                        setBulkConfig((prev) => ({
+                                                            ...prev,
+                                                            sharedValues: {
+                                                                ...prev.sharedValues,
+                                                                vendor_id: value,
+                                                            },
+                                                        }))
+                                                    }
+                                                >
+                                                    <SelectTrigger className="h-8 mt-1 text-xs">
+                                                        <SelectValue placeholder="Select Vendor" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {vendors.map((vendor) => (
+                                                            <SelectItem key={vendor.id} value={vendor.id.toString()}>
+                                                                {vendor.name}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                                {errors[fieldKey] && <p className="mt-1 text-xs text-red-600">{errors[fieldKey]}</p>}
+                                            </div>
+                                        );
+                                    }
+
+                                    if (fieldKey === 'project_id' && bulkConfig.sharedValues.invoice_type === 'direct') {
+                                        return (
+                                            <div key={fieldKey} className="">
+                                                <Label className="text-xs ">Project</Label>
+                                                <Select
+                                                    value={bulkConfig.sharedValues.project_id?.toString() || ''}
+                                                    onValueChange={(value) =>
+                                                        setBulkConfig((prev) => ({
+                                                            ...prev,
+                                                            sharedValues: {
+                                                                ...prev.sharedValues,
+                                                                project_id: value,
+                                                            },
+                                                        }))
+                                                    }
+                                                >
+                                                    <SelectTrigger className="h-8 mt-1 text-xs">
+                                                        <SelectValue placeholder="Select Project" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {projects.map((project) => (
+                                                            <SelectItem key={project.id} value={project.id.toString()}>
+                                                                {project.project_title}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                                {errors[fieldKey] && <p className="mt-1 text-xs text-red-600">{errors[fieldKey]}</p>}
+                                            </div>
+                                        );
+                                    }
+
                                     if (fieldKey === 'currency') {
                                         return (
                                             <div key={fieldKey} className="">
@@ -429,10 +517,11 @@ export default function BulkConfiguration({
 
                                     // Date Fields
                                     if (['si_date', 'si_received_at', 'submitted_at', 'due_date'].includes(fieldKey)) {
+                                        const field = sharedFieldOptions.find(f => f.key === fieldKey);
                                         return (
                                             <DatePicker
                                                 key={fieldKey}
-                                                label={fieldConfig.label}
+                                                label={field?.label || fieldKey}
                                                 value={bulkConfig.sharedValues[fieldKey]}
                                                 onChange={(date) => handleBulkConfigDateSelect(fieldKey, date)}
                                                 error={errors[fieldKey]}

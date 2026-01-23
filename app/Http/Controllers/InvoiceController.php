@@ -587,7 +587,7 @@ class InvoiceController extends Controller
         return inertia('invoices/edit', [
             'invoice' => $invoice,
             'purchaseOrders' => PurchaseOrder::with(['project', 'vendor'])->get(),
-            'vendors' => Vendor::where('is_active', true)->orderBy('name')->get(['id', 'name']),
+            'vendors' => Vendor::where('is_active', true)->orderBy('name')->get(['id', 'name', 'category']),
             'projects' => Project::where('project_status', 'active')->orderBy('project_title')->get(['id', 'project_title', 'cer_number']),
             'backUrl' => url()->previous() ?: '/invoices',
         ]);
@@ -706,16 +706,19 @@ class InvoiceController extends Controller
             'purchaseOrder' => function ($q) {
                 $q->with(['project', 'vendor']);
             },
+            'directVendor',
+            'directProject',
             'files'
         ])
             ->select('invoices.*')
             ->leftJoin('purchase_orders', 'purchase_orders.id', '=', 'invoices.purchase_order_id')
             ->whereNotIn('invoices.invoice_status', ['approved', 'pending_disbursement', 'paid']);
 
-        // Search
+        // Search (handle both PO and direct invoices)
         if ($request->has('search')) {
             $query->where(function ($query) use ($request) {
                 $query->where('si_number', 'like', '%' . $request->search . '%')
+                    // PO-based invoice searches
                     ->orWhereHas('purchaseOrder.project', function ($q) use ($request) {
                         $q->where('project_title', 'like', '%' . $request->search . '%')
                             ->orWhere('cer_number', 'like', '%' . $request->search . '%');
@@ -725,14 +728,23 @@ class InvoiceController extends Controller
                     })
                     ->orWhereHas('purchaseOrder', function ($q) use ($request) {
                         $q->where('po_number', 'like', '%' . $request->search . '%');
+                    })
+                    // Direct invoice searches
+                    ->orWhereHas('directVendor', function ($q) use ($request) {
+                        $q->where('name', 'like', '%' . $request->search . '%');
+                    })
+                    ->orWhereHas('directProject', function ($q) use ($request) {
+                        $q->where('project_title', 'like', '%' . $request->search . '%')
+                          ->orWhere('cer_number', 'like', '%' . $request->search . '%');
                     });
             });
         }
 
-        // Vendor filter
+        // Vendor filter (handle both PO and direct invoices)
         if ($request->has('vendor') && $request->vendor !== 'all') {
-            $query->whereHas('purchaseOrder', function ($q) use ($request) {
-                $q->where('vendor_id', $request->vendor);
+            $query->where(function($q) use ($request) {
+                $q->where('vendor_id', $request->vendor)
+                  ->orWhereHas('purchaseOrder', fn($q2) => $q2->where('vendor_id', $request->vendor));
             });
         }
 
@@ -1041,6 +1053,8 @@ class InvoiceController extends Controller
             'purchaseOrder' => function ($q) {
                 $q->with(['project', 'vendor']);
             },
+            'directVendor',
+            'directProject',
             'files'
         ])
             ->select('invoices.*')
@@ -1120,16 +1134,19 @@ class InvoiceController extends Controller
             'purchaseOrder' => function ($q) {
                 $q->with(['project', 'vendor']);
             },
+            'directVendor',
+            'directProject',
             'files'
         ])
             ->select('invoices.*')
             ->leftJoin('purchase_orders', 'purchase_orders.id', '=', 'invoices.purchase_order_id')
             ->where('invoices.invoice_status','!=', 'approved');
 
-        // Search
+        // Search (handle both PO and direct invoices)
         if ($request->has('search')) {
             $query->where(function ($query) use ($request) {
                 $query->where('si_number', 'like', '%' . $request->search . '%')
+                    // PO-based invoice searches
                     ->orWhereHas('purchaseOrder.project', function ($q) use ($request) {
                         $q->where('project_title', 'like', '%' . $request->search . '%')
                             ->orWhere('cer_number', 'like', '%' . $request->search . '%');
@@ -1139,14 +1156,23 @@ class InvoiceController extends Controller
                     })
                     ->orWhereHas('purchaseOrder', function ($q) use ($request) {
                         $q->where('po_number', 'like', '%' . $request->search . '%');
+                    })
+                    // Direct invoice searches
+                    ->orWhereHas('directVendor', function ($q) use ($request) {
+                        $q->where('name', 'like', '%' . $request->search . '%');
+                    })
+                    ->orWhereHas('directProject', function ($q) use ($request) {
+                        $q->where('project_title', 'like', '%' . $request->search . '%')
+                          ->orWhere('cer_number', 'like', '%' . $request->search . '%');
                     });
             });
         }
 
-        // Vendor filter
+        // Vendor filter (handle both PO and direct invoices)
         if ($request->has('vendor') && $request->vendor !== 'all') {
-            $query->whereHas('purchaseOrder', function ($q) use ($request) {
-                $q->where('vendor_id', $request->vendor);
+            $query->where(function($q) use ($request) {
+                $q->where('vendor_id', $request->vendor)
+                  ->orWhereHas('purchaseOrder', fn($q2) => $q2->where('vendor_id', $request->vendor));
             });
         }
 

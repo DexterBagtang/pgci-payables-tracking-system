@@ -220,6 +220,22 @@ const CheckRequisitionFormNew = ({ invoices, filters, filterOptions }) => {
         }
     }, [])
 
+    // Helper function to get vendor name from either PO or direct invoice
+    const getVendorName = useCallback((invoice) => {
+        if (invoice.invoice_type === 'direct') {
+            return invoice.direct_vendor?.name || '';
+        }
+        return invoice.purchase_order?.vendor?.name || '';
+    }, []);
+
+    // Helper function to get project CER from either PO or direct invoice
+    const getProjectCER = useCallback((invoice) => {
+        if (invoice.invoice_type === 'direct') {
+            return invoice.direct_project?.cer_number || '';
+        }
+        return invoice.purchase_order?.project?.cer_number || '';
+    }, []);
+
     // Populate form fields when invoice selection changes
     useEffect(() => {
         if (selectedInvoices.size === 0) return;
@@ -237,28 +253,35 @@ const CheckRequisitionFormNew = ({ invoices, filters, filterOptions }) => {
         ) || [];
 
         const firstInvoice = selectedInvs[0];
+
+        // Get unique vendors from both PO and direct invoices
         const uniqueVendors = new Set(
-            selectedInvs.map((inv) => inv.purchase_order?.vendor?.name).filter(Boolean)
+            selectedInvs.map((inv) => getVendorName(inv)).filter(Boolean)
         );
 
         const payeeName = uniqueVendors.size === 1
-            ? firstInvoice?.purchase_order?.vendor?.name || ""
+            ? getVendorName(firstInvoice) || ""
             : "Multiple Vendors";
 
         const siNumbersFormatted = formatSINumbers(selectedInvs);
+
+        // Get PO number (only for PO-based invoices)
+        const poNumber = firstInvoice?.invoice_type === 'purchase_order'
+            ? firstInvoice?.purchase_order?.po_number || ""
+            : "";
 
         setData({
             ...data,
             php_amount: selectedTotal,
             amount_in_words: numberToWords(selectedTotal) || "",
             payee_name: payeeName,
-            po_number: firstInvoice?.purchase_order?.po_number || "",
-            cer_number: firstInvoice?.purchase_order?.project?.cer_number || "",
+            po_number: poNumber,
+            cer_number: getProjectCER(firstInvoice) || "",
             si_number: siNumbersFormatted,
             purpose: `Payment for Invoice(s) ${siNumbersFormatted}`,
             invoice_ids: Array.from(selectedInvoices),
         });
-    }, [selectedInvoices, accumulatedInvoices, selectedTotal]);
+    }, [selectedInvoices, accumulatedInvoices, selectedTotal, getVendorName, getProjectCER]);
 
     const handleSubmit = useCallback(() => {
         if (selectedInvoices.size === 0) {

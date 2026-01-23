@@ -4,13 +4,14 @@
       "Bash(find:*)",
       "Bash(php artisan:*)",
       "Bash(findstr:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "mcp__laravel-boost__application-info"
     ],
     "deny": [],
     "ask": []
   },
+  "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
     "laravel-boost"
-  ],
-  "enableAllProjectMcpServers": true
+  ]
 }

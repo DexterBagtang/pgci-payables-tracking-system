@@ -6,6 +6,16 @@ import axios from 'axios';
 import { route } from 'ziggy-js';
 
 /**
+ * Helper function to get vendor name from either PO or direct invoice
+ */
+const getVendorName = (invoice) => {
+    if (invoice.invoice_type === 'direct') {
+        return invoice.direct_vendor?.name || 'Unknown Vendor';
+    }
+    return invoice.purchase_order?.vendor?.name || 'Unknown Vendor';
+};
+
+/**
  * Memoized invoice row component for check requisition
  */
 const InvoiceRow = memo(function InvoiceRow({
@@ -18,6 +28,7 @@ const InvoiceRow = memo(function InvoiceRow({
     formatCurrency,
 }) {
     const [isCheckedLocal, setIsCheckedLocal] = useState(isSelected);
+    const vendorName = getVendorName(invoice);
 
     useEffect(() => {
         setIsCheckedLocal(isSelected);
@@ -89,10 +100,10 @@ const InvoiceRow = memo(function InvoiceRow({
                     <div className="flex items-center justify-between text-[10px] leading-tight">
                         <span
                             className="truncate flex items-center gap-1 text-slate-600 font-medium"
-                            title={invoice.purchase_order?.vendor?.name}
+                            title={vendorName}
                         >
                             <Building2 className="h-3 w-3 text-slate-400 shrink-0" />
-                            <span className="truncate">{invoice.purchase_order?.vendor?.name}</span>
+                            <span className="truncate">{vendorName}</span>
                         </span>
 
                         {invoice.si_date && (
@@ -106,15 +117,22 @@ const InvoiceRow = memo(function InvoiceRow({
                         )}
                     </div>
 
-                    {/* Line 3 — PO Number (if exists) */}
-                    {invoice.purchase_order?.po_number && (
+                    {/* Line 3 — PO Number (if exists) or Direct Invoice indicator */}
+                    {invoice.invoice_type === 'purchase_order' && invoice.purchase_order?.po_number ? (
                         <div className="mt-0.5">
                             <span className="text-[9px] text-slate-500 flex items-center gap-1">
                                 <Package className="h-2.5 w-2.5" />
                                 PO: {invoice.purchase_order.po_number}
                             </span>
                         </div>
-                    )}
+                    ) : invoice.invoice_type === 'direct' ? (
+                        <div className="mt-0.5">
+                            <span className="text-[9px] text-orange-600 flex items-center gap-1">
+                                <FileText className="h-2.5 w-2.5" />
+                                Direct Invoice
+                            </span>
+                        </div>
+                    ) : null}
                 </div>
 
                 {/* Left Active Indicator */}

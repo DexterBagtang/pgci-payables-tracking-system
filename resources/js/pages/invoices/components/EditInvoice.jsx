@@ -60,6 +60,10 @@ import { InvoiceTypeSelector } from '@/pages/invoices/components/create/InvoiceT
 import { DirectVendorProjectSelector } from '@/pages/invoices/components/create/DirectVendorProjectSelector';
 
 const EditInvoice = ({ invoice, purchaseOrders, vendors = [], projects = [] }) => {
+    // Debug: Log vendors to console
+    console.log('EditInvoice - Vendors received:', vendors);
+    console.log('EditInvoice - Projects received:', projects);
+    console.log('EditInvoice - Invoice type:', invoice.invoice_type);
     const [poComboboxOpen, setPoComboboxOpen] = useState(false);
     const [vendorComboboxOpen, setVendorComboboxOpen] = useState(false);
     const [projectComboboxOpen, setProjectComboboxOpen] = useState(false);
@@ -352,6 +356,14 @@ const EditInvoice = ({ invoice, purchaseOrders, vendors = [], projects = [] }) =
                                         <Building2 className="mr-2 h-4 w-4 text-orange-600" />
                                         Direct Invoice - Vendor & Project
                                     </CardTitle>
+                                    <CardDescription className="text-xs">
+                                        {vendors.length === 0 && (
+                                            <span className="text-amber-600 flex items-center gap-1">
+                                                <AlertCircle className="h-3 w-3" />
+                                                No vendors loaded. Please contact support if this persists.
+                                            </span>
+                                        )}
+                                    </CardDescription>
                                 </CardHeader>
                                 <CardContent>
                                     <DirectVendorProjectSelector

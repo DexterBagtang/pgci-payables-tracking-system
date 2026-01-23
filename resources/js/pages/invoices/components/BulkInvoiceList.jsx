@@ -9,6 +9,16 @@ import axios from 'axios';
 import { route } from 'ziggy-js';
 
 /**
+ * Helper function to get vendor name from either PO or direct invoice
+ */
+const getVendorName = (invoice) => {
+    if (invoice.invoice_type === 'direct') {
+        return invoice.direct_vendor?.name || 'Unknown Vendor';
+    }
+    return invoice.purchase_order?.vendor?.name || 'Unknown Vendor';
+};
+
+/**
  * Memoized invoice row component to prevent unnecessary re-renders
  * Only re-renders when its specific props change
  */
@@ -25,6 +35,7 @@ const InvoiceRow = memo(function InvoiceRow({
 }) {
     // Optimistic local state for instant UI feedback
     const [isCheckedLocal, setIsCheckedLocal] = useState(isSelected);
+    const vendorName = getVendorName(invoice);
 
     // Sync with parent state
     useEffect(() => {
@@ -109,10 +120,10 @@ const InvoiceRow = memo(function InvoiceRow({
                     <div className="flex items-center justify-between text-[10px] leading-tight">
                         <span
                             className="truncate flex items-center gap-1 text-slate-600 font-medium"
-                            title={invoice.purchase_order?.vendor?.name}
+                            title={vendorName}
                         >
                             <Building2 className="h-3 w-3 text-slate-400 shrink-0" />
-                            <span className="truncate">{invoice.purchase_order?.vendor?.name}</span>
+                            <span className="truncate">{vendorName}</span>
                         </span>
 
                         {invoice.si_date && (

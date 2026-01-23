@@ -34,6 +34,8 @@ export default function BulkMode({
     handleBulkFilesUpload,
     handleRemoveMatchedFile,
     handleReassignFile,
+    vendors = [],
+    projects = [],
 }) {
     // Handle drag and drop file upload
     const handleFilesDropped = (files) => {
@@ -125,6 +127,12 @@ export default function BulkMode({
                             <TableHeader>
                                 <TableRow className="bg-slate-100 hover:bg-slate-100">
                                     <TableHead className="w-[50px] text-xs font-medium">#</TableHead>
+                                    {bulkConfig.sharedValues.invoice_type === 'direct' && (
+                                        <>
+                                            <TableHead className="text-xs font-medium">Vendor *</TableHead>
+                                            <TableHead className="text-xs font-medium">Project</TableHead>
+                                        </>
+                                    )}
                                     <TableHead className="w-[180px] text-xs font-medium">SI Number *</TableHead>
                                     <TableHead className="text-xs font-medium">SI Date *</TableHead>
                                     <TableHead className="text-xs font-medium">Amount *</TableHead>
@@ -153,6 +161,8 @@ export default function BulkMode({
                                         onDuplicate={duplicateBulkInvoice}
                                         onDelete={deleteBulkInvoice}
                                         onDateChange={handleBulkDateSelect}
+                                        vendors={vendors}
+                                        projects={projects}
                                     />
                                 ))}
                             </TableBody>

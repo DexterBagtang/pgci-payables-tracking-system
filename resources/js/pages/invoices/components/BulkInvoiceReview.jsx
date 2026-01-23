@@ -470,7 +470,7 @@ const BulkInvoiceReview = ({ invoices, filters, filterOptions }) => {
                     </div>
 
                     {/* Detail Panel - Also scrollable independently */}
-                    <div className="min-h-0">
+                    <div className="min-h-0 h-full">
                         <Suspense fallback={<DialogLoadingFallback message="Loading invoice details..." />}>
                             <BulkInvoiceDetails
                                 currentInvoice={currentInvoice}

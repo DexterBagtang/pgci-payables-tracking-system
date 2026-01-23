@@ -30,10 +30,15 @@ import { submitToOptions, paymentTermsOptions, sharedFieldOptions } from '@/page
 import { handleBulkInvoiceFileChange as handleBulkInvoiceFileChangeUtil, removeBulkInvoiceFile as removeBulkInvoiceFileUtil } from '@/pages/invoices/components/shared/InvoiceFileHandler.js';
 import { submitInvoices } from '@/pages/invoices/components/shared/InvoiceSubmission.js';
 
+import { Card, CardContent } from '@/components/ui/card';
+import { InvoiceTypeSelector } from '@/pages/invoices/components/create/InvoiceTypeSelector';
+import { DirectVendorProjectSelector } from '@/pages/invoices/components/create/DirectVendorProjectSelector';
+
 const CreateBulkInvoice = ({ purchaseOrders = [], vendors = [], projects = [] }) => {
     const [showConfirmation, setShowConfirmation] = useState(false);
     const [processing, setProcessing] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
+    const [invoiceType, setInvoiceType] = useState('purchase_order');
 
     // Use custom hooks
     const {
@@ -202,14 +207,35 @@ const CreateBulkInvoice = ({ purchaseOrders = [], vendors = [], projects = [] })
                     <div className={cn('grid gap-4 grid-cols-1')}>
                         {/* Main Form */}
                         <div className={cn('space-y-4 col-span-1')}>
-                            {/* Purchase Order Selection */}
-                            <PurchaseOrderSelection
-                                setBulkConfig={setBulkConfig}
-                                selectedPO={selectedPO}
-                                poOptions={poOptions}
-                                isBulkMode={true}
-                                errors={errors}
+                            {/* Invoice Type Selection */}
+                            <InvoiceTypeSelector
+                                value={invoiceType}
+                                onChange={(type) => {
+                                    setInvoiceType(type);
+                                    setBulkConfig((prev) => ({
+                                        ...prev,
+                                        sharedValues: {
+                                            ...prev.sharedValues,
+                                            invoice_type: type,
+                                            // Clear opposite fields
+                                            ...(type === 'purchase_order'
+                                                ? { vendor_id: '', project_id: '' }
+                                                : { purchase_order_id: '' }),
+                                        },
+                                    }));
+                                }}
                             />
+
+                            {/* Conditional Rendering: PO Selection for Purchase Order type */}
+                            {invoiceType === 'purchase_order' && (
+                                <PurchaseOrderSelection
+                                    setBulkConfig={setBulkConfig}
+                                    selectedPO={selectedPO}
+                                    poOptions={poOptions}
+                                    isBulkMode={true}
+                                    errors={errors}
+                                />
+                            )}
 
                             {/* Bulk Mode - Configuration */}
                             <BulkConfiguration
@@ -221,6 +247,8 @@ const CreateBulkInvoice = ({ purchaseOrders = [], vendors = [], projects = [] })
                                 submitToOptions={submitToOptions}
                                 paymentTermsOptions={paymentTermsOptions}
                                 errors={errors}
+                                vendors={vendors}
+                                projects={projects}
                             />
 
                             {/* Bulk Mode - Empty State (before generation) */}
@@ -255,6 +283,8 @@ const CreateBulkInvoice = ({ purchaseOrders = [], vendors = [], projects = [] })
                                         handleBulkFilesUpload={handleBulkFilesUpload}
                                         handleRemoveMatchedFile={handleRemoveMatchedFile}
                                         handleReassignFile={handleReassignFile}
+                                        vendors={vendors}
+                                        projects={projects}
                                     />
                                 </Suspense>
                             )}
