@@ -3,6 +3,7 @@ import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
+import { index as helpIndex } from '@/routes/help';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
 import {
@@ -14,7 +15,8 @@ import {
     Receipt,
     ScanSearch,
     Banknote,
-    Users
+    Users,
+    BookOpen
 } from 'lucide-react';
 import AppLogo from './app-logo';
 import { usePermissions } from '@/hooks/use-permissions';
@@ -79,16 +81,11 @@ const allNavItems: NavItem[] = [
 ];
 
 const footerNavItems: NavItem[] = [
-    // {
-    //     title: 'Repository',
-    //     href: 'https://github.com/laravel/react-starter-kit',
-    //     icon: Folder,
-    // },
-    // {
-    //     title: 'Documentation',
-    //     href: 'https://laravel.com/docs/starter-kits#react',
-    //     icon: BookOpen,
-    // },
+    {
+        title: 'Help',
+        href: helpIndex(),
+        icon: BookOpen,
+    },
 ];
 
 export function AppSidebar() {

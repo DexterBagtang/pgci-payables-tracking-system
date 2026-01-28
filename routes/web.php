@@ -1,8 +1,8 @@
 <?php
 
 use App\Http\Controllers\CheckRequisitionController;
-use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Dashboard\UnifiedDashboardController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DisbursementController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\ProjectController;
@@ -13,15 +13,14 @@ use App\Http\Controllers\VendorController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
-
 Route::middleware(['auth', 'verified'])->group(function () {
-//    Route::get('/', function () {
-//        return Inertia::render('dashboard');
-////        return Inertia::render('welcome');
-//    })->name('home');
+    //    Route::get('/', function () {
+    //        return Inertia::render('dashboard');
+    // //        return Inertia::render('welcome');
+    //    })->name('home');
 
-    Route::get('/', [DashboardController::class,'index'])->name('home');
-    Route::get('/dashboard', [DashboardController::class,'index'])->name('dashboard');
+    Route::get('/', [DashboardController::class, 'index'])->name('home');
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // Dashboard Widget API Routes
     // Note: Dashboard data access is based on authenticated user context
@@ -65,7 +64,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/invoice/bulk-approve', [InvoiceController::class, 'bulkApprove'])->name('invoices.bulk-approve');
     Route::post('/invoice/bulk-reject', [InvoiceController::class, 'bulkReject'])->name('invoices.bulk-reject');
 
-
     Route::resource('check-requisitions', CheckRequisitionController::class);
     // API endpoint for check requisition creation with pagination
     Route::get('/api/check-requisitions/create', [CheckRequisitionController::class, 'createApi'])
@@ -101,16 +99,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/api/disbursements/kanban-data', [DisbursementController::class, 'kanbanData'])
         ->name('disbursements.kanban-data');
 
-    Route::resource('remarks',RemarksController::class);
-
-
-
-
-
-
-
-
-
+    Route::resource('remarks', RemarksController::class);
 
 });
 
@@ -122,4 +111,5 @@ Route::middleware(['auth', 'verified', 'role:admin'])->group(function () {
 });
 
 require __DIR__.'/settings.php';
+require __DIR__.'/help.php';
 require __DIR__.'/auth.php';

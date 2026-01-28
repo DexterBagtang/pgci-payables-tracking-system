@@ -462,3 +462,13 @@ export interface ActivityFeedResponse {
     hasMore: boolean;
     currentPage: number;
 }
+
+export interface UserManual {
+    slug: string;
+    title: string;
+    description: string;
+    roles: string[];
+    complexity: 'Beginner' | 'Intermediate' | 'Advanced';
+    timeToComplete?: string;
+    content?: string;
+}
