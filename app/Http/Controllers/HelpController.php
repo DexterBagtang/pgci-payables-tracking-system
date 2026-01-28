@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\UserRole;
 use Illuminate\Support\Facades\File;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -15,10 +14,7 @@ class HelpController extends Controller
      */
     public function index(): Response
     {
-        $user = auth()->user();
-        $role = $user->role;
-
-        $manuals = $this->getManualsByRole($role);
+        $manuals = $this->getManuals();
 
         return Inertia::render('help/index', [
             'manuals' => $manuals,
@@ -41,14 +37,7 @@ class HelpController extends Controller
             throw new NotFoundHttpException('Manual not found');
         }
 
-        // Verify user has access to this manual
-        $user = auth()->user();
-        $availableManuals = $this->getManualsByRole($user->role);
-        $hasAccess = collect($availableManuals)->contains('slug', $slug);
-
-        if (! $hasAccess) {
-            throw new NotFoundHttpException('Manual not found');
-        }
+        $availableManuals = $this->getManuals();
 
         $content = File::get($filePath);
 
@@ -67,38 +56,26 @@ class HelpController extends Controller
     }
 
     /**
-     * Get manuals filtered by user role.
+     * Get all available manuals.
      */
-    private function getManualsByRole(UserRole $role): array
+    private function getManuals(): array
     {
-        $allManuals = [
+        return [
             [
                 'slug' => 'bulk-invoice-creation',
                 'title' => 'Bulk Invoice Creation Guide',
                 'description' => 'Create multiple invoices at once',
-                'roles' => ['admin', 'payables'],
-                'complexity' => 'Intermediate',
-                'timeToComplete' => '10 minutes',
             ],
             [
                 'slug' => 'invoice-approval-workflow',
                 'title' => 'Invoice Approval Workflow Guide',
                 'description' => 'Review and approve invoices in bulk',
-                'roles' => ['admin', 'payables'],
-                'complexity' => 'Intermediate',
-                'timeToComplete' => '8 minutes',
+            ],
+            [
+                'slug' => 'check-requisition-creation',
+                'title' => 'Check Requisition Creation Guide',
+                'description' => 'Create check requisitions easily',
             ],
         ];
-
-        // Admin sees all manuals
-        if ($role === UserRole::ADMIN) {
-            return $allManuals;
-        }
-
-        // Filter by role
-        return collect($allManuals)
-            ->filter(fn ($manual) => in_array($role->value, $manual['roles']))
-            ->values()
-            ->toArray();
     }
 }

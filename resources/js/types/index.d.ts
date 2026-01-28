@@ -25,6 +25,7 @@ export interface NavItem {
     icon?: LucideIcon | null;
     isActive?: boolean;
     module?: string; // Optional module name for permission checking
+    className?: string;
 }
 
 export interface FlashMessages {

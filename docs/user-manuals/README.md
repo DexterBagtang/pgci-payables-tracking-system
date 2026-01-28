@@ -14,44 +14,42 @@ This directory contains end-user guides for the PGCI Payables Management System.
 
 ### Core Workflows
 
-#### ✅ [Bulk Invoice Creation Guide](bulk-invoice-creation-guide.md)
-**Status**: Complete
+#### ✅ [Bulk Invoice Creation Guide](bulk-invoice-creation.md)
 **For**: Payables Staff, Admin Users
-**Complexity**: Intermediate
 
-Complete guide to creating multiple invoices at once for a Purchase Order using the bulk creation feature.
+Creating multiple invoices at once for a Purchase Order using bulk mode.
 
 **Covers:**
-- When to use bulk mode vs. single mode
-- Configuration strategies (shared fields, range mode, manual mode)
-- File upload strategies (bulk upload, individual upload, drag & drop)
-- File auto-matching and deduplication
-- Common scenarios with examples
-- Validation and error handling
-- Tips, best practices, and troubleshooting
-
-**Time to Complete**: 10-15 minutes to read
+- Input modes (manual vs. range)
+- Shared fields configuration
+- File upload and auto-matching
+- Validation and troubleshooting
 
 ---
 
-#### ✅ [Invoice Approval Workflow Guide](invoice-approval-workflow-guide.md)
-**Status**: Complete
-**For**: Payables Staff, Admin Users
-**Complexity**: Intermediate
+#### ✅ [Invoice Approval Workflow Guide](invoice-approval-workflow.md)
+**For**: Payables Staff, Accounting, Admin Users
 
-Complete guide to reviewing and approving invoices in bulk, including marking as received, bulk approval, and rejection workflows.
+Reviewing and approving invoices in bulk before payment processing.
 
 **Covers:**
-- Bulk review page and filtering
-- Marking invoices as "received" (bulk & individual)
-- Approving invoices (bulk & individual)
-- Rejecting invoices with reasons
-- Invoice status flow
-- Advanced filtering strategies
-- Activity logging and audit trail
-- Troubleshooting and common scenarios
+- Marking invoices as received
+- Bulk approval and rejection
+- Status flow and filtering
+- Validation rules
 
-**Time to Complete**: 10-15 minutes to read
+---
+
+#### ✅ [Check Requisition Creation Guide](check-requisition-creation.md)
+**For**: Accounting Staff, Admin Users
+
+Grouping approved invoices into payment requests for management approval.
+
+**Covers:**
+- Selecting approved invoices
+- Requisition details and approval fields
+- Status flow (Draft → Pending → Approved)
+- Management review process
 
 ---
 
@@ -59,10 +57,9 @@ Complete guide to reviewing and approving invoices in bulk, including marking as
 
 ### High Priority
 
-- **Check Requisition Creation & Management** - Creating payment requests from approved invoices
-- **Invoice Approval Workflow** - Single and bulk approval processes
 - **Disbursement Processing** - Final payment release workflow
 - **Purchase Order Management** - Creating and managing purchase orders
+- **Vendor & Project Setup** - Initial system setup
 
 ### Medium Priority
 
@@ -160,6 +157,8 @@ Contact the development team or your system administrator with:
 
 | Date | Changes |
 |------|---------|
+| 2026-01-28 | Added check requisition creation guide |
+| 2026-01-28 | Added invoice approval workflow guide |
 | 2026-01-28 | Created user manuals directory and bulk invoice creation guide |
 
 ---
@@ -169,7 +168,9 @@ Contact the development team or your system administrator with:
 docs/
 ├── user-manuals/
 │   ├── README.md (this file)
-│   ├── bulk-invoice-creation-guide.md ✅
+│   ├── bulk-invoice-creation.md ✅
+│   ├── invoice-approval-workflow.md ✅
+│   ├── check-requisition-creation.md ✅
 │   └── [more guides coming soon]
 └── [developer documentation]
 ```

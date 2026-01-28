@@ -2,15 +2,13 @@ import AppLayout from '@/layouts/app-layout';
 import HelpLayout from '@/layouts/help/layout';
 import { Head, Link } from '@inertiajs/react';
 import { show } from '@/routes/help';
-import { BookOpen, Clock } from 'lucide-react';
+import { BookOpen } from 'lucide-react';
+import { type BreadcrumbItem } from '@/types';
 
 interface Manual {
     slug: string;
     title: string;
     description: string;
-    roles?: string[];
-    complexity?: string;
-    timeToComplete?: string;
 }
 
 interface Props {
@@ -18,8 +16,8 @@ interface Props {
 }
 
 export default function HelpIndex({ manuals }: Props) {
-    const breadcrumbs = [
-        { label: 'Help', href: '#' },
+    const breadcrumbs: BreadcrumbItem[] = [
+        { title: 'Help', href: '#' },
     ];
 
     return (
@@ -43,30 +41,15 @@ export default function HelpIndex({ manuals }: Props) {
                                 href={show({ slug: manual.slug })}
                                 className="block p-6 border rounded-lg hover:bg-accent transition-colors"
                             >
-                                <div className="flex items-start justify-between">
-                                    <div className="flex-1">
-                                        <div className="flex items-center gap-2">
-                                            <BookOpen className="h-5 w-5 text-muted-foreground" />
-                                            <h3 className="font-semibold text-lg">
-                                                {manual.title}
-                                            </h3>
-                                        </div>
-                                        <p className="text-muted-foreground mt-2">
-                                            {manual.description}
-                                        </p>
-                                        {manual.timeToComplete && (
-                                            <div className="flex items-center gap-1 mt-3 text-sm text-muted-foreground">
-                                                <Clock className="h-4 w-4" />
-                                                <span>{manual.timeToComplete} to read</span>
-                                            </div>
-                                        )}
-                                    </div>
-                                    {manual.complexity && (
-                                        <span className="text-xs bg-secondary px-2 py-1 rounded">
-                                            {manual.complexity}
-                                        </span>
-                                    )}
+                                <div className="flex items-center gap-2">
+                                    <BookOpen className="h-5 w-5 text-muted-foreground" />
+                                    <h3 className="font-semibold text-lg">
+                                        {manual.title}
+                                    </h3>
                                 </div>
+                                <p className="text-muted-foreground mt-2">
+                                    {manual.description}
+                                </p>
                             </Link>
                         ))}
                     </div>

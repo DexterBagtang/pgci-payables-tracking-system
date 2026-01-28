@@ -2,7 +2,7 @@ import AppLayout from '@/layouts/app-layout';
 import HelpLayout from '@/layouts/help/layout';
 import { MarkdownRenderer } from '@/lib/markdown';
 import { Head } from '@inertiajs/react';
-import { index } from '@/routes/help';
+import { type BreadcrumbItem } from '@/types';
 
 interface Props {
     manual: {
@@ -18,9 +18,9 @@ interface Props {
 }
 
 export default function HelpShow({ manual, manuals }: Props) {
-    const breadcrumbs = [
-        { label: 'Help', href: index() },
-        { label: manual.title, href: '#' },
+    const breadcrumbs: BreadcrumbItem[] = [
+        { title: 'Help', href: '/help' },
+        { title: manual.title, href: '#' },
     ];
 
     return (

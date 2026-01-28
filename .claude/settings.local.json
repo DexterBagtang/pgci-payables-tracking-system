@@ -6,7 +6,8 @@
       "Bash(findstr:*)",
       "Bash(npm run build:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "mcp__laravel-boost__list-routes"
     ],
     "deny": [],
     "ask": []

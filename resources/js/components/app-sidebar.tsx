@@ -85,6 +85,7 @@ const footerNavItems: NavItem[] = [
         title: 'Help',
         href: helpIndex(),
         icon: BookOpen,
+        className: 'bg-primary/5 hover:bg-primary/10 dark:bg-primary/10 dark:hover:bg-primary/15 font-medium',
     },
 ];
 
