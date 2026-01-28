@@ -34,6 +34,27 @@ Complete guide to creating multiple invoices at once for a Purchase Order using 
 
 ---
 
+#### ✅ [Invoice Approval Workflow Guide](invoice-approval-workflow-guide.md)
+**Status**: Complete
+**For**: Payables Staff, Admin Users
+**Complexity**: Intermediate
+
+Complete guide to reviewing and approving invoices in bulk, including marking as received, bulk approval, and rejection workflows.
+
+**Covers:**
+- Bulk review page and filtering
+- Marking invoices as "received" (bulk & individual)
+- Approving invoices (bulk & individual)
+- Rejecting invoices with reasons
+- Invoice status flow
+- Advanced filtering strategies
+- Activity logging and audit trail
+- Troubleshooting and common scenarios
+
+**Time to Complete**: 10-15 minutes to read
+
+---
+
 ## Planned Manuals
 
 ### High Priority

@@ -15,11 +15,17 @@
   - Common scenarios with examples
   - Troubleshooting and best practices
 
+- **[Invoice Approval Workflow Guide](user-manuals/invoice-approval-workflow-guide.md)** ✅ - Complete guide to reviewing and approving invoices in bulk
+  - Bulk review page and filtering
+  - Marking as received, approving, and rejecting
+  - Advanced filtering strategies
+  - Activity logging and troubleshooting
+
 ### Coming Soon
 - Check Requisition Creation & Management
-- Invoice Approval Workflow
 - Disbursement Processing
 - Purchase Order Management
+- Single Invoice Creation
 - Role-specific guides (Admin, Purchasing, Payables, Disbursement)
 
 ---
@@ -72,6 +78,7 @@
 |------|--------|--------------|-------|
 | user-manuals/ | ✅ Current | 2026-01-28 | User guides directory created |
 | user-manuals/bulk-invoice-creation-guide.md | ✅ Current | 2026-01-28 | Complete user manual |
+| user-manuals/invoice-approval-workflow-guide.md | ✅ Current | 2026-01-28 | Complete user manual |
 | flowchart.mmd | ✅ Current | - | Process flow diagram |
 | flowchart-simplified.mmd | ✅ Current | - | Simplified flow |
 | db.mmd | ✅ Current | - | Database schema |
