@@ -15,7 +15,7 @@ Draft → Pending Approval → Approved → (Creates Disbursement)
 
 ## Prerequisites
 
-- Accounting or Admin role
+- Payables or Admin role
 - Approved invoices ready for payment
 - Payment approval authority structure
 

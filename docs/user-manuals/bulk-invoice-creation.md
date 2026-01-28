@@ -7,7 +7,7 @@ Create multiple invoices at once for a Purchase Order.
 **Required:**
 - Purchase Order number
 - SI numbers, amounts, and dates for all invoices
-- Payables or Admin role
+- Purchasing or Admin role
 - PO status must be "open"
 
 **Optional:**
