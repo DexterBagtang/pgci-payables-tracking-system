@@ -17,9 +17,10 @@ Create multiple invoices at once for a Purchase Order.
 
 ### 1. Access Bulk Mode
 Navigate to **Invoices** → **Create Invoice** → **Bulk Mode** button
+![Bulk Mode Button](/docs/user-manuals/img.png)
 
 ### 2. Select Purchase Order
-Choose PO from dropdown (search by PO number, vendor, or project)
+Choose PO from dropdown (search by ``PO number, vendor, or project)
 
 ### 3. Configure Batch
 

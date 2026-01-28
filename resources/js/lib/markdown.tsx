@@ -141,6 +141,14 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
                         {children}
                     </em>
                 ),
+                // Style images
+                img: ({ src, alt }) => (
+                    <img
+                        src={src}
+                        alt={alt}
+                        className="rounded-lg border shadow-sm my-6 max-w-full h-auto"
+                    />
+                ),
             } as Components}
         >
             {content}
