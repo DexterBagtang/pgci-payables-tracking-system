@@ -1,77 +1,187 @@
 import Heading from '@/components/heading';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { SearchModal } from '@/components/help/search-modal';
+import { KeyboardShortcutsDialog } from '@/components/help/keyboard-shortcuts-dialog';
+import { ScrollToTop } from '@/components/help/scroll-to-top';
 import { cn } from '@/lib/utils';
-import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
-import { type PropsWithChildren } from 'react';
+import { type PropsWithChildren, type ReactNode, useState, useEffect } from 'react';
 import { index, show } from '@/routes/help';
+import { Search, Home } from 'lucide-react';
 
-interface HelpLayoutProps extends PropsWithChildren {
-    manuals: Array<{
-        slug: string;
-        title: string;
-        description: string;
-    }>;
+interface Category {
+    key: string;
+    title: string;
+    description: string;
+    icon: string;
 }
 
-export default function HelpLayout({ children, manuals }: HelpLayoutProps) {
+interface Manual {
+    slug: string;
+    title: string;
+    description: string;
+    category: string;
+    readTime: number;
+    icon: string;
+}
+
+interface HelpLayoutProps extends PropsWithChildren {
+    manuals: Manual[];
+    categories: Category[];
+    rightSidebar?: ReactNode;
+}
+
+export default function HelpLayout({ children, manuals, categories, rightSidebar }: HelpLayoutProps) {
+    const [searchOpen, setSearchOpen] = useState(false);
+    const [shortcutsOpen, setShortcutsOpen] = useState(false);
+    const [isMac, setIsMac] = useState(false);
+
     if (typeof window === 'undefined') {
         return null;
     }
 
     const currentPath = window.location.pathname;
 
-    // Build sidebar nav items from manuals
-    const sidebarNavItems: NavItem[] = [
-        {
-            title: 'Overview',
-            href: index(),
-            icon: null,
-        },
-        ...manuals.map(manual => ({
-            title: manual.title,
-            href: show({ slug: manual.slug }),
-            icon: null,
-        })),
-    ];
+    // Detect Mac platform
+    useEffect(() => {
+        setIsMac(/(Mac|iPhone|iPod|iPad)/i.test(navigator.platform));
+    }, []);
+
+    // Group manuals by category
+    const manualsByCategory = categories.reduce((acc, category) => {
+        acc[category.key] = manuals.filter(m => m.category === category.key);
+        return acc;
+    }, {} as Record<string, Manual[]>);
+
+    // Keyboard shortcuts
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            // Ignore if user is typing in an input
+            if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+                return;
+            }
+
+            if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                e.preventDefault();
+                setSearchOpen(true);
+            }
+            if (e.key === '/' && !searchOpen) {
+                e.preventDefault();
+                setSearchOpen(true);
+            }
+            if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
+                e.preventDefault();
+                window.print();
+            }
+            if (e.key === '?' && !searchOpen && !shortcutsOpen) {
+                e.preventDefault();
+                setShortcutsOpen(true);
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [searchOpen, shortcutsOpen]);
 
     return (
-        <div className="px-4 py-6">
-            <Heading
-                title="Help & Documentation"
-                description="Guides and resources for using the Payables System"
-            />
+        <div className="min-h-screen">
+            <div className="container mx-auto px-4 lg:px-8 py-6">
+                <div className="mb-8">
+                    <Heading
+                        title="Help & Documentation"
+                        description="Guides and resources for using the Payables System"
+                    />
+                </div>
+                <div className="lg:grid lg:grid-cols-[240px_1fr] xl:grid-cols-[280px_1fr_280px] lg:gap-10 xl:gap-12">
+                    {/* Left Sidebar - Navigation */}
+                    <aside className="hidden lg:block">
+                        <div className="space-y-4 pb-10">
+                                    {/* Search Button */}
+                                    <Button
+                                        variant="outline"
+                                        className="w-full justify-start text-sm text-muted-foreground"
+                                        onClick={() => setSearchOpen(true)}
+                                    >
+                                        <Search className="mr-2 h-4 w-4" />
+                                        Search...
+                                        <kbd className="pointer-events-none ml-auto hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 sm:inline-flex">
+                                            <span className="text-xs">{isMac ? '⌘K' : 'Ctrl+K'}</span>
+                                        </kbd>
+                                    </Button>
 
-            <div className="flex flex-col lg:flex-row lg:space-x-12">
-                <aside className="w-full max-w-xl lg:w-64">
-                    <nav className="flex flex-col space-y-1 space-x-0">
-                        {sidebarNavItems.map((item, index) => (
-                            <Button
-                                key={`${typeof item.href === 'string' ? item.href : item.href.url}-${index}`}
-                                size="sm"
-                                variant="ghost"
-                                asChild
-                                className={cn('w-full justify-start', {
-                                    'bg-muted': currentPath === (typeof item.href === 'string' ? item.href : item.href.url),
-                                })}
-                            >
-                                <Link href={item.href} prefetch>
-                                    {item.title}
-                                </Link>
-                            </Button>
-                        ))}
-                    </nav>
-                </aside>
+                                    <Separator />
 
-                <Separator className="my-6 lg:hidden" />
+                                    {/* Overview Link */}
+                                    <nav className="space-y-1">
+                                        <Link
+                                            href={index()}
+                                            className={cn(
+                                                'flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-muted',
+                                                currentPath === index() ? 'bg-muted text-foreground' : 'text-muted-foreground'
+                                            )}
+                                        >
+                                            <Home className="h-4 w-4" />
+                                            Overview
+                                        </Link>
+                                    </nav>
 
-                <div className="flex-1">
-                    <section className="max-w-4xl space-y-6">
+                                    <Separator />
+
+                                    {/* Categorized Manuals */}
+                                    <Accordion type="multiple" defaultValue={categories.map(c => c.key)} className="space-y-4">
+                                        {categories.map((category) => (
+                                            <AccordionItem key={category.key} value={category.key} className="border-none">
+                                                <AccordionTrigger className="py-2 text-sm font-semibold hover:no-underline">
+                                                    {category.title}
+                                                </AccordionTrigger>
+                                                <AccordionContent className="pb-2 pt-1">
+                                                    <nav className="space-y-1">
+                                                        {manualsByCategory[category.key]?.map((manual) => (
+                                                            <Link
+                                                                key={manual.slug}
+                                                                href={show({ slug: manual.slug })}
+                                                                className={cn(
+                                                                    'block rounded-md px-3 py-2 text-sm transition-colors hover:bg-muted',
+                                                                    currentPath === show({ slug: manual.slug })
+                                                                        ? 'bg-muted font-medium text-foreground'
+                                                                        : 'text-muted-foreground'
+                                                                )}
+                                                            >
+                                                                {manual.title}
+                                                            </Link>
+                                                        ))}
+                                                    </nav>
+                                                </AccordionContent>
+                                            </AccordionItem>
+                                        ))}
+                                    </Accordion>
+                        </div>
+                    </aside>
+
+                    {/* Main Content */}
+                    <main className="min-w-0 py-6 lg:py-8">
                         {children}
-                    </section>
+                    </main>
+
+                    {/* Right Sidebar - TOC */}
+                    {rightSidebar && (
+                        <aside className="hidden xl:block pb-10">
+                            {rightSidebar}
+                        </aside>
+                    )}
                 </div>
             </div>
+
+            {/* Search Modal */}
+            <SearchModal open={searchOpen} onOpenChange={setSearchOpen} manuals={manuals} />
+
+            {/* Keyboard Shortcuts Dialog */}
+            <KeyboardShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
+
+            {/* Scroll to Top Button */}
+            <ScrollToTop />
         </div>
     );
 }

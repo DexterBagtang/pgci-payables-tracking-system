@@ -1,0 +1,151 @@
+import { useEffect, useState, useMemo } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Search, FileText, Clock } from 'lucide-react';
+import { router } from '@inertiajs/react';
+import Fuse from 'fuse.js';
+import { show } from '@/routes/help';
+
+interface Manual {
+    slug: string;
+    title: string;
+    description: string;
+    content?: string;
+    category: string;
+}
+
+interface SearchModalProps {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    manuals: Manual[];
+}
+
+export function SearchModal({ open, onOpenChange, manuals }: SearchModalProps) {
+    const [query, setQuery] = useState('');
+    const [recentSearches, setRecentSearches] = useState<string[]>([]);
+
+    // Load recent searches from localStorage
+    useEffect(() => {
+        const recent = localStorage.getItem('help-recent-searches');
+        if (recent) {
+            setRecentSearches(JSON.parse(recent));
+        }
+    }, []);
+
+    // Setup Fuse.js for fuzzy search
+    const fuse = useMemo(() => {
+        return new Fuse(manuals, {
+            keys: [
+                { name: 'title', weight: 2 },
+                { name: 'description', weight: 1.5 },
+                { name: 'content', weight: 1 },
+            ],
+            threshold: 0.3,
+            includeScore: true,
+            includeMatches: true,
+            minMatchCharLength: 2,
+        });
+    }, [manuals]);
+
+    // Perform search
+    const results = useMemo(() => {
+        if (!query || query.length < 2) return [];
+        return fuse.search(query).slice(0, 8);
+    }, [query, fuse]);
+
+    // Handle search selection
+    const handleSelect = (slug: string) => {
+        // Save to recent searches
+        const updated = [query, ...recentSearches.filter(s => s !== query)].slice(0, 5);
+        setRecentSearches(updated);
+        localStorage.setItem('help-recent-searches', JSON.stringify(updated));
+
+        // Navigate to manual
+        router.visit(show({ slug }));
+        onOpenChange(false);
+        setQuery('');
+    };
+
+    // Handle recent search click
+    const handleRecentSearch = (search: string) => {
+        setQuery(search);
+    };
+
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="max-w-2xl p-0">
+                <DialogHeader className="p-4 pb-0">
+                    <DialogTitle className="sr-only">Search Help</DialogTitle>
+                </DialogHeader>
+                <div className="flex items-center border-b px-4">
+                    <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+                    <Input
+                        placeholder="Search help documentation..."
+                        value={query}
+                        onChange={(e) => setQuery(e.target.value)}
+                        className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                        autoFocus
+                    />
+                    <kbd className="pointer-events-none ml-auto hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 sm:flex">
+                        <span className="text-xs">Esc</span>
+                    </kbd>
+                </div>
+
+                <ScrollArea className="max-h-[400px]">
+                    {!query && recentSearches.length > 0 && (
+                        <div className="p-4">
+                            <div className="mb-2 flex items-center text-xs font-medium text-muted-foreground">
+                                <Clock className="mr-1 h-3 w-3" />
+                                Recent Searches
+                            </div>
+                            <div className="space-y-1">
+                                {recentSearches.map((search, index) => (
+                                    <button
+                                        key={index}
+                                        className="w-full rounded-md px-3 py-2 text-left text-sm hover:bg-accent"
+                                        onClick={() => handleRecentSearch(search)}
+                                    >
+                                        {search}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {query && results.length === 0 && (
+                        <div className="p-8 text-center text-sm text-muted-foreground">
+                            No results found for "{query}"
+                        </div>
+                    )}
+
+                    {results.length > 0 && (
+                        <div className="p-2">
+                            {results.map(({ item }) => (
+                                <button
+                                    key={item.slug}
+                                    className="flex w-full items-start gap-3 rounded-md p-3 hover:bg-accent"
+                                    onClick={() => handleSelect(item.slug)}
+                                >
+                                    <FileText className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                                    <div className="flex-1 text-left">
+                                        <div className="font-medium">{item.title}</div>
+                                        <div className="text-sm text-muted-foreground line-clamp-2">
+                                            {item.description}
+                                        </div>
+                                    </div>
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                </ScrollArea>
+
+                <div className="border-t p-3 text-xs text-muted-foreground">
+                    <kbd className="rounded bg-muted px-1.5 py-0.5">↑↓</kbd> to navigate
+                    <kbd className="ml-2 rounded bg-muted px-1.5 py-0.5">Enter</kbd> to select
+                    <kbd className="ml-2 rounded bg-muted px-1.5 py-0.5">Esc</kbd> to close
+                </div>
+            </DialogContent>
+        </Dialog>
+    );
+}

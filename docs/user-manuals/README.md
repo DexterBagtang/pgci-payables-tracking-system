@@ -1,6 +1,6 @@
 # User Manuals - PGCI Payables System
 
-**Last Updated**: January 28, 2026
+**Last Updated**: January 29, 2026
 
 ---
 
@@ -53,13 +53,42 @@ Grouping approved invoices into payment requests for management approval.
 
 ---
 
+#### ✅ [Vendor Management Guide](vendor-management.md)
+**For**: Admin Users, Purchasing Staff
+
+Managing vendors in the PGCI Payables System.
+
+**Covers:**
+- Creating and updating vendors
+- Vendor categories (SAP/Manual)
+- Vendor details and financial summaries
+- Bulk vendor operations (activate, deactivate, delete)
+- Searching and filtering vendors
+- Status management
+
+---
+
+#### ✅ [Project Management Guide](project-management.md)
+**For**: Admin Users, Purchasing Staff
+
+Managing projects and budgets in the system.
+
+**Covers:**
+- Creating and updating projects
+- Project types (SM Project, PhilCom Project)
+- Project budget tracking and utilization
+- Status management (Active, On Hold, Completed, Cancelled)
+- Type-specific requirements
+- Searching and filtering projects
+
+---
+
 ## Planned Manuals
 
 ### High Priority
 
 - **Disbursement Processing** - Final payment release workflow
 - **Purchase Order Management** - Creating and managing purchase orders
-- **Vendor & Project Setup** - Initial system setup
 
 ### Medium Priority
 
@@ -157,6 +186,7 @@ Contact the development team or your system administrator with:
 
 | Date | Changes |
 |------|---------|
+| 2026-01-29 | Added vendor & project management guide |
 | 2026-01-28 | Added check requisition creation guide |
 | 2026-01-28 | Added invoice approval workflow guide |
 | 2026-01-28 | Created user manuals directory and bulk invoice creation guide |
@@ -171,6 +201,8 @@ docs/
 │   ├── bulk-invoice-creation.md ✅
 │   ├── invoice-approval-workflow.md ✅
 │   ├── check-requisition-creation.md ✅
+│   ├── vendor-management.md ✅
+│   ├── project-management.md ✅
 │   └── [more guides coming soon]
 └── [developer documentation]
 ```
