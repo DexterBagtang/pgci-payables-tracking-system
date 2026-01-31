@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { SearchModal } from './search-modal';
+import { ContactSupportModal } from './contact-support-modal';
 import { HelpCircle, Search, BookOpen, MessageCircle } from 'lucide-react';
 import { Link } from '@inertiajs/react';
 import { show } from '@/routes/help';
@@ -23,6 +24,7 @@ interface FloatingHelpWidgetProps {
 export function FloatingHelpWidget({ manuals, suggestedGuides = [] }: FloatingHelpWidgetProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [searchOpen, setSearchOpen] = useState(false);
+    const [supportOpen, setSupportOpen] = useState(false);
 
     // Get suggested manual objects
     const suggested = suggestedGuides
@@ -62,7 +64,7 @@ export function FloatingHelpWidget({ manuals, suggestedGuides = [] }: FloatingHe
                             </Button>
 
                             {/* Suggested Guides */}
-                            {suggested.length > 0 && (
+                            {suggested.length > 0 ? (
                                 <div className="space-y-2">
                                     <p className="text-xs font-medium text-muted-foreground">
                                         Related Guides
@@ -85,6 +87,12 @@ export function FloatingHelpWidget({ manuals, suggestedGuides = [] }: FloatingHe
                                         </Link>
                                     ))}
                                 </div>
+                            ) : (
+                                <div className="space-y-2">
+                                    <p className="text-xs text-muted-foreground text-center py-2">
+                                        Browse all guides below or use search to find what you need.
+                                    </p>
+                                </div>
                             )}
 
                             {/* All Guides */}
@@ -100,8 +108,7 @@ export function FloatingHelpWidget({ manuals, suggestedGuides = [] }: FloatingHe
                                 variant="ghost"
                                 className="w-full justify-start"
                                 onClick={() => {
-                                    // Could open a support modal or redirect to support page
-                                    alert('Contact your system administrator for support');
+                                    setSupportOpen(true);
                                     setIsOpen(false);
                                 }}
                             >
@@ -115,6 +122,9 @@ export function FloatingHelpWidget({ manuals, suggestedGuides = [] }: FloatingHe
 
             {/* Search Modal */}
             <SearchModal open={searchOpen} onOpenChange={setSearchOpen} manuals={manuals} />
+
+            {/* Contact Support Modal */}
+            <ContactSupportModal open={supportOpen} onOpenChange={setSupportOpen} />
         </>
     );
 }

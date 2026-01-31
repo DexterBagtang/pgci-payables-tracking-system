@@ -6,6 +6,7 @@ import { Search, FileText, Clock } from 'lucide-react';
 import { router } from '@inertiajs/react';
 import Fuse from 'fuse.js';
 import { show } from '@/routes/help';
+import { cn } from '@/lib/utils';
 
 interface Manual {
     slug: string;
@@ -24,6 +25,7 @@ interface SearchModalProps {
 export function SearchModal({ open, onOpenChange, manuals }: SearchModalProps) {
     const [query, setQuery] = useState('');
     const [recentSearches, setRecentSearches] = useState<string[]>([]);
+    const [selectedIndex, setSelectedIndex] = useState(0);
 
     // Load recent searches from localStorage
     useEffect(() => {
@@ -32,6 +34,11 @@ export function SearchModal({ open, onOpenChange, manuals }: SearchModalProps) {
             setRecentSearches(JSON.parse(recent));
         }
     }, []);
+
+    // Reset selected index when query changes
+    useEffect(() => {
+        setSelectedIndex(0);
+    }, [query]);
 
     // Setup Fuse.js for fuzzy search
     const fuse = useMemo(() => {
@@ -72,6 +79,44 @@ export function SearchModal({ open, onOpenChange, manuals }: SearchModalProps) {
         setQuery(search);
     };
 
+    // Handle keyboard navigation
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (results.length === 0) return;
+
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            setSelectedIndex((prev) => (prev + 1) % results.length);
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            setSelectedIndex((prev) => (prev - 1 + results.length) % results.length);
+        } else if (e.key === 'Enter' && selectedIndex >= 0 && results[selectedIndex]) {
+            e.preventDefault();
+            handleSelect(results[selectedIndex].item.slug);
+        }
+    };
+
+    // Clear recent searches
+    const clearRecentSearches = () => {
+        setRecentSearches([]);
+        localStorage.removeItem('help-recent-searches');
+    };
+
+    // Highlight matching text in search results
+    const highlightMatch = (text: string, query: string) => {
+        if (!query) return text;
+
+        const parts = text.split(new RegExp(`(${query})`, 'gi'));
+        return parts.map((part, index) =>
+            part.toLowerCase() === query.toLowerCase() ? (
+                <mark key={index} className="bg-yellow-200 dark:bg-yellow-900 text-foreground">
+                    {part}
+                </mark>
+            ) : (
+                part
+            )
+        );
+    };
+
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-2xl p-0">
@@ -84,6 +129,7 @@ export function SearchModal({ open, onOpenChange, manuals }: SearchModalProps) {
                         placeholder="Search help documentation..."
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
+                        onKeyDown={handleKeyDown}
                         className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
                         autoFocus
                     />
@@ -95,9 +141,17 @@ export function SearchModal({ open, onOpenChange, manuals }: SearchModalProps) {
                 <ScrollArea className="max-h-[400px]">
                     {!query && recentSearches.length > 0 && (
                         <div className="p-4">
-                            <div className="mb-2 flex items-center text-xs font-medium text-muted-foreground">
-                                <Clock className="mr-1 h-3 w-3" />
-                                Recent Searches
+                            <div className="mb-2 flex items-center justify-between">
+                                <div className="flex items-center text-xs font-medium text-muted-foreground">
+                                    <Clock className="mr-1 h-3 w-3" />
+                                    Recent Searches
+                                </div>
+                                <button
+                                    onClick={clearRecentSearches}
+                                    className="text-xs text-muted-foreground hover:text-foreground"
+                                >
+                                    Clear
+                                </button>
                             </div>
                             <div className="space-y-1">
                                 {recentSearches.map((search, index) => (
@@ -121,17 +175,20 @@ export function SearchModal({ open, onOpenChange, manuals }: SearchModalProps) {
 
                     {results.length > 0 && (
                         <div className="p-2">
-                            {results.map(({ item }) => (
+                            {results.map(({ item }, index) => (
                                 <button
                                     key={item.slug}
-                                    className="flex w-full items-start gap-3 rounded-md p-3 hover:bg-accent"
+                                    className={cn(
+                                        'flex w-full items-start gap-3 rounded-md p-3 hover:bg-accent',
+                                        index === selectedIndex && 'bg-accent'
+                                    )}
                                     onClick={() => handleSelect(item.slug)}
                                 >
                                     <FileText className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
                                     <div className="flex-1 text-left">
-                                        <div className="font-medium">{item.title}</div>
+                                        <div className="font-medium">{highlightMatch(item.title, query)}</div>
                                         <div className="text-sm text-muted-foreground line-clamp-2">
-                                            {item.description}
+                                            {highlightMatch(item.description, query)}
                                         </div>
                                     </div>
                                 </button>
