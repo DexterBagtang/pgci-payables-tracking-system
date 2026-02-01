@@ -182,7 +182,7 @@ export default function HelpLayout({ children, manuals, categories, rightSidebar
                         {/* Mobile Menu Button */}
                         <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
                             <SheetTrigger asChild>
-                                <Button variant="outline" size="icon" className="lg:hidden">
+                                <Button variant="outline" size="icon" className={cn(rightSidebar ? 'lg:hidden' : 'hidden')}>
                                     <Menu className="h-5 w-5" />
                                     <span className="sr-only">Open menu</span>
                                 </Button>
@@ -208,9 +208,9 @@ export default function HelpLayout({ children, manuals, categories, rightSidebar
                         </Sheet>
                     </div>
                 </div>
-                <div className="lg:grid lg:grid-cols-[240px_1fr] xl:grid-cols-[280px_1fr_280px] lg:gap-10 xl:gap-12">
+                <div className={cn('grid gap-6', rightSidebar ? 'grid-cols-1 lg:grid-cols-[240px_1fr] lg:gap-10 xl:grid-cols-[280px_1fr_280px] xl:gap-12' : 'grid-cols-[240px_1fr]')}>
                     {/* Left Sidebar - Navigation (Desktop) */}
-                    <aside className="hidden lg:block">
+                    <aside className={cn(rightSidebar ? 'hidden lg:block' : 'block')}>
                         <NavigationContent
                             currentPath={currentPath}
                             manualsByCategory={manualsByCategory}

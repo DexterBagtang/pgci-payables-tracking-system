@@ -2,10 +2,12 @@
 
 namespace App\Providers;
 
+use App\Enums\UserRole;
 use App\Models\CheckRequisition;
 use App\Models\Disbursement;
 use App\Models\Invoice;
 use App\Models\PurchaseOrder;
+use App\Models\User;
 use App\Models\Vendor;
 use App\Policies\CheckRequisitionPolicy;
 use App\Policies\DisbursementPolicy;
@@ -13,6 +15,7 @@ use App\Policies\InvoicePolicy;
 use App\Policies\PurchaseOrderPolicy;
 use App\Policies\VendorPolicy;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
+use Illuminate\Support\Facades\Gate;
 
 class AuthServiceProvider extends ServiceProvider
 {
@@ -36,10 +39,20 @@ class AuthServiceProvider extends ServiceProvider
     {
         $this->registerPolicies();
 
-        // Additional gates can be defined here if needed
-        // Example:
-        // Gate::define('admin-only', function (User $user) {
-        //     return $user->isAdmin();
-        // });
+        Gate::define('view-manual', function (User $user, string $category) {
+            if ($user->role === UserRole::ADMIN) {
+                return true;
+            }
+
+            if ($category === 'core-workflows') {
+                return in_array($user->role, [UserRole::PAYABLES, UserRole::DISBURSEMENT]);
+            }
+
+            if ($category === 'management') {
+                return $user->role === UserRole::PURCHASING;
+            }
+
+            return false;
+        });
     }
 }

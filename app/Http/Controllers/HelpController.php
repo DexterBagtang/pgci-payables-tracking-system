@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -40,14 +41,21 @@ class HelpController extends Controller
 
         $availableManuals = $this->getManuals();
 
+        // Find current manual metadata
+        $currentManual = collect($availableManuals)->firstWhere('slug', $slug);
+
+        if (! $currentManual) {
+            throw new NotFoundHttpException('Manual not found');
+        }
+
+        // Authorize access to the manual based on its category
+        Gate::authorize('view-manual', $currentManual['category']);
+
         $content = File::get($filePath);
 
         // Extract title from first H1 or use slug
         preg_match('/^#\s+(.+)$/m', $content, $matches);
         $title = $matches[1] ?? ucwords(str_replace('-', ' ', $slug));
-
-        // Find current manual metadata
-        $currentManual = collect($availableManuals)->firstWhere('slug', $slug);
 
         return Inertia::render('help/show', [
             'manual' => array_merge([
