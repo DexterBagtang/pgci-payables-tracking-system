@@ -342,7 +342,7 @@ it('validates vendor_ids exist for bulk operations', function () {
 */
 
 it('denies access to index for unauthorized users', function () {
-    $user = User::factory()->withPermissions([], [])->create();
+    $user = User::factory()->payables()->withPermissions([], [])->create();
 
     $response = $this->actingAs($user)->get('/vendors');
 
@@ -350,7 +350,7 @@ it('denies access to index for unauthorized users', function () {
 });
 
 it('denies create for users without write permission', function () {
-    $user = User::factory()->withPermissions(['vendors'], [])->create();
+    $user = User::factory()->payables()->withPermissions(['vendors'], [])->create();
 
     $response = $this->actingAs($user)->post('/vendors', [
         'name' => 'TEST VENDOR',
@@ -361,7 +361,7 @@ it('denies create for users without write permission', function () {
 });
 
 it('denies update for users without write permission', function () {
-    $user = User::factory()->withPermissions(['vendors'], [])->create();
+    $user = User::factory()->payables()->withPermissions(['vendors'], [])->create();
     $vendor = Vendor::factory()->create();
 
     $response = $this->actingAs($user)->patch("/vendors/{$vendor->id}", [
@@ -373,7 +373,7 @@ it('denies update for users without write permission', function () {
 });
 
 it('denies bulk operations for users without write permission', function () {
-    $user = User::factory()->withPermissions(['vendors'], [])->create();
+    $user = User::factory()->payables()->withPermissions(['vendors'], [])->create();
     $vendor = Vendor::factory()->create();
 
     $response = $this->actingAs($user)->post('/vendors/bulk-activate', [

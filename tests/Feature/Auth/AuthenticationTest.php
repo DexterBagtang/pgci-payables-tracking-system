@@ -14,7 +14,7 @@ test('users can authenticate using the login screen', function () {
     $user = User::factory()->create();
 
     $response = $this->post(route('login.store'), [
-        'email' => $user->email,
+        'username' => $user->username,
         'password' => 'password',
     ]);
 
@@ -39,7 +39,7 @@ test('users can logout', function () {
     $response = $this->actingAs($user)->post(route('logout'));
 
     $this->assertGuest();
-    $response->assertRedirect(route('home'));
+    $response->assertRedirect('/login');
 });
 
 test('users are rate limited', function () {
@@ -47,21 +47,21 @@ test('users are rate limited', function () {
 
     for ($i = 0; $i < 5; $i++) {
         $this->post(route('login.store'), [
-            'email' => $user->email,
+            'username' => $user->username,
             'password' => 'wrong-password',
         ])->assertStatus(302)->assertSessionHasErrors([
-            'email' => 'These credentials do not match our records.',
+            'username' => 'These credentials do not match our records.',
         ]);
     }
 
     $response = $this->post(route('login.store'), [
-        'email' => $user->email,
+        'username' => $user->username,
         'password' => 'wrong-password',
     ]);
 
-    $response->assertSessionHasErrors('email');
+    $response->assertSessionHasErrors('username');
 
     $errors = session('errors');
 
-    $this->assertStringContainsString('Too many login attempts', $errors->first('email'));
+    $this->assertStringContainsString('Too many login attempts', $errors->first('username'));
 });

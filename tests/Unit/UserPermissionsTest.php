@@ -34,7 +34,7 @@ class UserPermissionsTest extends TestCase
 
     public function test_user_cannot_write_module_without_permission(): void
     {
-        $user = User::factory()->withPermissions(['vendors'], [])->create();
+        $user = User::factory()->payables()->withPermissions(['vendors'], [])->create();
 
         $this->assertFalse($user->canWrite('vendors'));
     }
@@ -124,7 +124,7 @@ class UserPermissionsTest extends TestCase
 
     public function test_get_writable_modules_returns_correct_array(): void
     {
-        $user = User::factory()->withPermissions(['vendors'], ['vendors', 'projects'])->create();
+        $user = User::factory()->payables()->withPermissions(['vendors'], ['vendors', 'projects'])->create();
 
         $this->assertEquals(['vendors', 'projects'], $user->getWritableModules());
     }
@@ -145,7 +145,7 @@ class UserPermissionsTest extends TestCase
 
     public function test_user_can_have_read_without_write(): void
     {
-        $user = User::factory()->withPermissions(['vendors', 'projects'], ['vendors'])->create();
+        $user = User::factory()->payables()->withPermissions(['vendors', 'projects'], ['vendors'])->create();
 
         $this->assertTrue($user->canRead('vendors'));
         $this->assertTrue($user->canRead('projects'));
@@ -171,6 +171,7 @@ class UserPermissionsTest extends TestCase
             'invoice_review',
             'check_requisitions',
             'disbursements',
+            'users',
         ];
 
         $this->assertEquals($expectedModules, User::MODULES);

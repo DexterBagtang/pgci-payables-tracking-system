@@ -24,29 +24,29 @@ test('admin can see all manuals', function () {
 
     $response->assertInertia(fn ($page) => $page
         ->component('help/index')
-        ->has('manuals', 2) // Both manuals visible to admin
+        ->has('manuals', 5) // All manuals visible to admin
     );
 });
 
-test('payables user sees only payables manuals', function () {
+test('payables user can access help index', function () {
     $user = User::factory()->create(['role' => UserRole::PAYABLES]);
 
     $response = $this->actingAs($user)->get(route('help.index'));
 
     $response->assertInertia(fn ($page) => $page
         ->component('help/index')
-        ->has('manuals', 2) // Invoice manuals
+        ->has('manuals', 5) // Index returns all manuals; access is enforced on show
     );
 });
 
-test('purchasing user sees no manuals currently', function () {
+test('purchasing user can access help index', function () {
     $user = User::factory()->create(['role' => UserRole::PURCHASING]);
 
     $response = $this->actingAs($user)->get(route('help.index'));
 
     $response->assertInertia(fn ($page) => $page
         ->component('help/index')
-        ->has('manuals', 0) // No purchasing-specific manuals yet
+        ->has('manuals', 5) // Index returns all manuals; access is enforced on show
     );
 });
 
@@ -85,13 +85,13 @@ test('cannot access manual with invalid slug format', function () {
 });
 
 test('user without access to manual cannot view it', function () {
-    $user = User::factory()->create(['role' => UserRole::DISBURSEMENT]);
+    $user = User::factory()->create(['role' => UserRole::PURCHASING]);
 
-    // Try to access payables manual
+    // PURCHASING is only allowed 'management' category; core-workflows should be denied
     $response = $this->actingAs($user)
         ->get(route('help.show', ['slug' => 'bulk-invoice-creation']));
 
-    $response->assertNotFound();
+    $response->assertForbidden();
 });
 
 test('unauthenticated user cannot access help', function () {

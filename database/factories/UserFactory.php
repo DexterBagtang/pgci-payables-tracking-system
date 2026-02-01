@@ -112,6 +112,7 @@ class UserFactory extends Factory
             'invoice_review',
             'check_requisitions',
             'disbursements',
+            'users',
         ];
 
         return $this->state(fn (array $attributes) => [
