@@ -48,10 +48,12 @@ export function SearchModal({ open, onOpenChange, manuals }: SearchModalProps) {
                 { name: 'description', weight: 1.5 },
                 { name: 'content', weight: 1 },
             ],
-            threshold: 0.3,
+            threshold: 0.4,
             includeScore: true,
             includeMatches: true,
             minMatchCharLength: 2,
+            ignoreLocation: true, // Search entire content, not just beginning
+            distance: 10000, // Allow matches anywhere in long content
         });
     }, [manuals]);
 
@@ -117,6 +119,38 @@ export function SearchModal({ open, onOpenChange, manuals }: SearchModalProps) {
         );
     };
 
+    // Get content snippet showing where the match was found
+    const getContentSnippet = (content: string | undefined, query: string) => {
+        if (!content || !query) return null;
+
+        // Remove markdown syntax for cleaner display
+        const cleanContent = content
+            .replace(/^#{1,6}\s+/gm, '') // Remove headings
+            .replace(/\*\*(.+?)\*\*/g, '$1') // Remove bold
+            .replace(/\*(.+?)\*/g, '$1') // Remove italic
+            .replace(/`(.+?)`/g, '$1') // Remove inline code
+            .replace(/\[(.+?)\]\(.+?\)/g, '$1') // Remove links
+            .replace(/^\s*[-*+]\s+/gm, '') // Remove list markers
+            .replace(/^\s*\d+\.\s+/gm, ''); // Remove numbered lists
+
+        const lowerContent = cleanContent.toLowerCase();
+        const lowerQuery = query.toLowerCase();
+        const index = lowerContent.indexOf(lowerQuery);
+
+        if (index === -1) return null;
+
+        // Get surrounding context (50 chars before and after)
+        const start = Math.max(0, index - 50);
+        const end = Math.min(cleanContent.length, index + query.length + 50);
+        let snippet = cleanContent.slice(start, end).trim();
+
+        // Add ellipsis if needed
+        if (start > 0) snippet = '...' + snippet;
+        if (end < cleanContent.length) snippet = snippet + '...';
+
+        return snippet;
+    };
+
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-2xl p-0">
@@ -175,24 +209,33 @@ export function SearchModal({ open, onOpenChange, manuals }: SearchModalProps) {
 
                     {results.length > 0 && (
                         <div className="p-2">
-                            {results.map(({ item }, index) => (
-                                <button
-                                    key={item.slug}
-                                    className={cn(
-                                        'flex w-full items-start gap-3 rounded-md p-3 hover:bg-accent',
-                                        index === selectedIndex && 'bg-accent'
-                                    )}
-                                    onClick={() => handleSelect(item.slug)}
-                                >
-                                    <FileText className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-                                    <div className="flex-1 text-left">
-                                        <div className="font-medium">{highlightMatch(item.title, query)}</div>
-                                        <div className="text-sm text-muted-foreground line-clamp-2">
-                                            {highlightMatch(item.description, query)}
+                            {results.map(({ item, matches }, index) => {
+                                // Check if match was found in content
+                                const contentMatch = matches?.find(m => m.key === 'content');
+                                const snippet = contentMatch ? getContentSnippet(item.content, query) : null;
+
+                                return (
+                                    <button
+                                        key={item.slug}
+                                        className={cn(
+                                            'flex w-full items-start gap-3 rounded-md p-3 hover:bg-accent',
+                                            index === selectedIndex && 'bg-accent'
+                                        )}
+                                        onClick={() => handleSelect(item.slug)}
+                                    >
+                                        <FileText className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                                        <div className="flex-1 text-left">
+                                            <div className="font-medium">{highlightMatch(item.title, query)}</div>
+                                            <div className="text-sm text-muted-foreground line-clamp-2">
+                                                {snippet
+                                                    ? highlightMatch(snippet, query)
+                                                    : highlightMatch(item.description, query)
+                                                }
+                                            </div>
                                         </div>
-                                    </div>
-                                </button>
-                            ))}
+                                    </button>
+                                );
+                            })}
                         </div>
                     )}
                 </ScrollArea>

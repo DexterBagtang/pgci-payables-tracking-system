@@ -9,7 +9,7 @@
 **📚 [User Manuals Directory](user-manuals/)** - End-user guides with step-by-step instructions
 
 ### Available Manuals
-- **[Bulk Invoice Creation Guide](user-manuals/bulk-invoice-creation-guide.md)** ✅ - Complete guide to creating multiple invoices at once for a Purchase Order
+- **[Bulk Invoice Addition Guide](user-manuals/bulk-invoice-addition.md)** ✅ - Complete guide to adding multiple invoices at once for a Purchase Order
   - Configuration strategies (shared fields, range mode)
   - File upload strategies (bulk, individual, drag & drop)
   - Common scenarios with examples
@@ -77,7 +77,7 @@
 | File | Status | Last Updated | Notes |
 |------|--------|--------------|-------|
 | user-manuals/ | ✅ Current | 2026-01-28 | User guides directory created |
-| user-manuals/bulk-invoice-creation-guide.md | ✅ Current | 2026-01-28 | Complete user manual |
+| user-manuals/bulk-invoice-addition.md | ✅ Current | 2026-01-28 | Complete user manual |
 | user-manuals/invoice-approval-workflow-guide.md | ✅ Current | 2026-01-28 | Complete user manual |
 | flowchart.mmd | ✅ Current | - | Process flow diagram |
 | flowchart-simplified.mmd | ✅ Current | - | Simplified flow |

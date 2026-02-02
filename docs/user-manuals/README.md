@@ -14,10 +14,10 @@ This directory contains end-user guides for the PGCI Payables Management System.
 
 ### Core Workflows
 
-#### ✅ [Bulk Invoice Creation Guide](bulk-invoice-creation.md)
+#### ✅ [Bulk Invoice Addition Guide](bulk-invoice-addition.md)
 **For**: Payables Staff, Admin Users
 
-Creating multiple invoices at once for a Purchase Order using bulk mode.
+Adding multiple invoices at once for a Purchase Order using bulk mode.
 
 **Covers:**
 - Input modes (manual vs. range)
@@ -83,12 +83,25 @@ Managing projects and budgets in the system.
 
 ---
 
+#### ✅ [Purchase Order Management Guide](purchase-order-management.md)
+**For**: Admin Users, Purchasing Staff
+
+Creating and managing purchase orders from creation through closure.
+
+**Covers:**
+- Creating purchase orders (draft and open)
+- Finalizing a PO (Draft → Open)
+- Viewing PO details and financial summary
+- Closing POs (normal and force closure)
+- Searching and filtering purchase orders
+
+---
+
 ## Planned Manuals
 
 ### High Priority
 
 - **Disbursement Processing** - Final payment release workflow
-- **Purchase Order Management** - Creating and managing purchase orders
 
 ### Medium Priority
 
@@ -186,10 +199,11 @@ Contact the development team or your system administrator with:
 
 | Date | Changes |
 |------|---------|
+| 2026-02-02 | Added purchase order management guide |
 | 2026-01-29 | Added vendor & project management guide |
 | 2026-01-28 | Added check requisition creation guide |
 | 2026-01-28 | Added invoice approval workflow guide |
-| 2026-01-28 | Created user manuals directory and bulk invoice creation guide |
+| 2026-01-28 | Created user manuals directory and bulk invoice addition guide |
 
 ---
 
@@ -198,11 +212,12 @@ Contact the development team or your system administrator with:
 docs/
 ├── user-manuals/
 │   ├── README.md (this file)
-│   ├── bulk-invoice-creation.md ✅
+│   ├── bulk-invoice-addition.md ✅
 │   ├── invoice-approval-workflow.md ✅
 │   ├── check-requisition-creation.md ✅
 │   ├── vendor-management.md ✅
 │   ├── project-management.md ✅
+│   ├── purchase-order-management.md ✅
 │   └── [more guides coming soon]
 └── [developer documentation]
 ```

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\InvoiceStatus;
 use App\Http\Requests\CheckRequisition\ApproveCheckRequisitionRequest;
 use App\Http\Requests\CheckRequisition\RejectCheckRequisitionRequest;
 use App\Http\Requests\CheckRequisition\StoreCheckRequisitionRequest;
@@ -192,7 +193,8 @@ class CheckRequisitionController extends Controller
         // Link invoices using the junction table
         $checkReq->invoices()->attach($invoiceIds);
 
-        Invoice::whereIn('id', $invoiceIds)->update(['invoice_status' => 'pending_disbursement']);
+        // Update invoice status to pending_disbursement
+        Invoice::whereIn('id', $invoiceIds)->update(['invoice_status' => InvoiceStatus::PENDING_DISBURSEMENT->value]);
 
         // Log creation with invoice count
         $invoices = Invoice::whereIn('id', $invoiceIds)->get();
@@ -380,18 +382,18 @@ class CheckRequisitionController extends Controller
         $checkRequisition->invoices()->sync($invoiceIds);
 
         // Update invoice statuses
-        // Reset old invoices that were removed
+        // Reset old invoices that were removed back to approved
         $removedInvoiceIds = array_diff($oldInvoiceIds, $invoiceIds);
         if (!empty($removedInvoiceIds)) {
             Invoice::whereIn('id', $removedInvoiceIds)
-                ->update(['invoice_status' => 'approved']); // or whatever the previous status should be
+                ->update(['invoice_status' => InvoiceStatus::APPROVED->value]);
         }
 
         // Set new invoices to pending_disbursement
         $newInvoiceIds = array_diff($invoiceIds, $oldInvoiceIds);
         if (!empty($newInvoiceIds)) {
             Invoice::whereIn('id', $newInvoiceIds)
-                ->update(['invoice_status' => 'pending_disbursement']);
+                ->update(['invoice_status' => InvoiceStatus::PENDING_DISBURSEMENT->value]);
         }
 
         try {
@@ -738,7 +740,7 @@ class CheckRequisitionController extends Controller
 
             // Revert related invoices back to approved status
             $checkRequisition->invoices()->update([
-                'invoice_status' => 'approved'
+                'invoice_status' => InvoiceStatus::APPROVED->value
             ]);
 
             // Create activity log

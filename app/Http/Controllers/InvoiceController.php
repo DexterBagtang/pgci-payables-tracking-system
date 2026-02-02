@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\InvoiceStatus;
 use App\Http\Requests\Invoice\StoreInvoiceRequest;
 use App\Http\Requests\Invoice\UpdateInvoiceRequest;
 use App\Models\ActivityLog;
@@ -743,11 +744,29 @@ class InvoiceController extends Controller
         DB::beginTransaction();
 
         try {
+            // Validate all invoices can transition to 'received'
+            $invoices = Invoice::whereIn('id', $request->invoice_ids)->get();
+            $invalidInvoices = [];
+
+            foreach ($invoices as $invoice) {
+                if (!$invoice->canTransitionTo(InvoiceStatus::RECEIVED)) {
+                    $invalidInvoices[] = "{$invoice->si_number} (current status: {$invoice->invoice_status})";
+                }
+            }
+
+            if (!empty($invalidInvoices)) {
+                throw ValidationException::withMessages([
+                    'invoice_ids' => [
+                        'The following invoices cannot be marked as received: ' . implode(', ', $invalidInvoices)
+                    ],
+                ]);
+            }
+
             $now = now();
             $updated = Invoice::whereIn('id', $request->invoice_ids)
                 ->update([
                     'files_received_at' => $now,
-                    'invoice_status' => 'received',
+                    'invoice_status' => InvoiceStatus::RECEIVED->value,
                     'updated_at' => $now,
                 ]);
 
@@ -803,14 +822,31 @@ class InvoiceController extends Controller
         DB::beginTransaction();
 
         try {
-            // Validate all invoices have files received
-            $invalidInvoices = Invoice::whereIn('id', $request->invoice_ids)
-                ->whereNull('files_received_at')
-                ->count();
+            // Validate all invoices can transition to 'approved' and have files received
+            $invoices = Invoice::whereIn('id', $request->invoice_ids)->get();
+            $invalidTransitions = [];
+            $missingFiles = [];
 
-            if ($invalidInvoices > 0) {
+            foreach ($invoices as $invoice) {
+                if (!$invoice->canTransitionTo(InvoiceStatus::APPROVED)) {
+                    $invalidTransitions[] = "{$invoice->si_number} (current status: {$invoice->invoice_status})";
+                }
+                if (!$invoice->files_received_at) {
+                    $missingFiles[] = $invoice->si_number;
+                }
+            }
+
+            $errors = [];
+            if (!empty($invalidTransitions)) {
+                $errors[] = 'Invalid status transitions: ' . implode(', ', $invalidTransitions);
+            }
+            if (!empty($missingFiles)) {
+                $errors[] = 'Missing files received: ' . implode(', ', $missingFiles);
+            }
+
+            if (!empty($errors)) {
                 throw ValidationException::withMessages([
-                    'invoice_ids' => ["{$invalidInvoices} invoice(s) don't have files received yet. Mark them as received first before approving."],
+                    'invoice_ids' => $errors,
                 ]);
             }
 
@@ -819,7 +855,7 @@ class InvoiceController extends Controller
 
             $updated = Invoice::whereIn('id', $request->invoice_ids)
                 ->update([
-                    'invoice_status' => 'approved',
+                    'invoice_status' => InvoiceStatus::APPROVED->value,
                     'reviewed_by' => $userId,
                     'reviewed_at' => $now,
                     'approved_at' => $now,
@@ -889,19 +925,37 @@ class InvoiceController extends Controller
         $request->validate([
             'invoice_ids' => 'required|array',
             'invoice_ids.*' => 'exists:invoices,id',
-            'notes' => 'required|string|max:1000',
+            'notes' => 'required|string|min:10|max:1000',
         ]);
 
         DB::beginTransaction();
 
         try {
+            // Validate all invoices can transition to 'rejected'
+            $invoices = Invoice::whereIn('id', $request->invoice_ids)->get();
+            $invalidInvoices = [];
+
+            foreach ($invoices as $invoice) {
+                if (!$invoice->canTransitionTo(InvoiceStatus::REJECTED)) {
+                    $invalidInvoices[] = "{$invoice->si_number} (current status: {$invoice->invoice_status})";
+                }
+            }
+
+            if (!empty($invalidInvoices)) {
+                throw ValidationException::withMessages([
+                    'invoice_ids' => [
+                        'The following invoices cannot be rejected: ' . implode(', ', $invalidInvoices)
+                    ],
+                ]);
+            }
+
             $now = now();
             $userId = auth()->id();
             $rejectionText = 'REJECTION: ' . $request->notes;
 
             $updated = Invoice::whereIn('id', $request->invoice_ids)
                 ->update([
-                    'invoice_status' => 'rejected',
+                    'invoice_status' => InvoiceStatus::REJECTED->value,
                     'reviewed_by' => $userId,
                     'reviewed_at' => $now,
                     'updated_at' => $now,

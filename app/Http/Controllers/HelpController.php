@@ -69,15 +69,15 @@ class HelpController extends Controller
     }
 
     /**
-     * Get all available manuals with metadata.
+     * Get all available manuals with metadata (filtered by user permissions).
      */
     private function getManuals(): array
     {
-        $manuals = [
+        $allManuals = [
             [
-                'slug' => 'bulk-invoice-creation',
-                'title' => 'Bulk Invoice Creation Guide',
-                'description' => 'Create multiple invoices at once',
+                'slug' => 'bulk-invoice-addition',
+                'title' => 'Bulk Invoice Addition Guide',
+                'description' => 'Add multiple invoices at once',
                 'category' => 'core-workflows',
                 'readTime' => 5,
                 'icon' => 'FileStack',
@@ -114,10 +114,23 @@ class HelpController extends Controller
                 'readTime' => 4,
                 'icon' => 'FolderKanban',
             ],
+            [
+                'slug' => 'purchase-order-management',
+                'title' => 'Purchase Order Management Guide',
+                'description' => 'Create and manage purchase orders',
+                'category' => 'management',
+                'readTime' => 5,
+                'icon' => 'Receipt',
+                'meta' => [
+                    'roles' => ['Admin', 'Purchasing'],
+                    'statusFlow' => ['Draft', 'Open', 'Closed'],
+                    'description' => 'Create and manage purchase orders from creation through closure.',
+                ],
+            ],
         ];
 
         // Add metadata for each manual
-        return array_map(function ($manual) {
+        $manualsWithMetadata = array_map(function ($manual) {
             $filePath = base_path("docs/user-manuals/{$manual['slug']}.md");
 
             // Get last modified time
@@ -125,17 +138,25 @@ class HelpController extends Controller
                 ? File::lastModified($filePath)
                 : time();
 
-            // Count sections (H2 headings)
+            // Get content for search
             $content = File::exists($filePath) ? File::get($filePath) : '';
+
+            // Count sections (H2 headings)
             preg_match_all('/^##\s+/m', $content, $matches);
             $pageCount = count($matches[0]);
 
             return array_merge($manual, [
                 'lastUpdated' => date('Y-m-d', $lastUpdated),
                 'pageCount' => $pageCount,
+                'content' => $content, // Include content for search
                 'relatedGuides' => $this->getRelatedGuides($manual['slug']),
             ]);
-        }, $manuals);
+        }, $allManuals);
+
+        // Filter manuals based on user permissions
+        return array_values(array_filter($manualsWithMetadata, function ($manual) {
+            return Gate::allows('view-manual', $manual['category']);
+        }));
     }
 
     /**
@@ -144,11 +165,12 @@ class HelpController extends Controller
     private function getRelatedGuides(string $slug): array
     {
         $relations = [
-            'bulk-invoice-creation' => ['invoice-approval-workflow', 'check-requisition-creation'],
-            'invoice-approval-workflow' => ['bulk-invoice-creation', 'check-requisition-creation'],
+            'bulk-invoice-addition' => ['invoice-approval-workflow', 'check-requisition-creation'],
+            'invoice-approval-workflow' => ['bulk-invoice-addition', 'check-requisition-creation'],
             'check-requisition-creation' => ['invoice-approval-workflow'],
-            'vendor-management' => ['project-management'],
-            'project-management' => ['vendor-management'],
+            'vendor-management' => ['project-management', 'purchase-order-management'],
+            'project-management' => ['vendor-management', 'purchase-order-management'],
+            'purchase-order-management' => ['vendor-management', 'project-management'],
         ];
 
         return $relations[$slug] ?? [];

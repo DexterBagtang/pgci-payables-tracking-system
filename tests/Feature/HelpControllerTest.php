@@ -54,7 +54,7 @@ test('can view specific manual', function () {
     $user = User::factory()->create(['role' => UserRole::ADMIN]);
 
     $response = $this->actingAs($user)
-        ->get(route('help.show', ['slug' => 'bulk-invoice-creation']));
+        ->get(route('help.show', ['slug' => 'bulk-invoice-addition']));
 
     $response->assertOk();
     $response->assertInertia(fn ($page) => $page
@@ -89,7 +89,7 @@ test('user without access to manual cannot view it', function () {
 
     // PURCHASING is only allowed 'management' category; core-workflows should be denied
     $response = $this->actingAs($user)
-        ->get(route('help.show', ['slug' => 'bulk-invoice-creation']));
+        ->get(route('help.show', ['slug' => 'bulk-invoice-addition']));
 
     $response->assertForbidden();
 });

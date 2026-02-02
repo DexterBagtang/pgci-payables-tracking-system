@@ -4,7 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Head, Link } from '@inertiajs/react';
 import { show } from '@/routes/help';
-import { FileStack, CheckCircle2, FileText, Building2, FolderKanban, Clock, FileIcon } from 'lucide-react';
+import { FileStack, CheckCircle2, FileText, Building2, FolderKanban, Receipt, Clock, FileIcon } from 'lucide-react';
 import { type BreadcrumbItem } from '@/types';
 
 interface Category {
@@ -36,6 +36,7 @@ const iconMap: Record<string, typeof FileIcon> = {
     FileText,
     Building2,
     FolderKanban,
+    Receipt,
 };
 
 export default function HelpIndex({ manuals, categories }: Props) {
