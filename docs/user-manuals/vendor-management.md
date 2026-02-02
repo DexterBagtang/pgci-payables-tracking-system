@@ -54,7 +54,17 @@ Edit any field. Vendor name must remain unique across all vendors.
 
 **Shows:**
 - Basic info: Name, Category, Contact Person, Email, Phone, Address, Payment Terms
-- Financial summary: Total PO Amount, Total Invoiced, Total Paid, Outstanding Balance, Overdue Amount
+- Financial summary:
+  - **Total PO Amount**: Sum of all Purchase Orders associated with the vendor.
+  - **Total Invoiced**: Total amount of all invoices submitted for the vendor.
+  - **Total Paid**: Total amount paid to the vendor across all invoices.
+  - **Outstanding Balance**: The remaining balance to be paid to the vendor (Total Invoiced - Total Paid).
+  - **Overdue Amount**: Total amount of invoices that are past their due date and not yet paid.
+  - **Total Invoices**: Count of all invoices associated with the vendor.
+  - **Paid Invoices**: Count of invoices with 'paid' status.
+  - **Pending Invoices**: Count of invoices with statuses other than 'paid'.
+  - **Overdue Invoices**: Count of invoices that are past due date and not yet paid.
+  - **Average Payment Days**: Average number of days it takes to pay an invoice from the SI date to the paid date.
 - Invoice statistics: Total, Paid, Pending, Overdue
 - Related records: Purchase Orders, Invoices, Projects
 - Activity log (all changes and actions)
@@ -118,7 +128,7 @@ Deactivating 5 vendors at once.
 
 **Search:** Name, Email, Category, Phone, Address
 **Filter:** Status (Active/Inactive), Category (SAP/Manual)
-**Sort:** Name, Email, Category, Date, PO Count, Invoice Count
+**Sort:** Name, Email, Category, Date Created, Date Updated, Phone, PO Count, Invoice Count
 
 ## Quick Reference
 
@@ -130,6 +140,14 @@ Deactivating 5 vendors at once.
 | Activate/Deactivate | Edit → Change Status → Save |
 | Bulk Actions | Select vendors → Bulk Actions |
 | Search | Vendors → Search bar |
+| Sort by Name | Vendors → Click Name column header |
+| Sort by Email | Vendors → Click Email column header |
+| Sort by Category | Vendors → Click Category column header |
+| Sort by Date Created | Vendors → Click Date Created column header |
+| Sort by Date Updated | Vendors → Click Date Updated column header |
+| Sort by Phone | Vendors → Click Phone column header |
+| Sort by PO Count | Vendors → Click Purchase Orders column header |
+| Sort by Invoice Count | Vendors → Click Invoices column header |
 
 ## Common Issues
 
@@ -143,5 +161,5 @@ Deactivating 5 vendors at once.
 
 - View: Any user
 - Create/Update: **Admin**, **Purchasing**
-- Bulk Operations: **Admin** only
+- Bulk Operations: **Admin** and **Purchasing** roles with write permissions for the Vendors module.
 - Delete: **Admin** only

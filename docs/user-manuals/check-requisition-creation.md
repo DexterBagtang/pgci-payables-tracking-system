@@ -1,178 +1,123 @@
 # Check Requisition Creation
 
+This guide explains how to create and submit a check requisition for payment processing.
+
 ## Check Requisition Status Flow
 
-**Draft** → **Pending Approval** → **Approved** → (Creates Disbursement)
-                  ↓
-            **Rejected** (back to editing)
+When a check requisition is created, it immediately enters the `Pending Approval` state.
 
-- **Draft** - Work in progress. Can be edited and deleted. Invoices remain "Approved".
-- **Pending Approval** - Submitted for management review. Cannot be edited. Invoices remain "Approved".
-- **Approved** - Authorized for disbursement. Cannot be edited. Linked invoices move to "Pending Disbursement".
-- **Rejected** - Returned for revision. Can be edited and resubmitted. Invoices remain "Approved".
+Pending Approval → Approved → (Creates Disbursement)
+
+If a requisition is rejected during review, it is marked as `Rejected` and can be edited and resubmitted.
+
+-   **Pending Approval** - Submitted for management review. Cannot be edited. Attached invoices are moved to **Pending Disbursement**.
+-   **Approved** - Authorized for disbursement. Cannot be edited further.
+-   **Rejected** - Returned for revision. Can be edited and resubmitted. Attached invoices are reverted to **Approved**.
 
 **Payment Flow:**
 Approved Invoices → Check Requisition → Disbursement → Payment
 
 ## Create Check Requisition
 
-**Check Requisitions → Create Check Requisition**
+Navigate to **Check Requisitions → Create Check Requisition**.
 
-## Select Approved Invoices
+### 1. Select Approved Invoices
 
-Only invoices with **Approved** status can be added to a check requisition.
+Only invoices with an **Approved** status can be added to a check requisition.
 
 **Steps:**
-1. Browse paginated invoice list
-2. Use filters (vendor, project, date range) to narrow down list
-3. Select invoices via checkboxes
-4. Review selected invoices total amount
+1.  The screen displays a paginated list of available invoices.
+2.  Use the filters (vendor, project, date range) to efficiently locate the invoices you need.
+3.  Select one or more invoices using the checkboxes.
+4.  The header bar will display the total number of selected invoices and their combined amount.
 
-> 💡 Group invoices from the same vendor or project for easier tracking and approval.
+> 💡 **Tip:** Group invoices from the same vendor or project into a single requisition for easier tracking and faster approval.
 
-## Enter Requisition Details
+### 2. Enter Requisition Details
+
+As you select invoices, the form on the right will auto-populate with relevant information.
 
 **Auto-generated (Read-only):**
-- Requisition Number
-- PHP Amount (sum of selected invoices)
-- PO/CER/SI Numbers (from selected invoices)
+-   **Requisition Number:** Generated upon submission.
+-   **PHP Amount:** The sum of all selected invoices.
+-   **Amount in Words:** Automatically generated based on the PHP amount.
+-   **PO/CER/SI Numbers:** Aggregated from the selected invoices.
 
-**Required:**
-- Request Date *
-- Payee Name *
-- Purpose *
-- Account Charge *
-- Service Line Distribution *
-- Amount in Words *
-- Requested By * (person creating requisition)
-- Reviewed By * (first level reviewer)
-- Approved By * (final approver)
+**Required Fields:**
+-   **Request Date \***
+-   **Payee Name \*** (Auto-filled based on invoice vendor)
+-   **Purpose \*** (Auto-filled with invoice numbers)
+-   **Account Charge \***
+-   **Service Line Distribution \***
+-   **Requested By \*** (Person creating the requisition)
+-   **Reviewed By \*** (First-level reviewer)
+-   **Approved By \*** (Final approver)
 
 **Optional:**
-- Remarks
-- Supporting documents (max 10MB each)
+-   Remarks
+-   Supporting documents (max 10MB each)
 
-> ⚠️ All three approval fields (Requested By, Reviewed By, Approved By) must be filled before submission.
+> ⚠️ All three approval fields (Requested By, Reviewed By, Approved By) are mandatory and must be filled out before you can submit the requisition.
 
-## Save or Submit
+### 3. Submit for Approval
 
-**Save as Draft:**
-- Status: Draft
-- Can edit later
-- Can delete if needed
-- Invoices remain "Approved" status
+There is no "draft" state. Once you are ready, you submit the requisition directly for approval.
 
-**Submit for Approval:**
-- Status: Pending Approval
-- Cannot edit while pending
-- All required fields must be filled
-- Invoices remain "Approved" status
+1.  Click the **Submit for Approval** button.
+2.  A confirmation dialog will appear summarizing the requisition details.
+3.  Click **Confirm & Submit**.
+
+The check requisition is now created with a `Pending Approval` status, and the attached invoices are updated to **Pending Disbursement**.
 
 ## Management Review
 
 **Approver Actions:**
-1. Review check requisition details
-2. Verify invoices and amounts
-3. Check approval authority
+1.  Navigate to the check requisition's review page.
+2.  Carefully review the details, attached invoices, and total amount.
 
 **Approve:**
-- Status changes to: Approved
-- Linked invoices move to: "Pending Disbursement"
-- Next step: Disbursement creation
+-   The status changes to **Approved**.
+-   The next step in the workflow is to create a disbursement.
 
 **Reject:**
-- Status changes to: Rejected
-- Rejection notes required
-- Accounting staff notified
-- Can edit and resubmit
+-   The status changes to **Rejected**.
+-   The approver must provide notes explaining the reason for rejection.
+-   The accounting staff is notified, and the requisition can be edited and resubmitted.
 
-## Examples
-
-### Example 1: Single Vendor Payment
-
-Payables staff groups all approved invoices from *Acme Supplies* for payment.
-
-1. Navigate to **Check Requisitions → Create Check Requisition**
-2. Filter: Vendor = *Acme Supplies*, Status = *Approved*
-3. Select All (12 invoices totaling ₱450,000.00)
-4. Enter Request Date: *Today*
-5. Payee Name: *Acme Supplies*
-6. Purpose: *Payment for January 2026 deliveries*
-7. Account Charge: *5100-Operating Expenses*
-8. Service Line Distribution: *Building Renovation - 100%*
-9. Amount in Words: *Four Hundred Fifty Thousand Pesos Only*
-10. Fill approval fields: Requested By, Reviewed By, Approved By
-11. Submit for Approval
-12. Requisition is now **Pending Approval**
-
-### Example 2: Project-Based Payment
-
-All approved invoices under *Building Renovation (CER-2026-001)* need payment.
-
-1. Navigate to **Check Requisitions → Create Check Requisition**
-2. Filter: Project = *CER-2026-001*, Status = *Approved*
-3. Select invoices up to budget amount (8 invoices totaling ₱280,000.00)
-4. Fill in requisition details
-5. Purpose: *Building Renovation - Phase 1 completion*
-6. Submit for Approval
-
-### Example 3: Draft for Later Submission
-
-Creating a requisition but not ready to submit yet.
-
-1. Navigate to **Check Requisitions → Create Check Requisition**
-2. Select invoices
-3. Fill in partial details
-4. Click **Save as Draft**
-5. Complete details later and submit
-
-## Validation
+## Validation Checks
 
 **Before submission:**
-- At least 1 invoice selected
-- All required fields filled
-- Amount in words matches PHP amount
-- Approval fields assigned
-- Payee name matches vendor
+-   At least one invoice must be selected.
+-   All required fields must be filled.
+-   The three approval fields (Requested By, Reviewed By, Approved By) must be assigned.
+-   The payee name should match the vendor on the invoices.
 
 **System checks:**
-- Selected invoices are "Approved"
-- No duplicate requisitions for same invoices
-- Total amount is positive
-- Request date is valid
+-   Ensures selected invoices have an "Approved" status.
+-   Prevents an invoice from being added to more than one active requisition.
 
 ## Quick Reference
 
-| Task | Path |
-|------|------|
-| Create | Check Requisitions → Create Check Requisition |
-| Edit | Check Requisitions → Click CR → Edit |
-| View Details | Check Requisitions → Click CR |
-| Submit for Approval | Edit → Submit for Approval |
-| Approve/Reject | Check Requisitions → Click CR → Approve/Reject |
+| Task                  | Path                                            |
+| --------------------- | ----------------------------------------------- |
+| Create                | Check Requisitions → Create Check Requisition   |
+| Edit (if Rejected)    | Check Requisitions → Click CR → Edit            |
+| View Details          | Check Requisitions → Click CR                   |
+| Submit for Approval   | Create/Edit Page → Submit for Approval          |
+| Approve/Reject        | Check Requisitions → Click CR → Approve/Reject  |
 
 ## Common Issues
 
-- **Can't find invoices** - Check status filter is set to "Approved" only
-- **Submit button disabled** - Fill all required fields including the three approval fields
-- **Invoice already in requisition** - An invoice can only be in one active requisition at a time
-- **Can't edit requisition** - Requisition is "Pending Approval". Contact admin to revert to "Draft"
-- **Approval fields missing** - Assign users to approval roles or contact admin
-- **Amount in words doesn't match** - Ensure the written amount matches the PHP amount exactly
+-   **Cannot find invoices:** Ensure the status filter is set to "Approved".
+-   **Submit button is disabled:** Check that all required fields, including the three approval names, are filled out.
+-   **Invoice already in a requisition:** An invoice can only be part of one active check requisition at a time.
+-   **Cannot edit a requisition:** The requisition is likely in "Pending Approval" status and cannot be edited. It must be rejected by an approver to become editable again.
+-   **Approval fields are missing:** Contact an administrator to ensure users are assigned to the correct approval roles.
 
 ## Status Reference
 
-| Status | Can Edit? | Can Delete? | Invoice Status |
-|--------|-----------|-------------|----------------|
-| Draft | Yes | Yes | Approved |
-| Pending Approval | No | No | Approved |
-| Approved | No | No | Pending Disbursement |
-| Rejected | Yes | Yes | Approved |
-
-## Permissions
-
-- View: Any user
-- Create/Update: **Admin**, **Payables**
-- Submit for Approval: **Admin**, **Payables**
-- Approve/Reject: **Admin**, Management (as designated in approval fields)
-- Delete: **Admin**, **Payables** (Draft or Rejected only)
+| Status             | Can Edit? | Can Delete? | Invoice Status         |
+| ------------------ | :-------: | :---------: | ---------------------- |
+| Pending Approval   |    No     |     No      | Pending Disbursement   |
+| Approved           |    No     |     No      | Pending Disbursement   |
+| Rejected           |    Yes    |     Yes     | Approved               |

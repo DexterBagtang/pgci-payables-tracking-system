@@ -5,10 +5,15 @@ import rehypeSanitize from 'rehype-sanitize';
 import type { Components } from 'react-markdown';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Check, Copy, AlertCircle, Info, Lightbulb, AlertTriangle } from 'lucide-react';
+import { Check, Copy, AlertCircle, Info, Lightbulb, AlertTriangle, ArrowRight } from 'lucide-react';
 import { useState, Children, isValidElement, Fragment } from 'react';
 import { useCopyToClipboard } from 'react-use';
 import { cn } from '@/lib/utils';
+import { allStatusColors, roleColors, roleKeywords } from '@/lib/status-config';
+
+// Re-export for use in other components
+export { roleColors };
+export const statusColors = allStatusColors;
 
 interface MarkdownRendererProps {
     content: string;
@@ -25,36 +30,89 @@ function getTextContent(node: React.ReactNode): string {
     return '';
 }
 
-// Status color mappings
-export const statusColors: Record<string, string> = {
-    draft: 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700',
-    open: 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900 dark:text-blue-300 dark:border-blue-800',
-    closed: 'bg-green-100 text-green-700 border-green-200 dark:bg-green-900 dark:text-green-300 dark:border-green-800',
-    cancelled: 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900 dark:text-red-300 dark:border-red-800',
-    pending: 'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900 dark:text-amber-300 dark:border-amber-800',
-    'pending approval': 'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900 dark:text-amber-300 dark:border-amber-800',
-    approved: 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900 dark:text-emerald-300 dark:border-emerald-800',
-    rejected: 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900 dark:text-red-300 dark:border-red-800',
-    received: 'bg-sky-100 text-sky-700 border-sky-200 dark:bg-sky-900 dark:text-sky-300 dark:border-sky-800',
-    paid: 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900 dark:text-emerald-300 dark:border-emerald-800',
-    active: 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900 dark:text-emerald-300 dark:border-emerald-800',
-    inactive: 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700',
-    completed: 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900 dark:text-emerald-300 dark:border-emerald-800',
-    'on hold': 'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900 dark:text-amber-300 dark:border-amber-800',
-    'pending disbursement': 'bg-violet-100 text-violet-700 border-violet-200 dark:bg-violet-900 dark:text-violet-300 dark:border-violet-800',
-};
+// GitHub-style callout detection
+type CalloutType = 'warning' | 'tip' | 'note' | 'danger' | 'important';
 
-// Role color mappings
-export const roleColors: Record<string, string> = {
-    admin: 'bg-violet-100 text-violet-700 dark:bg-violet-900 dark:text-violet-300',
-    purchasing: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300',
-    accounting: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300',
-    payables: 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300',
-};
+interface CalloutInfo {
+    type: CalloutType;
+    icon: React.ComponentType<{ className?: string }>;
+    className: string;
+}
 
-const roleKeywords = ['Admin', 'Purchasing', 'Accounting', 'Payables'];
+function detectCallout(text: string): CalloutInfo | null {
+    // GitHub-style: [!WARNING], [!TIP], [!NOTE], etc.
+    const githubMatch = text.match(/^\[!(WARNING|TIP|NOTE|DANGER|IMPORTANT)\]/i);
+    if (githubMatch) {
+        const type = githubMatch[1].toLowerCase() as CalloutType;
+        return getCalloutInfo(type);
+    }
 
-function CodeBlock({ children, className }: { children: string; className?: string }) {
+    // Legacy: Check for keywords (without emoji)
+    const lowerText = text.toLowerCase();
+    if (lowerText.includes('warning:') || lowerText.includes('⚠')) {
+        return getCalloutInfo('warning');
+    }
+    if (lowerText.includes('tip:') || lowerText.includes('💡')) {
+        return getCalloutInfo('tip');
+    }
+    if (lowerText.includes('note:') || lowerText.includes('info:') || lowerText.includes('ℹ')) {
+        return getCalloutInfo('note');
+    }
+    if (lowerText.includes('danger:') || lowerText.includes('🔴')) {
+        return getCalloutInfo('danger');
+    }
+    if (lowerText.includes('important:')) {
+        return getCalloutInfo('important');
+    }
+
+    return null;
+}
+
+function getCalloutInfo(type: CalloutType): CalloutInfo {
+    switch (type) {
+        case 'warning':
+            return {
+                type: 'warning',
+                icon: AlertTriangle,
+                className: 'border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950 [&>svg]:text-amber-600 dark:[&>svg]:text-amber-400',
+            };
+        case 'tip':
+            return {
+                type: 'tip',
+                icon: Lightbulb,
+                className: 'border-blue-200 bg-blue-50 dark:border-blue-900 dark:bg-blue-950 [&>svg]:text-blue-600 dark:[&>svg]:text-blue-400',
+            };
+        case 'note':
+            return {
+                type: 'note',
+                icon: Info,
+                className: 'border-sky-200 bg-sky-50 dark:border-sky-900 dark:bg-sky-950 [&>svg]:text-sky-600 dark:[&>svg]:text-sky-400',
+            };
+        case 'danger':
+            return {
+                type: 'danger',
+                icon: AlertCircle,
+                className: '', // Uses default destructive variant
+            };
+        case 'important':
+            return {
+                type: 'important',
+                icon: AlertCircle,
+                className: 'border-purple-200 bg-purple-50 dark:border-purple-900 dark:bg-purple-950 [&>svg]:text-purple-600 dark:[&>svg]:text-purple-400',
+            };
+    }
+}
+
+// Clean text by removing emojis and callout markers
+function cleanCalloutText(text: string): string {
+    return text
+        .replace(/^\[!(WARNING|TIP|NOTE|DANGER|IMPORTANT)\]\s*/i, '') // Remove GitHub-style marker
+        .replace(/^(Warning|Tip|Note|Info|Danger|Important):\s*/i, '') // Remove keyword prefix
+        .replace(/[⚠️💡ℹ️🔴]/g, '') // Remove emojis
+        .trim();
+}
+
+function CodeBlock({ children, className, language }: { children: string; className?: string; language?: string }) {
     const [copied, setCopied] = useState(false);
     const [, copyToClipboard] = useCopyToClipboard();
 
@@ -64,21 +122,30 @@ function CodeBlock({ children, className }: { children: string; className?: stri
         setTimeout(() => setCopied(false), 2000);
     };
 
-    const match = /language-(\w+)/.exec(className || '');
+    const lineCount = String(children).split('\n').length;
+    const showCopyButton = lineCount > 1; // Only show for multi-line code
 
     return (
-        <div className="relative group">
-            <pre className="my-3 overflow-x-auto rounded-lg bg-muted p-4">
+        <div className="relative group my-3">
+            <pre className="overflow-x-auto rounded-lg bg-muted p-4 border">
                 <code className={`font-mono text-sm ${className || ''}`}>
                     {children}
                 </code>
             </pre>
-            {match && (
+            {language && (
+                <div className="absolute top-2 left-3">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider bg-muted-foreground/10 text-muted-foreground px-2 py-0.5 rounded">
+                        {language}
+                    </span>
+                </div>
+            )}
+            {showCopyButton && (
                 <Button
                     variant="ghost"
                     size="icon"
                     className="absolute top-2 right-2 h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
                     onClick={handleCopy}
+                    aria-label="Copy code"
                 >
                     {copied ? (
                         <Check className="h-4 w-4 text-green-500" />
@@ -93,19 +160,19 @@ function CodeBlock({ children, className }: { children: string; className?: stri
 
 function StatusFlowBadges({ statuses }: { statuses: string[] }) {
     return (
-        <div className="flex items-center gap-2 flex-wrap my-4 py-2.5 px-4 rounded-lg bg-muted/50 border">
+        <div className="flex items-center gap-2 flex-wrap my-4 py-3 px-4 rounded-lg bg-muted/50 border">
             {statuses.map((status, index) => (
                 <Fragment key={index}>
                     <span
                         className={cn(
-                            'px-2.5 py-0.5 rounded-full text-xs font-semibold border',
-                            statusColors[status.toLowerCase()] || 'bg-muted text-muted-foreground border-border'
+                            'px-2.5 py-1 rounded-full text-xs font-semibold border transition-all duration-200 hover:scale-105',
+                            allStatusColors[status.toLowerCase()] || 'bg-muted text-muted-foreground border-border'
                         )}
                     >
                         {status}
                     </span>
                     {index < statuses.length - 1 && (
-                        <span className="text-muted-foreground text-sm">→</span>
+                        <ArrowRight className="h-3.5 w-3.5 text-primary/50 stroke-[2.5] flex-shrink-0 animate-pulse" />
                     )}
                 </Fragment>
             ))}
@@ -123,7 +190,7 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
                     const text = getTextContent(children);
                     const id = text.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-');
                     return (
-                        <h1 id={id} className="scroll-m-20 text-3xl font-bold tracking-tight mb-3">
+                        <h1 id={id} className="scroll-m-20 text-3xl font-bold tracking-tight mb-4 mt-2">
                             {children}
                         </h1>
                     );
@@ -132,7 +199,7 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
                     const text = getTextContent(children);
                     const id = text.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-');
                     return (
-                        <h2 id={id} className="scroll-m-20 border-b pb-1.5 text-xl font-semibold tracking-tight first:mt-0 mt-8 mb-2">
+                        <h2 id={id} className="scroll-m-20 border-b pb-2 text-xl font-semibold tracking-tight first:mt-0 mt-8 mb-3">
                             {children}
                         </h2>
                     );
@@ -141,13 +208,13 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
                     const text = getTextContent(children);
                     const id = text.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-');
                     return (
-                        <h3 id={id} className="scroll-m-20 text-base font-semibold tracking-tight mt-5 mb-1.5">
+                        <h3 id={id} className="scroll-m-20 text-base font-semibold tracking-tight mt-6 mb-2">
                             {children}
                         </h3>
                     );
                 },
                 h4: ({ children }) => (
-                    <h4 className="scroll-m-20 text-sm font-semibold tracking-tight mt-4 mb-1.5">
+                    <h4 className="scroll-m-20 text-sm font-semibold tracking-tight mt-5 mb-2">
                         {children}
                     </h4>
                 ),
@@ -184,7 +251,7 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
                     }
 
                     // Validate: at least 2 statuses, each reasonably short
-                    if (isStatusFlow && statuses.length >= 2 && statuses.every(s => s.length > 0 && s.length <= 25)) {
+                    if (isStatusFlow && statuses.length >= 2 && statuses.every(s => s.length > 0 && s.length <= 30)) {
                         return <StatusFlowBadges statuses={statuses} />;
                     }
 
@@ -195,7 +262,7 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
                     );
                 },
                 ul: ({ children }) => (
-                    <ul className="my-3 ml-5 list-disc space-y-1">
+                    <ul className="my-3 ml-5 list-disc space-y-1.5">
                         {children}
                     </ul>
                 ),
@@ -209,7 +276,7 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
                             <div className="flex-1 text-sm leading-6">{(child as any).props?.children}</div>
                         </li>
                     ));
-                    return <ol className="my-3 ml-1 list-none space-y-2">{items}</ol>;
+                    return <ol className="my-3 ml-1 list-none space-y-2.5">{items}</ol>;
                 },
                 li: ({ children }) => (
                     <li className="text-sm leading-6">
@@ -220,24 +287,24 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
                 code: ({ className, children, ...props }) => {
                     const match = /language-(\w+)/.exec(className || '');
                     return match ? (
-                        <CodeBlock className={className}>
+                        <CodeBlock className={className} language={match[1]}>
                             {String(children).replace(/\n$/, '')}
                         </CodeBlock>
                     ) : (
-                        <code className="relative rounded bg-muted px-[0.3rem] py-[0.2rem] font-mono text-xs font-semibold" {...props}>
+                        <code className="relative rounded bg-muted px-[0.35rem] py-[0.2rem] font-mono text-xs font-semibold" {...props}>
                             {children}
                         </code>
                     );
                 },
                 table: ({ children }) => (
-                    <div className="my-3 w-full overflow-y-auto rounded-lg border">
+                    <div className="my-4 w-full overflow-y-auto rounded-lg border shadow-sm">
                         <table className="w-full border-collapse text-sm">
                             {children}
                         </table>
                     </div>
                 ),
                 thead: ({ children }) => (
-                    <thead className="bg-muted">
+                    <thead className="bg-muted/70">
                         {children}
                     </thead>
                 ),
@@ -252,64 +319,53 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
                     </tr>
                 ),
                 th: ({ children }) => (
-                    <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground [&[align=center]]:text-center [&[align=right]]:text-right">
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground [&[align=center]]:text-center [&[align=right]]:text-right">
                         {children}
                     </th>
                 ),
                 td: ({ children }) => (
-                    <td className="px-4 py-2 [&[align=center]]:text-center [&[align=right]]:text-right">
+                    <td className="px-4 py-2.5 [&[align=center]]:text-center [&[align=right]]:text-right">
                         {children}
                     </td>
                 ),
                 blockquote: ({ children }) => {
                     const childText = getTextContent(children);
+                    const callout = detectCallout(childText);
 
-                    if (childText.includes('⚠️') || childText.includes('Warning:')) {
+                    if (callout) {
+                        const Icon = callout.icon;
+                        const cleanedContent = cleanCalloutText(childText);
+
+                        if (callout.type === 'danger') {
+                            return (
+                                <Alert variant="destructive" className="my-4">
+                                    <Icon className="h-4 w-4" />
+                                    <AlertDescription>{cleanedContent}</AlertDescription>
+                                </Alert>
+                            );
+                        }
+
                         return (
-                            <Alert variant="destructive" className="my-3">
-                                <AlertTriangle className="h-4 w-4" />
-                                <AlertDescription>{children}</AlertDescription>
-                            </Alert>
-                        );
-                    }
-                    if (childText.includes('💡') || childText.includes('Tip:')) {
-                        return (
-                            <Alert className="my-3 border-blue-200 bg-blue-50 dark:border-blue-900 dark:bg-blue-950">
-                                <Lightbulb className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                                <AlertDescription>{children}</AlertDescription>
-                            </Alert>
-                        );
-                    }
-                    if (childText.includes('ℹ️') || childText.includes('Note:') || childText.includes('Info:')) {
-                        return (
-                            <Alert className="my-3">
-                                <Info className="h-4 w-4" />
-                                <AlertDescription>{children}</AlertDescription>
-                            </Alert>
-                        );
-                    }
-                    if (childText.includes('🔴') || childText.includes('Danger:')) {
-                        return (
-                            <Alert variant="destructive" className="my-3">
-                                <AlertCircle className="h-4 w-4" />
-                                <AlertDescription>{children}</AlertDescription>
+                            <Alert className={cn('my-4', callout.className)}>
+                                <Icon className="h-4 w-4" />
+                                <AlertDescription>{cleanedContent}</AlertDescription>
                             </Alert>
                         );
                     }
 
                     return (
-                        <blockquote className="mt-3 border-l-2 border-primary pl-4 italic text-sm text-muted-foreground">
+                        <blockquote className="mt-4 border-l-2 border-primary pl-4 italic text-sm text-muted-foreground">
                             {children}
                         </blockquote>
                     );
                 },
                 hr: () => (
-                    <hr className="my-5 border-border" />
+                    <hr className="my-6 border-border" />
                 ),
                 a: ({ children, href }) => (
                     <a
                         href={href}
-                        className="font-medium text-primary underline underline-offset-4 hover:text-primary/80"
+                        className="font-medium text-primary underline underline-offset-4 hover:text-primary/80 transition-colors"
                         target="_blank"
                         rel="noopener noreferrer"
                     >
@@ -318,12 +374,14 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
                 ),
                 strong: ({ children }) => {
                     const text = getTextContent(children).trim();
-                    const role = roleKeywords.find(r => r.toLowerCase() === text.toLowerCase());
+
+                    // Exact match for role keywords only
+                    const role = roleKeywords.find(r => r === text);
 
                     if (role) {
                         return (
                             <span className={cn(
-                                'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold',
+                                'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border',
                                 roleColors[role.toLowerCase()]
                             )}>
                                 {role}
@@ -336,58 +394,13 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
                 em: ({ children }) => (
                     <em className="italic">{children}</em>
                 ),
-                img: ({ src, alt }) => {
-                    // Detect YouTube videos
-                    if (src?.includes('youtube.com') || src?.includes('youtu.be')) {
-                        let videoId = '';
-                        if (src.includes('youtu.be/')) {
-                            videoId = src.split('youtu.be/')[1]?.split('?')[0] || '';
-                        } else if (src.includes('youtube.com/watch?v=')) {
-                            videoId = new URL(src).searchParams.get('v') || '';
-                        }
-
-                        if (videoId) {
-                            return (
-                                <div className="my-3 aspect-video">
-                                    <iframe
-                                        src={`https://www.youtube.com/embed/${videoId}`}
-                                        title={alt || 'Video'}
-                                        className="w-full h-full rounded-lg border shadow-sm"
-                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                        allowFullScreen
-                                    />
-                                </div>
-                            );
-                        }
-                    }
-
-                    // Detect Vimeo videos
-                    if (src?.includes('vimeo.com')) {
-                        const videoId = src.split('vimeo.com/')[1]?.split('?')[0];
-                        if (videoId) {
-                            return (
-                                <div className="my-3 aspect-video">
-                                    <iframe
-                                        src={`https://player.vimeo.com/video/${videoId}`}
-                                        title={alt || 'Video'}
-                                        className="w-full h-full rounded-lg border shadow-sm"
-                                        allow="autoplay; fullscreen; picture-in-picture"
-                                        allowFullScreen
-                                    />
-                                </div>
-                            );
-                        }
-                    }
-
-                    // Regular image
-                    return (
-                        <img
-                            src={src}
-                            alt={alt}
-                            className="rounded-lg border shadow-sm my-3 max-w-full h-auto"
-                        />
-                    );
-                },
+                img: ({ src, alt }) => (
+                    <img
+                        src={src}
+                        alt={alt}
+                        className="rounded-lg border shadow-sm my-4 max-w-full h-auto"
+                    />
+                ),
             } as Components}
         >
             {content}

@@ -1,6 +1,6 @@
 # User Manuals - PGCI Payables System
 
-**Last Updated**: January 29, 2026
+**Last Updated**: February 2, 2026
 
 ---
 
@@ -13,6 +13,21 @@ This directory contains end-user guides for the PGCI Payables Management System.
 ## Available Manuals
 
 ### Core Workflows
+
+#### ✅ [Disbursement Processing & Payment Release Guide](disbursement-guide.md)
+**For**: Disbursement Staff, Admin Users
+
+Processing approved check requisitions and recording the final payment release to vendors.
+
+**Covers:**
+- Grouping check requisitions into a disbursement
+- Using Smart Grouping suggestions
+- The 3-step creation wizard
+- Releasing payments (Quick Release and Bulk Release)
+- Undoing a release
+- Viewing disbursements (List, Kanban, Calendar)
+
+---
 
 #### ✅ [Bulk Invoice Addition Guide](bulk-invoice-addition.md)
 **For**: Payables Staff, Admin Users
@@ -99,10 +114,6 @@ Creating and managing purchase orders from creation through closure.
 
 ## Planned Manuals
 
-### High Priority
-
-- **Disbursement Processing** - Final payment release workflow
-
 ### Medium Priority
 
 - **Invoice Search & Filtering** - Finding and filtering invoices
@@ -114,7 +125,6 @@ Creating and managing purchase orders from creation through closure.
 - **Admin User Guide** - Complete system overview
 - **Purchasing Role Guide** - PO creation and management
 - **Payables Role Guide** - Invoice and check requisition workflows
-- **Disbursement Role Guide** - Payment processing
 
 ### Quick Reference
 
@@ -199,6 +209,7 @@ Contact the development team or your system administrator with:
 
 | Date | Changes |
 |------|---------|
+| 2026-02-02 | Added disbursement processing guide |
 | 2026-02-02 | Added purchase order management guide |
 | 2026-01-29 | Added vendor & project management guide |
 | 2026-01-28 | Added check requisition creation guide |
@@ -212,6 +223,7 @@ Contact the development team or your system administrator with:
 docs/
 ├── user-manuals/
 │   ├── README.md (this file)
+│   ├── disbursement-guide.md ✅
 │   ├── bulk-invoice-addition.md ✅
 │   ├── invoice-approval-workflow.md ✅
 │   ├── check-requisition-creation.md ✅

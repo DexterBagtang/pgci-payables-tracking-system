@@ -7,14 +7,9 @@
       "Bash(npm run build:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "mcp__laravel-boost__list-routes",
       "Bash(ls -lah \"C:\\\\laragon\\\\www\\\\pgci-payables\\\\docs\\\\user-manuals\"\" 2>&1 || echo \"Directory not found or access denied \")"
     ],
     "deny": [],
     "ask": []
-  },
-  "enableAllProjectMcpServers": true,
-  "enabledMcpjsonServers": [
-    "laravel-boost"
-  ]
+  }
 }

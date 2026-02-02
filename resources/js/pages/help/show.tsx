@@ -111,7 +111,9 @@ export default function HelpShow({ manual, manuals, categories }: Props) {
                     </div>
 
                     {/* Feedback Widget */}
-                    <FeedbackWidget manualSlug={manual.slug} />
+                    {/*<FeedbackWidget manualSlug={manual.slug} />*/}
+                    <br/>
+                    <br/>
                 </div>
             </HelpLayout>
         </AppLayout>

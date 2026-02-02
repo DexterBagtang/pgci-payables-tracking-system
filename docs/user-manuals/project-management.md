@@ -21,9 +21,7 @@ The system supports two project types:
 - CER Number * (must be unique)
 - Project Type * (SM or PhilCom)
 - Type-specific fields * (see above)
-
-**Optional:**
-- Total Project Cost (budget amount)
+- Total Project Cost * (budget amount)
 - Description (max 1000 characters)
 - Status (defaults to Active)
 
@@ -34,7 +32,7 @@ The system supports two project types:
 4. Fill type-specific fields:
    - **SM**: SMPO Number and Total Contract Cost
    - **PhilCom**: Category and Team Name
-5. Add Total Project Cost for budget tracking (optional)
+5. Enter Total Project Cost for budget tracking
 6. Add description if needed
 7. Save
 
@@ -50,16 +48,7 @@ Edit any field except CER Number (immutable).
 
 Changing project type requires filling the new type's required fields.
 
-## Project Status Flow
 
-**Active** → **On Hold** → **Completed/Cancelled**
-
-- **Active** - Can create and manage POs. Default status for new projects.
-- **On Hold** - Paused temporarily. Restricted PO creation. Can be reactivated.
-- **Completed** - Finished successfully. No POs allowed. **Permanent**.
-- **Cancelled** - Terminated. No POs allowed. **Permanent**.
-
-⚠️ **Completed** and **Cancelled** statuses are permanent and cannot be reversed.
 
 ## Budget Tracking
 
@@ -131,17 +120,25 @@ Completing a finished project.
 
 **Search:** Title, CER Number, SMPO Number
 **Filter:** Type (SM/PhilCom), Status (Active/On Hold/Completed/Cancelled)
-**Sort:** Title, Total Cost, Created Date, CER Number
+**Sort:** Title, Total Project Cost, Total Contract Cost, Project Type, Project Status, Created Date, CER Number
 
 ## Quick Reference
 
 | Task | Path |
 |------|------|
-| Create | Projects → Create Project |
-| Edit | Projects → Click project → Edit |
-| View Details | Projects → Click project |
+| Create Project | Projects → Create Project |
+| Edit Project | Projects → Click project → Edit |
+| View Project Details | Projects → Click project |
 | Monitor Budget | Project Details → Budget Utilization |
 | Change Status | Edit → Change Status → Save |
+| Search Projects | Projects → Search bar |
+| Sort by Title | Projects → Click Title column header |
+| Sort by Total Project Cost | Projects → Click Total Project Cost column header |
+| Sort by Total Contract Cost | Projects → Click Total Contract Cost column header |
+| Sort by Project Type | Projects → Click Project Type column header |
+| Sort by Project Status | Projects → Click Project Status column header |
+| Sort by Date Created | Projects → Click Date Created column header |
+| Sort by CER Number | Projects → Click CER Number column header |
 
 ## Common Issues
 
@@ -154,5 +151,5 @@ Completing a finished project.
 ## Permissions
 
 - View: Any user
-- Create/Update: **Admin**, **Purchasing**
-- Delete: **Admin** only
+- Create/Update: Users with write access to the Projects module (Admin and certain Purchasing roles)
+- Delete: Users with write access to the Projects module (Admin and certain Purchasing roles)

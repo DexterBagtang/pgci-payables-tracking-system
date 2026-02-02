@@ -75,6 +75,14 @@ class HelpController extends Controller
     {
         $allManuals = [
             [
+                'slug' => 'disbursement-guide',
+                'title' => 'Disbursement Processing Guide',
+                'description' => 'Process payments and release checks to vendors',
+                'category' => 'core-workflows',
+                'readTime' => 4,
+                'icon' => 'DollarSign',
+            ],
+            [
                 'slug' => 'bulk-invoice-addition',
                 'title' => 'Bulk Invoice Addition Guide',
                 'description' => 'Add multiple invoices at once',
@@ -165,9 +173,10 @@ class HelpController extends Controller
     private function getRelatedGuides(string $slug): array
     {
         $relations = [
+            'disbursement-guide' => ['check-requisition-creation'],
             'bulk-invoice-addition' => ['invoice-approval-workflow', 'check-requisition-creation'],
             'invoice-approval-workflow' => ['bulk-invoice-addition', 'check-requisition-creation'],
-            'check-requisition-creation' => ['invoice-approval-workflow'],
+            'check-requisition-creation' => ['invoice-approval-workflow', 'disbursement-guide'],
             'vendor-management' => ['project-management', 'purchase-order-management'],
             'project-management' => ['vendor-management', 'purchase-order-management'],
             'purchase-order-management' => ['vendor-management', 'project-management'],

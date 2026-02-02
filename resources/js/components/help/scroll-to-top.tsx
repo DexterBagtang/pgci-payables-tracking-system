@@ -28,16 +28,17 @@ export function ScrollToTop() {
     };
 
     return (
-        <Button
-            onClick={scrollToTop}
-            size="icon"
-            className={cn(
-                'fixed bottom-8 right-8 z-50 rounded-full shadow-lg transition-opacity duration-300',
-                visible ? 'opacity-100' : 'opacity-0 pointer-events-none'
-            )}
-            aria-label="Scroll to top"
-        >
-            <ArrowUp className="h-4 w-4" />
-        </Button>
+        <div className={cn(
+            'fixed bottom-8 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center text-xs',
+            visible ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        )}>
+            <Button onClick={scrollToTop} size="icon" aria-label="Scroll to top">
+                <ArrowUp className="h-4 w-4" />
+            </Button>
+            <span className="mt-1">Scroll to top</span>
+        </div>
     );
+
+
+
 }

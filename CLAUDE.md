@@ -44,3 +44,4 @@ npm run types            # TypeScript check
 npm run lint             # ESLint fix
 ```
 
+No need to add a comprehensive documentation during development.
