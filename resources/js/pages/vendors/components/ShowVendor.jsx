@@ -64,12 +64,25 @@ export default function ShowVendor({ vendor }) {
 
     // Financial calculations from backend
     const {
+        // Legacy totals
         total_po_amount = 0,
         total_invoiced = 0,
-        total_invoice = 0,
         total_paid = 0,
         outstanding_balance = 0,
         overdue_amount = 0,
+        // Currency-separated totals
+        total_po_amount_php = 0,
+        total_po_amount_usd = 0,
+        total_invoiced_php = 0,
+        total_invoiced_usd = 0,
+        total_paid_php = 0,
+        total_paid_usd = 0,
+        outstanding_balance_php = 0,
+        outstanding_balance_usd = 0,
+        overdue_amount_php = 0,
+        overdue_amount_usd = 0,
+        // Count metrics
+        total_invoice = 0,
         pending_invoices = 0,
         paid_invoices = 0,
         overdue_invoices = 0,
@@ -87,10 +100,12 @@ export default function ShowVendor({ vendor }) {
 
     const uniqueProjects = getUniqueProjectsWithFormattedDate(purchase_orders);
 
-    const formatCurrency = (amount) => {
-        return new Intl.NumberFormat('en-US', {
+    const formatCurrency = (amount, currency = 'PHP') => {
+        const currencyCode = currency || 'PHP';
+        const locale = currencyCode === 'USD' ? 'en-US' : 'en-PH';
+        return new Intl.NumberFormat(locale, {
             style: 'currency',
-            currency: 'PHP',
+            currency: currencyCode,
             minimumFractionDigits: 2
         }).format(amount || 0);
     };
@@ -106,13 +121,17 @@ export default function ShowVendor({ vendor }) {
 
     // Determine vendor health status
     const getVendorHealthStatus = () => {
-        if (overdue_amount > 0) {
+        const totalOutstanding = outstanding_balance_php + outstanding_balance_usd;
+        const totalOverdue = overdue_amount_php + overdue_amount_usd;
+        const totalInvoiced = total_invoiced_php + total_invoiced_usd;
+
+        if (totalOverdue > 0) {
             return { status: 'overdue', label: 'Overdue Payments', color: 'red' };
         }
-        if (outstanding_balance > total_invoiced * 0.5) {
+        if (totalOutstanding > totalInvoiced * 0.5) {
             return { status: 'warning', label: 'High Outstanding', color: 'orange' };
         }
-        if (outstanding_balance > 0) {
+        if (totalOutstanding > 0) {
             return { status: 'pending', label: 'Pending Payments', color: 'blue' };
         }
         return { status: 'good', label: 'All Clear', color: 'green' };
@@ -167,7 +186,17 @@ export default function ShowVendor({ vendor }) {
                                         <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total PO Amount</p>
                                         <ShoppingCart className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                                     </div>
-                                    <p className="text-2xl font-bold">{formatCurrency(total_po_amount)}</p>
+                                    <div className="space-y-0.5">
+                                        {total_po_amount_php > 0 && (
+                                            <p className="text-2xl font-bold">{formatCurrency(total_po_amount_php, 'PHP')}</p>
+                                        )}
+                                        {total_po_amount_usd > 0 && (
+                                            <p className="text-2xl font-bold">{formatCurrency(total_po_amount_usd, 'USD')}</p>
+                                        )}
+                                        {total_po_amount_php === 0 && total_po_amount_usd === 0 && (
+                                            <p className="text-2xl font-bold text-gray-400">-</p>
+                                        )}
+                                    </div>
                                     <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
                                         <Package className="h-3 w-3" />
                                         {purchase_orders.length} Purchase Orders
@@ -184,9 +213,21 @@ export default function ShowVendor({ vendor }) {
                                         <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Invoiced</p>
                                         <FileText className="h-5 w-5 text-purple-600" />
                                     </div>
-                                    <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                                        {formatCurrency(total_invoiced)}
-                                    </p>
+                                    <div className="space-y-0.5">
+                                        {total_invoiced_php > 0 && (
+                                            <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                                                {formatCurrency(total_invoiced_php, 'PHP')}
+                                            </p>
+                                        )}
+                                        {total_invoiced_usd > 0 && (
+                                            <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                                                {formatCurrency(total_invoiced_usd, 'USD')}
+                                            </p>
+                                        )}
+                                        {total_invoiced_php === 0 && total_invoiced_usd === 0 && (
+                                            <p className="text-2xl font-bold text-gray-400">-</p>
+                                        )}
+                                    </div>
                                     <div className="space-y-1">
                                         <div className="flex items-center justify-between text-xs">
                                             <span className="text-gray-500 dark:text-gray-400">{invoicedProgress}% of PO</span>
@@ -208,9 +249,21 @@ export default function ShowVendor({ vendor }) {
                                         <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Paid</p>
                                         <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
                                     </div>
-                                    <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                                        {formatCurrency(total_paid)}
-                                    </p>
+                                    <div className="space-y-0.5">
+                                        {total_paid_php > 0 && (
+                                            <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                                                {formatCurrency(total_paid_php, 'PHP')}
+                                            </p>
+                                        )}
+                                        {total_paid_usd > 0 && (
+                                            <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                                                {formatCurrency(total_paid_usd, 'USD')}
+                                            </p>
+                                        )}
+                                        {total_paid_php === 0 && total_paid_usd === 0 && (
+                                            <p className="text-2xl font-bold text-gray-400">-</p>
+                                        )}
+                                    </div>
                                     <div className="space-y-1">
                                         <div className="flex items-center justify-between text-xs">
                                             <span className="text-green-600 dark:text-green-400 font-medium">
@@ -227,21 +280,46 @@ export default function ShowVendor({ vendor }) {
                         </Card>
 
                         {/* Outstanding Balance */}
-                        <Card className={outstanding_balance > 0 ? "border-orange-200 bg-orange-50/50 dark:border-orange-800 dark:bg-orange-900/20" : ""}>
+                        <Card className={(outstanding_balance_php > 0 || outstanding_balance_usd > 0) ? "border-orange-200 bg-orange-50/50 dark:border-orange-800 dark:bg-orange-900/20" : ""}>
                             <CardContent className="pt-6">
                                 <div className="space-y-2">
                                     <div className="flex items-center justify-between">
                                         <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Outstanding</p>
                                         <Clock className="h-5 w-5 text-orange-600 dark:text-orange-400" />
                                     </div>
-                                    <p className={`text-2xl font-bold ${outstanding_balance > 0 ? 'text-orange-600 dark:text-orange-400' : 'text-gray-400 dark:text-gray-600'}`}>
-                                        {formatCurrency(outstanding_balance)}
-                                    </p>
+                                    <div className="space-y-0.5">
+                                        {outstanding_balance_php > 0 && (
+                                            <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+                                                {formatCurrency(outstanding_balance_php, 'PHP')}
+                                            </p>
+                                        )}
+                                        {outstanding_balance_usd > 0 && (
+                                            <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+                                                {formatCurrency(outstanding_balance_usd, 'USD')}
+                                            </p>
+                                        )}
+                                        {outstanding_balance_php === 0 && outstanding_balance_usd === 0 && (
+                                            <p className="text-2xl font-bold text-gray-400">-</p>
+                                        )}
+                                    </div>
                                     <div className="text-xs">
-                                        {overdue_amount > 0 ? (
-                                            <div className="flex items-center gap-1 text-red-600 dark:text-red-400 font-medium">
-                                                <AlertTriangle className="h-3 w-3" />
-                                                {formatCurrency(overdue_amount)} overdue ({overdue_invoices})
+                                        {(overdue_amount_php > 0 || overdue_amount_usd > 0) ? (
+                                            <div className="space-y-0.5">
+                                                {overdue_amount_php > 0 && (
+                                                    <div className="flex items-center gap-1 text-red-600 dark:text-red-400 font-medium">
+                                                        <AlertTriangle className="h-3 w-3" />
+                                                        {formatCurrency(overdue_amount_php, 'PHP')} overdue
+                                                    </div>
+                                                )}
+                                                {overdue_amount_usd > 0 && (
+                                                    <div className="flex items-center gap-1 text-red-600 dark:text-red-400 font-medium">
+                                                        <AlertTriangle className="h-3 w-3" />
+                                                        {formatCurrency(overdue_amount_usd, 'USD')} overdue
+                                                    </div>
+                                                )}
+                                                <span className="text-gray-500 dark:text-gray-400">
+                                                    ({overdue_invoices} invoices)
+                                                </span>
                                             </div>
                                         ) : (
                                             <span className="text-gray-500 dark:text-gray-400">

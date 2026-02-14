@@ -164,10 +164,12 @@ const InvoicesDisplay = () => {
         }
     };
 
-    const formatCurrency = (amount) => {
-        return new Intl.NumberFormat('en-PH', {
+    const formatCurrency = (amount, currency = 'PHP') => {
+        const currencyCode = currency || 'PHP';
+        const locale = currencyCode === 'USD' ? 'en-US' : 'en-PH';
+        return new Intl.NumberFormat(locale, {
             style: 'currency',
-            currency: 'PHP',
+            currency: currencyCode,
             minimumFractionDigits: 2
         }).format(amount);
     };
@@ -294,22 +296,22 @@ const InvoicesDisplay = () => {
                                         <div className="bg-gray-50 p-3 rounded-md space-y-1">
                                             <div className="flex justify-between text-sm">
                                                 <span className="text-gray-600">Invoice Amount:</span>
-                                                <span>{formatCurrency(invoice.invoice_amount)}</span>
+                                                <span>{formatCurrency(invoice.invoice_amount, invoice.currency)}</span>
                                             </div>
                                             <div className="flex justify-between text-sm">
                                                 <span className="text-gray-600">Tax Amount:</span>
-                                                <span>{formatCurrency(invoice.tax_amount)}</span>
+                                                <span>{formatCurrency(invoice.tax_amount, invoice.currency)}</span>
                                             </div>
                                             {invoice.discount_amount > 0 && (
                                                 <div className="flex justify-between text-sm">
                                                     <span className="text-gray-600">Discount:</span>
-                                                    <span className="text-green-600">-{formatCurrency(invoice.discount_amount)}</span>
+                                                    <span className="text-green-600">-{formatCurrency(invoice.discount_amount, invoice.currency)}</span>
                                                 </div>
                                             )}
                                             <div className="border-t pt-1 mt-2">
                                                 <div className="flex justify-between text-sm font-semibold">
                                                     <span>Net Amount:</span>
-                                                    <span className="text-lg">{formatCurrency(invoice.net_amount)}</span>
+                                                    <span className="text-lg">{formatCurrency(invoice.net_amount, invoice.currency)}</span>
                                                 </div>
                                             </div>
                                         </div>

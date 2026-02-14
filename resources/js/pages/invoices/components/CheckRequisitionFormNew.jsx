@@ -49,6 +49,8 @@ const CheckRequisitionFormNew = ({ invoices, filters, filterOptions }) => {
         account_charge: "2502",
         service_line_dist: "test",
         php_amount: 0,
+        usd_amount: 0,
+        currency: 'PHP',
         amount_in_words: "",
         requested_by: "KA. USONA / JL. MADERAZO",
         reviewed_by: "JS ORDONEZ / MR ULIT/ JB LABAY",
@@ -247,9 +249,14 @@ const CheckRequisitionFormNew = ({ invoices, filters, filterOptions }) => {
 
         const siNumbersFormatted = formatSINumbers(selectedInvs);
 
+        // Determine currency from selected invoices (all should be same currency due to backend validation)
+        const invoiceCurrency = selectedInvs.length > 0 ? (selectedInvs[0].currency || 'PHP') : 'PHP';
+
         setData({
             ...data,
-            php_amount: selectedTotal,
+            php_amount: invoiceCurrency === 'USD' ? 0 : selectedTotal,
+            usd_amount: invoiceCurrency === 'USD' ? selectedTotal : 0,
+            currency: invoiceCurrency,
             amount_in_words: numberToWords(selectedTotal) || "",
             payee_name: payeeName,
             po_number: firstInvoice?.purchase_order?.po_number || "",
@@ -378,7 +385,12 @@ const CheckRequisitionFormNew = ({ invoices, filters, filterOptions }) => {
                                 </div>
                                 <div className="flex justify-between border-b pb-2">
                                     <span className="font-medium">Amount:</span>
-                                    <span className="font-semibold text-blue-600">{formatCurrency(data.php_amount)}</span>
+                                    <span className="font-semibold text-blue-600">
+                                        {formatCurrency(
+                                            data.currency === 'USD' ? data.usd_amount : data.php_amount,
+                                            data.currency
+                                        )}
+                                    </span>
                                 </div>
                                 <div className="flex justify-between border-b pb-2">
                                     <span className="font-medium">Invoices:</span>

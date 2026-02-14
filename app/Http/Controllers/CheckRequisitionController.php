@@ -180,6 +180,20 @@ class CheckRequisitionController extends Controller
         $invoiceIds = $validated['invoice_ids'];
         unset($validated['invoice_ids']); // Remove from validated data
 
+        // Get invoices to calculate amounts by currency
+        $invoices = Invoice::whereIn('id', $invoiceIds)->get();
+        $currency = $invoices->first()->currency ?? 'PHP';
+
+        // Calculate amounts based on currency
+        if ($currency === 'PHP') {
+            $validated['php_amount'] = $invoices->sum('net_amount');
+            $validated['usd_amount'] = 0;
+        } else {
+            $validated['php_amount'] = 0;
+            $validated['usd_amount'] = $invoices->sum('net_amount');
+        }
+        $validated['currency'] = $currency;
+
         // Generate requisition number
         $lastReq = CheckRequisition::latest('id')->first();
         $nextNumber = $lastReq ? (int)substr($lastReq->requisition_number, -5) + 1 : 1;
@@ -286,6 +300,7 @@ class CheckRequisitionController extends Controller
                 'invoices.tax_amount',
                 'invoices.discount_amount',
                 'invoices.net_amount',
+                'invoices.currency',
                 'invoices.invoice_status',
                 'invoices.payment_type'
             ])
@@ -368,6 +383,20 @@ class CheckRequisitionController extends Controller
         // Extract invoice_ids before updating
         $invoiceIds = $validated['invoice_ids'];
         unset($validated['invoice_ids']);
+
+        // Get invoices to calculate amounts by currency
+        $invoices = Invoice::whereIn('id', $invoiceIds)->get();
+        $currency = $invoices->first()->currency ?? 'PHP';
+
+        // Calculate amounts based on currency
+        if ($currency === 'PHP') {
+            $validated['php_amount'] = $invoices->sum('net_amount');
+            $validated['usd_amount'] = 0;
+        } else {
+            $validated['php_amount'] = 0;
+            $validated['usd_amount'] = $invoices->sum('net_amount');
+        }
+        $validated['currency'] = $currency;
 
         // Get old invoice IDs before syncing
         $oldInvoiceIds = $checkRequisition->invoices()->pluck('invoices.id')->toArray();

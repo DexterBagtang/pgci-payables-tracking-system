@@ -43,6 +43,9 @@ export default function CRHeader({
     };
 
     const handleCopyDetails = () => {
+        const amount = checkRequisition.currency === 'USD'
+            ? checkRequisition.usd_amount
+            : checkRequisition.php_amount;
         const details = `
 CHECK REQUISITION DETAILS
 ========================
@@ -52,7 +55,7 @@ Status: ${checkRequisition.requisition_status}
 
 PAYMENT INFORMATION
 Payee: ${checkRequisition.payee_name}
-Amount: ${formatCurrency(checkRequisition.php_amount)}
+Amount: ${formatCurrency(amount, checkRequisition.currency)}
 Amount in Words: ${checkRequisition.amount_in_words}
 
 REFERENCE DOCUMENTS
@@ -96,7 +99,12 @@ Approved By: ${checkRequisition.approved_by || 'Pending'}
                         <span>Date: {formatDate(checkRequisition.request_date)}</span>
                         <span>Payee: {checkRequisition.payee_name}</span>
                         <span className="font-semibold text-green-600">
-                            {formatCurrency(checkRequisition.php_amount)}
+                            {formatCurrency(
+                                checkRequisition.currency === 'USD'
+                                    ? checkRequisition.usd_amount
+                                    : checkRequisition.php_amount,
+                                checkRequisition.currency
+                            )}
                         </span>
                     </div>
                 </div>

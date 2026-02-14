@@ -82,10 +82,12 @@ export default function InvoicesList({
     const [sortBy, setSortBy] = useState('date_desc');
 
     // Default formatters
-    const formatCurrency = customFormatCurrency || ((amount) => {
-        return new Intl.NumberFormat('en-US', {
+    const formatCurrency = customFormatCurrency || ((amount, currency = 'PHP') => {
+        const currencyCode = currency || 'PHP';
+        const locale = currencyCode === 'USD' ? 'en-US' : 'en-PH';
+        return new Intl.NumberFormat(locale, {
             style: 'currency',
-            currency: 'PHP',
+            currency: currencyCode,
             minimumFractionDigits: 2
         }).format(amount || 0);
     });
@@ -192,7 +194,7 @@ export default function InvoicesList({
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-sm text-gray-600">Total Amount</p>
-                            <p className="text-lg font-bold">{formatCurrency(stats.totalAmount)}</p>
+                            <p className="text-lg font-bold">{formatCurrency(stats.totalAmount, invoices[0]?.currency)}</p>
                         </div>
                         <DollarSign className="h-8 w-8 text-purple-600" />
                     </div>
@@ -205,7 +207,7 @@ export default function InvoicesList({
                         <div>
                             <p className="text-sm text-gray-600">Paid</p>
                             <p className="text-lg font-bold text-green-600">
-                                {formatCurrency(stats.paidAmount)}
+                                {formatCurrency(stats.paidAmount, invoices[0]?.currency)}
                             </p>
                         </div>
                         <CheckCircle className="h-8 w-8 text-green-600" />
@@ -221,7 +223,7 @@ export default function InvoicesList({
                                 {stats.overdueCount > 0 ? 'Overdue' : 'Pending'}
                             </p>
                             <p className={`text-lg font-bold ${stats.overdueCount > 0 ? 'text-red-600' : 'text-orange-600'}`}>
-                                {formatCurrency(stats.unpaidAmount)}
+                                {formatCurrency(stats.unpaidAmount, invoices[0]?.currency)}
                             </p>
                         </div>
                         {stats.overdueCount > 0 ? (
@@ -356,7 +358,7 @@ export default function InvoicesList({
                                             </div>
                                         </TableCell>
                                         <TableCell className="text-right font-semibold">
-                                            {formatCurrency(invoice.net_amount || invoice.invoice_amount)}
+                                            {formatCurrency(invoice.net_amount || invoice.invoice_amount, invoice.currency)}
                                         </TableCell>
                                         <TableCell>
                                             <StatusBadge status={invoice.invoice_status} size="sm" />
@@ -389,7 +391,8 @@ export default function InvoicesList({
                                             processedInvoices.reduce(
                                                 (sum, inv) => sum + (inv.net_amount || inv.invoice_amount || 0),
                                                 0
-                                            )
+                                            ),
+                                            processedInvoices[0]?.currency
                                         )}
                                     </TableCell>
                                     {expectedTotal !== null && (
@@ -466,12 +469,12 @@ export default function InvoicesList({
                                 <div className="flex gap-4">
                                     <span>
                                         Amount: <strong className="text-slate-900">
-                                            {formatCurrency(invoice.invoice_amount)}
+                                            {formatCurrency(invoice.invoice_amount, invoice.currency)}
                                         </strong>
                                     </span>
                                     <span>
                                         Net: <strong className="text-slate-900">
-                                            {formatCurrency(invoice.net_amount || invoice.invoice_amount)}
+                                            {formatCurrency(invoice.net_amount || invoice.invoice_amount, invoice.currency)}
                                         </strong>
                                     </span>
                                     {invoice.due_date && (

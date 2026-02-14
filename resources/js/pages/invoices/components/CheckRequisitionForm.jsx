@@ -677,7 +677,7 @@ CER Number: ${data.cer_number}
                                                             </p>
                                                             <div className="flex items-center justify-between mt-1">
                                                                 <p className="text-xs font-medium text-slate-700">
-                                                                    {formatCurrency(inv.invoice_amount)}
+                                                                    {formatCurrency(inv.invoice_amount, inv.currency)}
                                                                 </p>
                                                                 {inv.purchase_order?.po_number && (
                                                                     <Badge variant="outline" className="text-xs">

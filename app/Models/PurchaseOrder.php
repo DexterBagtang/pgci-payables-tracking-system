@@ -251,9 +251,10 @@ class PurchaseOrder extends Model
     {
         if ($relationType === 'invoice') {
             $siNumber = is_object($relatedModel) ? $relatedModel->si_number : ($relatedModel['si_number'] ?? 'Unknown');
+            $invoiceCurrency = is_object($relatedModel) ? ($relatedModel->currency ?? 'PHP') : ($relatedModel['currency'] ?? 'PHP');
             $amount = is_object($relatedModel)
-                ? $this->formatCurrency($relatedModel->net_amount ?? $relatedModel->invoice_amount)
-                : $this->formatCurrency($relatedModel['net_amount'] ?? $relatedModel['invoice_amount'] ?? 0);
+                ? $this->formatCurrency($relatedModel->net_amount ?? $relatedModel->invoice_amount, $invoiceCurrency)
+                : $this->formatCurrency($relatedModel['net_amount'] ?? $relatedModel['invoice_amount'] ?? 0, $invoiceCurrency);
 
             return "Invoice {$siNumber} added ({$amount})";
         }

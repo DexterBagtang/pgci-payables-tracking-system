@@ -127,11 +127,16 @@ class VendorController extends Controller
         // Get all invoices for this vendor
         $invoices = $vendor->invoices()->with(['checkRequisitions'])->get();
 
-        // Total paid is based on invoices marked as 'paid'
-        $totalPaid = $invoices->where('invoice_status', 'paid')->sum('invoice_amount');
+        // Calculate totals by currency for invoices
+        $paidInvoices = $invoices->where('invoice_status', 'paid');
+        $totalPaidPHP = $paidInvoices->where('currency', 'PHP')->sum('invoice_amount');
+        $totalPaidUSD = $paidInvoices->where('currency', 'USD')->sum('invoice_amount');
 
-        $totalInvoiced = $invoices->sum('invoice_amount');
-        $outstandingBalance = $totalInvoiced - $totalPaid;
+        $totalInvoicedPHP = $invoices->where('currency', 'PHP')->sum('invoice_amount');
+        $totalInvoicedUSD = $invoices->where('currency', 'USD')->sum('invoice_amount');
+
+        $outstandingBalancePHP = $totalInvoicedPHP - $totalPaidPHP;
+        $outstandingBalanceUSD = $totalInvoicedUSD - $totalPaidUSD;
 
         // Calculate overdue invoices (not paid and past due date)
         $today = now();
@@ -141,7 +146,8 @@ class VendorController extends Controller
                 $invoice->invoice_status !== 'paid';
         });
 
-        $overdueAmount = $overdueInvoices->sum('invoice_amount');
+        $overdueAmountPHP = $overdueInvoices->where('currency', 'PHP')->sum('invoice_amount');
+        $overdueAmountUSD = $overdueInvoices->where('currency', 'USD')->sum('invoice_amount');
 
         // Count invoice statuses
         $paidInvoices = $invoices->where('invoice_status', 'paid')->count();
@@ -168,16 +174,33 @@ class VendorController extends Controller
             $averagePaymentDays = round($totalDays / $paidInvoicesWithDates->count());
         }
 
+        // Calculate PO amounts by currency
+        $purchaseOrders = $vendor->purchaseOrders;
+        $totalPOAmountPHP = $purchaseOrders->where('currency', 'PHP')->sum('po_amount');
+        $totalPOAmountUSD = $purchaseOrders->where('currency', 'USD')->sum('po_amount');
+
         $financialSummary = [
-            'total_po_amount' => $vendor->purchaseOrders->sum('po_amount'),
-            'total_po_invoiced' => $vendor->purchaseOrders->sum('total_invoiced'),
-            'total_po_paid' => $vendor->purchaseOrders->sum('total_paid'),
-            'total_po_outstanding' => $vendor->purchaseOrders->sum('outstanding_amount'),
+            // Legacy single-currency totals (kept for backward compatibility, will be deprecated)
+            'total_po_amount' => $purchaseOrders->sum('po_amount'),
+            'total_invoiced' => $totalInvoicedPHP + $totalInvoicedUSD,
+            'total_paid' => $totalPaidPHP + $totalPaidUSD,
+            'outstanding_balance' => $outstandingBalancePHP + $outstandingBalanceUSD,
+            'overdue_amount' => $overdueAmountPHP + $overdueAmountUSD,
+
+            // New currency-separated totals
+            'total_po_amount_php' => $totalPOAmountPHP,
+            'total_po_amount_usd' => $totalPOAmountUSD,
+            'total_invoiced_php' => $totalInvoicedPHP,
+            'total_invoiced_usd' => $totalInvoicedUSD,
+            'total_paid_php' => $totalPaidPHP,
+            'total_paid_usd' => $totalPaidUSD,
+            'outstanding_balance_php' => $outstandingBalancePHP,
+            'outstanding_balance_usd' => $outstandingBalanceUSD,
+            'overdue_amount_php' => $overdueAmountPHP,
+            'overdue_amount_usd' => $overdueAmountUSD,
+
+            // Count metrics (currency-independent)
             'total_invoice' => $invoices->count(),
-            'total_invoiced' => $totalInvoiced,
-            'total_paid' => $totalPaid,
-            'outstanding_balance' => $outstandingBalance,
-            'overdue_amount' => $overdueAmount,
             'pending_invoices' => $pendingInvoices,
             'paid_invoices' => $paidInvoices,
             'overdue_invoices' => $overdueInvoicesCount,

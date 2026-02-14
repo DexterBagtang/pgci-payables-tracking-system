@@ -27,13 +27,24 @@ class UnifiedMetricsService
             ->inDateRange($start, $end)
             ->get();
 
-        $totalOutstanding = $unpaidInvoices->sum('net_amount');
-        $totalOverdue = $unpaidInvoices->filter(function ($invoice) use ($today) {
-            return Carbon::parse($invoice->due_date)->lt($today);
-        })->sum('net_amount');
+        // Calculate totals by currency
+        $totalOutstandingPHP = $unpaidInvoices->where('currency', 'PHP')->sum('net_amount');
+        $totalOutstandingUSD = $unpaidInvoices->where('currency', 'USD')->sum('net_amount');
 
-        // Initialize aging buckets
-        $buckets = [
+        $overdueInvoices = $unpaidInvoices->filter(function ($invoice) use ($today) {
+            return Carbon::parse($invoice->due_date)->lt($today);
+        });
+        $totalOverduePHP = $overdueInvoices->where('currency', 'PHP')->sum('net_amount');
+        $totalOverdueUSD = $overdueInvoices->where('currency', 'USD')->sum('net_amount');
+
+        // Initialize aging buckets for both currencies
+        $bucketsPHP = [
+            '0_30' => ['count' => 0, 'amount' => 0.0],
+            '31_60' => ['count' => 0, 'amount' => 0.0],
+            '61_90' => ['count' => 0, 'amount' => 0.0],
+            'over_90' => ['count' => 0, 'amount' => 0.0],
+        ];
+        $bucketsUSD = [
             '0_30' => ['count' => 0, 'amount' => 0.0],
             '31_60' => ['count' => 0, 'amount' => 0.0],
             '61_90' => ['count' => 0, 'amount' => 0.0],
@@ -53,25 +64,50 @@ class UnifiedMetricsService
             $daysOverdue = abs($daysOverdue);
             $amount = (float) $invoice->net_amount;
 
-            if ($daysOverdue <= 30) {
-                $buckets['0_30']['count']++;
-                $buckets['0_30']['amount'] += $amount;
-            } elseif ($daysOverdue <= 60) {
-                $buckets['31_60']['count']++;
-                $buckets['31_60']['amount'] += $amount;
-            } elseif ($daysOverdue <= 90) {
-                $buckets['61_90']['count']++;
-                $buckets['61_90']['amount'] += $amount;
+            // Determine which bucket array to update based on currency
+            if ($invoice->currency === 'USD') {
+                if ($daysOverdue <= 30) {
+                    $bucketsUSD['0_30']['count']++;
+                    $bucketsUSD['0_30']['amount'] += $amount;
+                } elseif ($daysOverdue <= 60) {
+                    $bucketsUSD['31_60']['count']++;
+                    $bucketsUSD['31_60']['amount'] += $amount;
+                } elseif ($daysOverdue <= 90) {
+                    $bucketsUSD['61_90']['count']++;
+                    $bucketsUSD['61_90']['amount'] += $amount;
+                } else {
+                    $bucketsUSD['over_90']['count']++;
+                    $bucketsUSD['over_90']['amount'] += $amount;
+                }
             } else {
-                $buckets['over_90']['count']++;
-                $buckets['over_90']['amount'] += $amount;
+                if ($daysOverdue <= 30) {
+                    $bucketsPHP['0_30']['count']++;
+                    $bucketsPHP['0_30']['amount'] += $amount;
+                } elseif ($daysOverdue <= 60) {
+                    $bucketsPHP['31_60']['count']++;
+                    $bucketsPHP['31_60']['amount'] += $amount;
+                } elseif ($daysOverdue <= 90) {
+                    $bucketsPHP['61_90']['count']++;
+                    $bucketsPHP['61_90']['amount'] += $amount;
+                } else {
+                    $bucketsPHP['over_90']['count']++;
+                    $bucketsPHP['over_90']['amount'] += $amount;
+                }
             }
         }
 
         return [
-            'total_outstanding' => (float) $totalOutstanding,
-            'total_overdue' => (float) $totalOverdue,
-            'aging_buckets' => $buckets,
+            // Legacy totals (sum of both currencies)
+            'total_outstanding' => (float) ($totalOutstandingPHP + $totalOutstandingUSD),
+            'total_overdue' => (float) ($totalOverduePHP + $totalOverdueUSD),
+            // Currency-separated totals
+            'total_outstanding_php' => (float) $totalOutstandingPHP,
+            'total_outstanding_usd' => (float) $totalOutstandingUSD,
+            'total_overdue_php' => (float) $totalOverduePHP,
+            'total_overdue_usd' => (float) $totalOverdueUSD,
+            // Aging buckets by currency
+            'aging_buckets_php' => $bucketsPHP,
+            'aging_buckets_usd' => $bucketsUSD,
         ];
     }
 
@@ -112,10 +148,18 @@ class UnifiedMetricsService
             ->inDateRange($start, $end)
             ->get();
 
-        // Calculate totals using stored columns
-        $totalPOAmount = $openPOs->sum('po_amount');
-        $totalInvoiced = $openPOs->sum('total_invoiced');
-        $totalPaid = $openPOs->sum('total_paid');
+        // Calculate totals by currency
+        $totalPOAmountPHP = $openPOs->where('currency', 'PHP')->sum('po_amount');
+        $totalPOAmountUSD = $openPOs->where('currency', 'USD')->sum('po_amount');
+        $totalInvoicedPHP = $openPOs->where('currency', 'PHP')->sum('total_invoiced');
+        $totalInvoicedUSD = $openPOs->where('currency', 'USD')->sum('total_invoiced');
+        $totalPaidPHP = $openPOs->where('currency', 'PHP')->sum('total_paid');
+        $totalPaidUSD = $openPOs->where('currency', 'USD')->sum('total_paid');
+
+        // Calculate combined totals for legacy support
+        $totalPOAmount = $totalPOAmountPHP + $totalPOAmountUSD;
+        $totalInvoiced = $totalInvoicedPHP + $totalInvoicedUSD;
+        $totalPaid = $totalPaidPHP + $totalPaidUSD;
 
         // Calculate percentages
         $invoicedPercentage = $totalPOAmount > 0 ? ($totalInvoiced / $totalPOAmount) * 100 : 0;
@@ -123,12 +167,22 @@ class UnifiedMetricsService
         $remaining = $totalPOAmount - $totalPaid;
 
         return [
+            // Legacy totals
             'total_po_amount' => (float) $totalPOAmount,
             'total_invoiced' => (float) $totalInvoiced,
             'total_paid' => (float) $totalPaid,
             'invoiced_percentage' => round($invoicedPercentage, 2),
             'paid_percentage' => round($paidPercentage, 2),
             'remaining' => (float) $remaining,
+            // Currency-separated totals
+            'total_po_amount_php' => (float) $totalPOAmountPHP,
+            'total_po_amount_usd' => (float) $totalPOAmountUSD,
+            'total_invoiced_php' => (float) $totalInvoicedPHP,
+            'total_invoiced_usd' => (float) $totalInvoicedUSD,
+            'total_paid_php' => (float) $totalPaidPHP,
+            'total_paid_usd' => (float) $totalPaidUSD,
+            'remaining_php' => (float) ($totalPOAmountPHP - $totalPaidPHP),
+            'remaining_usd' => (float) ($totalPOAmountUSD - $totalPaidUSD),
         ];
     }
 
@@ -165,9 +219,24 @@ class UnifiedMetricsService
         });
 
         return [
-            'due_7_days' => ['count' => $due7->count(), 'amount' => (float) $due7->sum('net_amount')],
-            'due_15_days' => ['count' => $due15->count(), 'amount' => (float) $due15->sum('net_amount')],
-            'due_30_days' => ['count' => $due30->count(), 'amount' => (float) $due30->sum('net_amount')],
+            'due_7_days' => [
+                'count' => $due7->count(),
+                'amount' => (float) $due7->sum('net_amount'),
+                'amount_php' => (float) $due7->where('currency', 'PHP')->sum('net_amount'),
+                'amount_usd' => (float) $due7->where('currency', 'USD')->sum('net_amount'),
+            ],
+            'due_15_days' => [
+                'count' => $due15->count(),
+                'amount' => (float) $due15->sum('net_amount'),
+                'amount_php' => (float) $due15->where('currency', 'PHP')->sum('net_amount'),
+                'amount_usd' => (float) $due15->where('currency', 'USD')->sum('net_amount'),
+            ],
+            'due_30_days' => [
+                'count' => $due30->count(),
+                'amount' => (float) $due30->sum('net_amount'),
+                'amount_php' => (float) $due30->where('currency', 'PHP')->sum('net_amount'),
+                'amount_usd' => (float) $due30->where('currency', 'USD')->sum('net_amount'),
+            ],
         ];
     }
 
@@ -190,9 +259,14 @@ class UnifiedMetricsService
             $firstInvoice = $invoices->first();
             $vendor = $firstInvoice->purchaseOrder?->vendor;
 
+            $phpAmount = $invoices->where('currency', 'PHP')->sum('net_amount');
+            $usdAmount = $invoices->where('currency', 'USD')->sum('net_amount');
+
             return [
                 'vendor_name' => $vendor?->name ?? 'Unknown Vendor',
-                'outstanding_amount' => (float) $invoices->sum('net_amount'),
+                'outstanding_amount' => (float) ($phpAmount + $usdAmount),
+                'outstanding_amount_php' => (float) $phpAmount,
+                'outstanding_amount_usd' => (float) $usdAmount,
                 'invoice_count' => $invoices->count(),
             ];
         })
@@ -277,17 +351,30 @@ class UnifiedMetricsService
         }])
         ->get()
         ->map(function ($project) {
-            $totalPO = $project->purchaseOrders->sum('po_amount');
-            $totalInvoiced = $project->purchaseOrders->sum('total_invoiced');
-            $totalPaid = $project->purchaseOrders->sum('total_paid');
-            $remaining = $totalPO - $totalPaid;
+            // Calculate totals by currency
+            $totalPOPHP = $project->purchaseOrders->where('currency', 'PHP')->sum('po_amount');
+            $totalPOUSD = $project->purchaseOrders->where('currency', 'USD')->sum('po_amount');
+            $totalInvoicedPHP = $project->purchaseOrders->where('currency', 'PHP')->sum('total_invoiced');
+            $totalInvoicedUSD = $project->purchaseOrders->where('currency', 'USD')->sum('total_invoiced');
+            $totalPaidPHP = $project->purchaseOrders->where('currency', 'PHP')->sum('total_paid');
+            $totalPaidUSD = $project->purchaseOrders->where('currency', 'USD')->sum('total_paid');
 
             return [
                 'project_name' => $project->project_title ?? $project->cer_number ?? 'Unknown Project',
-                'total_po' => (float) $totalPO,
-                'total_invoiced' => (float) $totalInvoiced,
-                'total_paid' => (float) $totalPaid,
-                'remaining' => (float) $remaining,
+                // Legacy totals
+                'total_po' => (float) ($totalPOPHP + $totalPOUSD),
+                'total_invoiced' => (float) ($totalInvoicedPHP + $totalInvoicedUSD),
+                'total_paid' => (float) ($totalPaidPHP + $totalPaidUSD),
+                'remaining' => (float) (($totalPOPHP + $totalPOUSD) - ($totalPaidPHP + $totalPaidUSD)),
+                // Currency-separated totals
+                'total_po_php' => (float) $totalPOPHP,
+                'total_po_usd' => (float) $totalPOUSD,
+                'total_invoiced_php' => (float) $totalInvoicedPHP,
+                'total_invoiced_usd' => (float) $totalInvoicedUSD,
+                'total_paid_php' => (float) $totalPaidPHP,
+                'total_paid_usd' => (float) $totalPaidUSD,
+                'remaining_php' => (float) ($totalPOPHP - $totalPaidPHP),
+                'remaining_usd' => (float) ($totalPOUSD - $totalPaidUSD),
             ];
         })
         ->sortByDesc('total_po')

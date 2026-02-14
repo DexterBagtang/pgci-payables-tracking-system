@@ -6,7 +6,12 @@ import { useMemo } from 'react';
  */
 export function useCRFinancials(checkRequisition, invoices) {
     return useMemo(() => {
-        const totalAmount = parseFloat(checkRequisition.php_amount) || 0;
+        // Get the correct amount based on currency
+        const totalAmount = parseFloat(
+            checkRequisition.currency === 'USD'
+                ? checkRequisition.usd_amount
+                : checkRequisition.php_amount
+        ) || 0;
 
         // Calculate total from invoices
         const calculatedTotal = invoices?.reduce((sum, inv) => {

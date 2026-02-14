@@ -61,16 +61,25 @@ export default function ProjectShow({ project }) {
 
     // Memoized financial calculations
     const financialData = useMemo(() => {
-        const totalPOAmount = purchase_orders?.reduce((sum, po) => sum + (parseFloat(po.po_amount) || 0), 0) || 0;
+        // Calculate PO amounts by currency
+        const totalPOAmountPHP = purchase_orders?.reduce((sum, po) =>
+            sum + (po.currency === 'PHP' ? (parseFloat(po.po_amount) || 0) : 0), 0) || 0;
+        const totalPOAmountUSD = purchase_orders?.reduce((sum, po) =>
+            sum + (po.currency === 'USD' ? (parseFloat(po.po_amount) || 0) : 0), 0) || 0;
+        const totalPOAmount = totalPOAmountPHP + totalPOAmountUSD;
+
         const totalProjectCost = parseFloat(project.total_project_cost) || 0;
         const totalContractCost = parseFloat(project.total_contract_cost) || 0;
         const remainingBudget = totalProjectCost - totalPOAmount;
         const budgetUtilization = totalProjectCost > 0 ? (totalPOAmount / totalProjectCost) * 100 : 0;
 
-        // Invoice calculations
-        let totalInvoicedAmount = 0;
-        let totalPaidAmount = 0;
-        let totalOutstanding = 0;
+        // Invoice calculations by currency
+        let totalInvoicedAmountPHP = 0;
+        let totalInvoicedAmountUSD = 0;
+        let totalPaidAmountPHP = 0;
+        let totalPaidAmountUSD = 0;
+        let totalOutstandingPHP = 0;
+        let totalOutstandingUSD = 0;
         let paidInvoices = 0;
         let pendingInvoices = 0;
         let overdueInvoices = 0;
@@ -81,15 +90,29 @@ export default function ProjectShow({ project }) {
         purchase_orders?.forEach(po => {
             po.invoices?.forEach(invoice => {
                 const invoiceAmount = parseFloat(invoice.net_amount || invoice.invoice_amount) || 0;
-                totalInvoicedAmount += invoiceAmount;
+                const currency = invoice.currency || 'PHP';
+
+                if (currency === 'USD') {
+                    totalInvoicedAmountUSD += invoiceAmount;
+                } else {
+                    totalInvoicedAmountPHP += invoiceAmount;
+                }
 
                 const status = invoice.invoice_status?.toLowerCase();
 
                 if (status === 'paid') {
-                    totalPaidAmount += invoiceAmount;
+                    if (currency === 'USD') {
+                        totalPaidAmountUSD += invoiceAmount;
+                    } else {
+                        totalPaidAmountPHP += invoiceAmount;
+                    }
                     paidInvoices++;
                 } else {
-                    totalOutstanding += invoiceAmount;
+                    if (currency === 'USD') {
+                        totalOutstandingUSD += invoiceAmount;
+                    } else {
+                        totalOutstandingPHP += invoiceAmount;
+                    }
 
                     if (status === 'pending' || status === 'submitted') {
                         pendingInvoices++;
@@ -105,6 +128,10 @@ export default function ProjectShow({ project }) {
             });
         });
 
+        const totalInvoicedAmount = totalInvoicedAmountPHP + totalInvoicedAmountUSD;
+        const totalPaidAmount = totalPaidAmountPHP + totalPaidAmountUSD;
+        const totalOutstanding = totalOutstandingPHP + totalOutstandingUSD;
+
         const paymentProgress = totalInvoicedAmount > 0 ? (totalPaidAmount / totalInvoicedAmount) * 100 : 0;
         const invoicedProgress = totalPOAmount > 0 ? (totalInvoicedAmount / totalPOAmount) * 100 : 0;
 
@@ -115,7 +142,7 @@ export default function ProjectShow({ project }) {
             return acc;
         }, {});
 
-        // Vendor summary
+        // Vendor summary by currency
         const vendorSummary = purchase_orders?.reduce((acc, po) => {
             const vendorId = po.vendor?.id;
             const vendorName = po.vendor?.name || 'Unknown Vendor';
@@ -125,26 +152,58 @@ export default function ProjectShow({ project }) {
                     id: vendorId,
                     name: vendorName,
                     totalPOAmount: 0,
+                    totalPOAmountPHP: 0,
+                    totalPOAmountUSD: 0,
                     poCount: 0,
                     invoiceCount: 0,
                     totalInvoiced: 0,
+                    totalInvoicedPHP: 0,
+                    totalInvoicedUSD: 0,
                     totalPaid: 0,
-                    outstanding: 0
+                    totalPaidPHP: 0,
+                    totalPaidUSD: 0,
+                    outstanding: 0,
+                    outstandingPHP: 0,
+                    outstandingUSD: 0
                 };
             }
 
-            acc[vendorId].totalPOAmount += parseFloat(po.po_amount) || 0;
+            const poAmount = parseFloat(po.po_amount) || 0;
+            const poCurrency = po.currency || 'PHP';
+            acc[vendorId].totalPOAmount += poAmount;
+            if (poCurrency === 'USD') {
+                acc[vendorId].totalPOAmountUSD += poAmount;
+            } else {
+                acc[vendorId].totalPOAmountPHP += poAmount;
+            }
             acc[vendorId].poCount += 1;
 
             po.invoices?.forEach(inv => {
                 acc[vendorId].invoiceCount += 1;
                 const invAmount = parseFloat(inv.net_amount || inv.invoice_amount) || 0;
+                const invCurrency = inv.currency || 'PHP';
+
                 acc[vendorId].totalInvoiced += invAmount;
+                if (invCurrency === 'USD') {
+                    acc[vendorId].totalInvoicedUSD += invAmount;
+                } else {
+                    acc[vendorId].totalInvoicedPHP += invAmount;
+                }
 
                 if (inv.invoice_status?.toLowerCase() === 'paid') {
                     acc[vendorId].totalPaid += invAmount;
+                    if (invCurrency === 'USD') {
+                        acc[vendorId].totalPaidUSD += invAmount;
+                    } else {
+                        acc[vendorId].totalPaidPHP += invAmount;
+                    }
                 } else {
                     acc[vendorId].outstanding += invAmount;
+                    if (invCurrency === 'USD') {
+                        acc[vendorId].outstandingUSD += invAmount;
+                    } else {
+                        acc[vendorId].outstandingPHP += invAmount;
+                    }
                 }
             });
 
@@ -152,14 +211,25 @@ export default function ProjectShow({ project }) {
         }, {});
 
         return {
+            // Legacy combined totals
             totalPOAmount,
+            totalInvoicedAmount,
+            totalPaidAmount,
+            totalOutstanding,
+            // Currency-separated totals
+            totalPOAmountPHP,
+            totalPOAmountUSD,
+            totalInvoicedAmountPHP,
+            totalInvoicedAmountUSD,
+            totalPaidAmountPHP,
+            totalPaidAmountUSD,
+            totalOutstandingPHP,
+            totalOutstandingUSD,
+            // Other metrics
             totalProjectCost,
             totalContractCost,
             remainingBudget,
             budgetUtilization,
-            totalInvoicedAmount,
-            totalPaidAmount,
-            totalOutstanding,
             paymentProgress,
             invoicedProgress,
             paidInvoices,
@@ -172,10 +242,12 @@ export default function ProjectShow({ project }) {
     }, [purchase_orders, project.total_project_cost, project.total_contract_cost]);
 
 
-    const formatCurrency = (amount) => {
-        return new Intl.NumberFormat('en-PH', {
+    const formatCurrency = (amount, currency = 'PHP') => {
+        const currencyCode = currency || 'PHP';
+        const locale = currencyCode === 'USD' ? 'en-US' : 'en-PH';
+        return new Intl.NumberFormat(locale, {
             style: 'currency',
-            currency: 'PHP',
+            currency: currencyCode,
             minimumFractionDigits: 2
         }).format(amount || 0);
     };
@@ -324,9 +396,21 @@ export default function ProjectShow({ project }) {
                                         <p className="text-sm font-medium text-gray-600">PO Committed</p>
                                         <ShoppingCart className="h-5 w-5 text-purple-600" />
                                     </div>
-                                    <p className="text-2xl font-bold text-purple-600">
-                                        {formatCurrency(financialData.totalPOAmount)}
-                                    </p>
+                                    <div className="space-y-0.5">
+                                        {financialData.totalPOAmountPHP > 0 && (
+                                            <p className="text-2xl font-bold text-purple-600">
+                                                {formatCurrency(financialData.totalPOAmountPHP, 'PHP')}
+                                            </p>
+                                        )}
+                                        {financialData.totalPOAmountUSD > 0 && (
+                                            <p className="text-2xl font-bold text-purple-600">
+                                                {formatCurrency(financialData.totalPOAmountUSD, 'USD')}
+                                            </p>
+                                        )}
+                                        {financialData.totalPOAmount === 0 && (
+                                            <p className="text-2xl font-bold text-gray-400">-</p>
+                                        )}
+                                    </div>
                                     <div className="space-y-1">
                                         <div className="flex items-center justify-between text-xs">
                                             <span className="text-gray-500">
@@ -357,9 +441,21 @@ export default function ProjectShow({ project }) {
                                         <p className="text-sm font-medium text-gray-600">Total Invoiced</p>
                                         <FileText className="h-5 w-5 text-orange-600" />
                                     </div>
-                                    <p className="text-2xl font-bold text-orange-600">
-                                        {formatCurrency(financialData.totalInvoicedAmount)}
-                                    </p>
+                                    <div className="space-y-0.5">
+                                        {financialData.totalInvoicedAmountPHP > 0 && (
+                                            <p className="text-2xl font-bold text-orange-600">
+                                                {formatCurrency(financialData.totalInvoicedAmountPHP, 'PHP')}
+                                            </p>
+                                        )}
+                                        {financialData.totalInvoicedAmountUSD > 0 && (
+                                            <p className="text-2xl font-bold text-orange-600">
+                                                {formatCurrency(financialData.totalInvoicedAmountUSD, 'USD')}
+                                            </p>
+                                        )}
+                                        {financialData.totalInvoicedAmount === 0 && (
+                                            <p className="text-2xl font-bold text-gray-400">-</p>
+                                        )}
+                                    </div>
                                     <div className="space-y-1">
                                         <div className="flex items-center justify-between text-xs">
                                             <span className="text-gray-500">
@@ -383,9 +479,21 @@ export default function ProjectShow({ project }) {
                                         <p className="text-sm font-medium text-gray-600">Total Paid</p>
                                         <CheckCircle className="h-5 w-5 text-green-600" />
                                     </div>
-                                    <p className="text-2xl font-bold text-green-600">
-                                        {formatCurrency(financialData.totalPaidAmount)}
-                                    </p>
+                                    <div className="space-y-0.5">
+                                        {financialData.totalPaidAmountPHP > 0 && (
+                                            <p className="text-2xl font-bold text-green-600">
+                                                {formatCurrency(financialData.totalPaidAmountPHP, 'PHP')}
+                                            </p>
+                                        )}
+                                        {financialData.totalPaidAmountUSD > 0 && (
+                                            <p className="text-2xl font-bold text-green-600">
+                                                {formatCurrency(financialData.totalPaidAmountUSD, 'USD')}
+                                            </p>
+                                        )}
+                                        {financialData.totalPaidAmount === 0 && (
+                                            <p className="text-2xl font-bold text-gray-400">-</p>
+                                        )}
+                                    </div>
                                     <div className="space-y-1">
                                         <div className="flex items-center justify-between text-xs">
                                             <span className="text-green-600 font-medium">
@@ -412,11 +520,21 @@ export default function ProjectShow({ project }) {
                                         <p className="text-sm font-medium text-gray-600">Outstanding</p>
                                         <Clock className="h-5 w-5 text-orange-600" />
                                     </div>
-                                    <p className={`text-2xl font-bold ${
-                                        financialData.totalOutstanding > 0 ? 'text-orange-600' : 'text-gray-400'
-                                    }`}>
-                                        {formatCurrency(financialData.totalOutstanding)}
-                                    </p>
+                                    <div className="space-y-0.5">
+                                        {financialData.totalOutstandingPHP > 0 && (
+                                            <p className="text-2xl font-bold text-orange-600">
+                                                {formatCurrency(financialData.totalOutstandingPHP, 'PHP')}
+                                            </p>
+                                        )}
+                                        {financialData.totalOutstandingUSD > 0 && (
+                                            <p className="text-2xl font-bold text-orange-600">
+                                                {formatCurrency(financialData.totalOutstandingUSD, 'USD')}
+                                            </p>
+                                        )}
+                                        {financialData.totalOutstanding === 0 && (
+                                            <p className="text-2xl font-bold text-gray-400">-</p>
+                                        )}
+                                    </div>
                                     <div className="text-xs">
                                         {financialData.overdueInvoices > 0 ? (
                                             <div className="flex items-center gap-1 text-red-600 font-medium">
@@ -858,7 +976,7 @@ export default function ProjectShow({ project }) {
                                                                     {formatDate(po.po_date)}
                                                                 </TableCell>
                                                                 <TableCell className="text-right font-semibold">
-                                                                    {formatCurrency(po.po_amount)}
+                                                                    {formatCurrency(po.po_amount, po.currency)}
                                                                 </TableCell>
                                                                 <TableCell className="text-center">
                                                                     <StatusBadge status={po.po_status} />

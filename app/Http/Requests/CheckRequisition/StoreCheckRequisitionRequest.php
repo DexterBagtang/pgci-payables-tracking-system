@@ -34,6 +34,8 @@ class StoreCheckRequisitionRequest extends FormRequest
             'account_charge' => 'nullable|string',
             'service_line_dist' => 'nullable|string',
             'php_amount' => 'required|numeric|min:0',
+            'usd_amount' => 'nullable|numeric|min:0',
+            'currency' => 'required|in:PHP,USD,MIXED',
             'requested_by' => 'required|string',
             'reviewed_by' => 'nullable|string',
             'approved_by' => 'nullable|string',
@@ -69,8 +71,9 @@ class StoreCheckRequisitionRequest extends FormRequest
     /**
      * Configure the validator instance.
      *
-     * Validates business rule:
+     * Validates business rules:
      * - All selected invoices must be in 'approved' status
+     * - All selected invoices must have the same currency
      */
     public function withValidator(Validator $validator): void
     {
@@ -92,6 +95,20 @@ class StoreCheckRequisitionRequest extends FormRequest
                         'invoice_ids',
                         'All invoices must be approved before creating a check requisition. ' .
                         'Invalid invoices: ' . $invalidInvoices
+                    );
+                }
+
+                // Check all invoices have the same currency
+                $currencies = $invoices->pluck('currency')->unique();
+                if ($currencies->count() > 1) {
+                    $invoiceDetails = $invoices->map(function ($invoice) {
+                        return "SI #{$invoice->si_number} ({$invoice->currency})";
+                    })->implode(', ');
+
+                    $validator->errors()->add(
+                        'invoice_ids',
+                        'All invoices must have the same currency. ' .
+                        'Mixed currencies found: ' . $invoiceDetails
                     );
                 }
             }

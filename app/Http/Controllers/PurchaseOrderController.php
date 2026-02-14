@@ -169,6 +169,7 @@ class PurchaseOrderController extends Controller
             $purchaseOrder->project->logRelationshipAdded('purchase_order', [
                 'po_number' => $purchaseOrder->po_number,
                 'po_amount' => $purchaseOrder->po_amount,
+                'currency' => $purchaseOrder->currency,
                 'vendor' => $purchaseOrder->vendor?->name,
             ]);
         }
@@ -178,6 +179,7 @@ class PurchaseOrderController extends Controller
             $purchaseOrder->vendor->logRelationshipAdded('purchase_order', [
                 'po_number' => $purchaseOrder->po_number,
                 'po_amount' => $purchaseOrder->po_amount,
+                'currency' => $purchaseOrder->currency,
                 'project' => $purchaseOrder->project?->project_title,
             ]);
         }

@@ -138,13 +138,11 @@ trait LogsActivity
     /**
      * Format currency for display
      */
-    protected function formatCurrency($amount): string
+    protected function formatCurrency($amount, $currency = null): string
     {
-        $symbol = '₱'; // Default to PHP
-
-        if (isset($this->currency)) {
-            $symbol = $this->currency === 'USD' ? '$' : '₱';
-        }
+        // Use provided currency, or fall back to model's currency, or default to PHP
+        $currencyCode = $currency ?? ($this->currency ?? 'PHP');
+        $symbol = $currencyCode === 'USD' ? '$' : '₱';
 
         return $symbol . number_format($amount, 2);
     }

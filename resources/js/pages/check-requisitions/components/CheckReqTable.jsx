@@ -502,7 +502,12 @@ export default function CheckReqTable({ checkRequisitions, filters, filterOption
                                                 <TableCell>
                                                     <div className="flex flex-col">
                                                         <span className="text-lg font-bold text-green-700">
-                                                            {formatCurrency(requisition.php_amount)}
+                                                            {formatCurrency(
+                                                                requisition.currency === 'USD'
+                                                                    ? requisition.usd_amount
+                                                                    : requisition.php_amount,
+                                                                requisition.currency
+                                                            )}
                                                         </span>
                                                         <span className="text-xs text-gray-500">Payment Amount</span>
                                                     </div>

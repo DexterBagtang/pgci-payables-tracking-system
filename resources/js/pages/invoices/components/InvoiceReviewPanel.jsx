@@ -7,6 +7,7 @@ const InvoiceReviewPanel = ({
                                 currentInvoice,currentInvoiceIndex,invoices,
     handleNavigate,getStatusBadge,
                             }) => {
+    const [reviewNotes, setReviewNotes] = useState('');
 
     if (!currentInvoice) {
         return (
@@ -73,7 +74,7 @@ const InvoiceReviewPanel = ({
                                 </div>
                                 <div>
                                     <div className="text-xs font-medium text-blue-600">Invoice Amount</div>
-                                    <div className="text-2xl font-bold text-slate-900">{formatCurrency(currentInvoice.invoice_amount)}</div>
+                                    <div className="text-2xl font-bold text-slate-900">{formatCurrency(currentInvoice.invoice_amount, currentInvoice.currency)}</div>
                                 </div>
                             </div>
 
@@ -117,7 +118,7 @@ const InvoiceReviewPanel = ({
                                 </div>
                                 <div>
                                     <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">PO Amount</div>
-                                    <div className="text-lg font-bold text-slate-900">{formatCurrency(currentInvoice.purchase_order?.po_amount || 0)}</div>
+                                    <div className="text-lg font-bold text-slate-900">{formatCurrency(currentInvoice.purchase_order?.po_amount || 0, currentInvoice.purchase_order?.currency || currentInvoice.currency)}</div>
                                 </div>
                                 <div className="col-span-2">
                                     <div className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500">

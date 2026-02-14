@@ -31,10 +31,13 @@ export default function CheckReqFormDetails({ data, setData, errors }) {
                             )}
                         </div>
                         <div>
-                            <Label className="text-xs text-slate-700">PHP Amount</Label>
+                            <Label className="text-xs text-slate-700">Amount ({data.currency || 'PHP'})</Label>
                             <Input
                                 readOnly
-                                value={formatCurrency(data.php_amount)}
+                                value={formatCurrency(
+                                    data.currency === 'USD' ? data.usd_amount : data.php_amount,
+                                    data.currency || 'PHP'
+                                )}
                                 className="text-xs h-8 bg-slate-50 font-semibold text-emerald-700"
                             />
                         </div>

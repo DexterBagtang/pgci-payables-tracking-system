@@ -26,7 +26,12 @@ export default function CRDetailsTab({
                     <div>
                         <label className="text-xs text-muted-foreground">Amount</label>
                         <p className="text-base font-semibold mt-1 text-blue-600">
-                            {formatCurrency(checkRequisition.php_amount)}
+                            {formatCurrency(
+                                checkRequisition.currency === 'USD'
+                                    ? checkRequisition.usd_amount
+                                    : checkRequisition.php_amount,
+                                checkRequisition.currency
+                            )}
                         </p>
                     </div>
                     <div className="col-span-2">
@@ -42,7 +47,7 @@ export default function CRDetailsTab({
                     {purchaseOrder && (
                         <div>
                             <label className="text-xs text-muted-foreground">PO Amount</label>
-                            <p className="text-sm mt-1">{formatCurrency(purchaseOrder.po_amount)}</p>
+                            <p className="text-sm mt-1">{formatCurrency(purchaseOrder.po_amount, purchaseOrder.currency)}</p>
                         </div>
                     )}
                 </div>

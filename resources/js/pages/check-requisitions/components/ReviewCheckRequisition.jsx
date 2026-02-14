@@ -90,11 +90,18 @@ export default function ReviewCheckRequisition({
 
     const mainPdfFile = files?.find(f => f.file_purpose === 'check_requisition');
 
-    const formatCurrency = (amount) => {
-        return new Intl.NumberFormat('en-PH', {
+    const formatCurrency = (amount, currency = 'PHP') => {
+        const currencyCode = currency || 'PHP';
+        const locale = currencyCode === 'USD' ? 'en-US' : 'en-PH';
+        return new Intl.NumberFormat(locale, {
             style: 'currency',
-            currency: 'PHP',
+            currency: currencyCode,
         }).format(amount);
+    };
+
+    // Helper to get the correct amount based on check requisition currency
+    const getCRAmount = () => {
+        return checkRequisition.currency === 'USD' ? checkRequisition.usd_amount : checkRequisition.php_amount;
     };
 
     const formatDate = (date) => {
@@ -198,7 +205,7 @@ export default function ReviewCheckRequisition({
 
     const isAmountMatching = () => {
         const totalInvoice = calculateTotalInvoiceAmount();
-        return Math.abs(totalInvoice - parseFloat(checkRequisition.php_amount)) < 0.01;
+        return Math.abs(totalInvoice - parseFloat(getCRAmount())) < 0.01;
     };
 
     const [invoicesExpanded, setInvoicesExpanded] = useState(false);
@@ -270,7 +277,7 @@ export default function ReviewCheckRequisition({
                                     <StatusBadge status={checkRequisition.requisition_status} />
                                 </div>
                                 <p className="text-sm text-slate-600 mt-0.5">
-                                    {checkRequisition.requisition_number} • {checkRequisition.payee_name} • {formatCurrency(checkRequisition.php_amount)}
+                                    {checkRequisition.requisition_number} • {checkRequisition.payee_name} • {formatCurrency(getCRAmount(), checkRequisition.currency)}
                                 </p>
                             </div>
                         </div>
@@ -410,7 +417,7 @@ export default function ReviewCheckRequisition({
                                 <CardContent className="p-2">
                                     <p className="text-xs text-slate-600 font-medium">Amount</p>
                                     <p className="text-base font-bold text-slate-900">
-                                        {formatCurrency(checkRequisition.php_amount)}
+                                        {formatCurrency(getCRAmount(), checkRequisition.currency)}
                                     </p>
                                 </CardContent>
                             </Card>
@@ -454,7 +461,7 @@ export default function ReviewCheckRequisition({
                                                         <span className={`text-xs font-bold ${
                                                             isAmountMatching() ? 'text-green-600' : 'text-red-600'
                                                         }`}>
-                                                            {formatCurrency(calculateTotalInvoiceAmount())}
+                                                            {formatCurrency(calculateTotalInvoiceAmount(), checkRequisition.currency)}
                                                         </span>
                                                         {isAmountMatching() ? (
                                                             <CheckCircle className="h-3.5 w-3.5 text-green-600" />
@@ -494,7 +501,7 @@ export default function ReviewCheckRequisition({
                                                                         {formatDate(invoice.si_date)}
                                                                     </TableCell>
                                                                     <TableCell className="text-xs text-right font-medium py-1.5">
-                                                                        {formatCurrency(invoice.net_amount)}
+                                                                        {formatCurrency(invoice.net_amount, invoice.currency)}
                                                                     </TableCell>
                                                                     <TableCell className="py-1.5">
                                                                         <StatusBadge status={invoice.invoice_status} size="sm" />
@@ -719,7 +726,7 @@ export default function ReviewCheckRequisition({
                             Approve Check Requisition
                         </DialogTitle>
                         <DialogDescription>
-                            Confirm approval of {checkRequisition.requisition_number} for {formatCurrency(checkRequisition.php_amount)}
+                            Confirm approval of {checkRequisition.requisition_number} for {formatCurrency(getCRAmount(), checkRequisition.currency)}
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 py-4">

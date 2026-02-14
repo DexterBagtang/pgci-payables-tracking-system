@@ -112,10 +112,12 @@ export default function CreateDisbursementFormNew({ checkRequisitions, filters }
         });
     };
 
-    const formatCurrency = (amount) => {
-        return new Intl.NumberFormat('en-PH', {
+    const formatCurrency = (amount, currency = 'PHP') => {
+        const currencyCode = currency || 'PHP';
+        const locale = currencyCode === 'USD' ? 'en-US' : 'en-PH';
+        return new Intl.NumberFormat(locale, {
             style: 'currency',
-            currency: 'PHP',
+            currency: currencyCode,
         }).format(amount);
     };
 
@@ -518,7 +520,7 @@ export default function CreateDisbursementFormNew({ checkRequisitions, filters }
                                                                                                         </span>
                                                                                                     </div>
                                                                                                     <div className="text-xs font-bold text-slate-900 whitespace-nowrap">
-                                                                                                        {formatCurrency(invoice.net_amount)}
+                                                                                                        {formatCurrency(invoice.net_amount, invoice.currency)}
                                                                                                     </div>
                                                                                                 </div>
                                                                                             );

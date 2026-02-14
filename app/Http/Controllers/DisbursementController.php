@@ -197,7 +197,7 @@ class DisbursementController extends Controller
                   ->with([
                       'invoices' => function ($invQuery) {
                           $invQuery->select('invoices.id', 'purchase_order_id', 'si_number', 'si_date',
-                                           'si_received_at', 'invoice_amount', 'net_amount', 'due_date')
+                                           'si_received_at', 'invoice_amount', 'net_amount', 'currency', 'due_date')
                                    ->with([
                                        'purchaseOrder' => function ($poQuery) {
                                            $poQuery->select('id', 'po_number', 'vendor_id', 'project_id')

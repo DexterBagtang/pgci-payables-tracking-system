@@ -87,9 +87,10 @@ class Vendor extends Model
     {
         if ($relationType === 'purchase_order') {
             $poNumber = is_object($relatedModel) ? $relatedModel->po_number : ($relatedModel['po_number'] ?? 'Unknown');
+            $poCurrency = is_object($relatedModel) ? ($relatedModel->currency ?? 'PHP') : ($relatedModel['currency'] ?? 'PHP');
             $amount = is_object($relatedModel)
-                ? $this->formatCurrency($relatedModel->po_amount ?? 0)
-                : $this->formatCurrency($relatedModel['po_amount'] ?? 0);
+                ? $this->formatCurrency($relatedModel->po_amount ?? 0, $poCurrency)
+                : $this->formatCurrency($relatedModel['po_amount'] ?? 0, $poCurrency);
 
             return "Purchase Order {$poNumber} created ({$amount})";
         }

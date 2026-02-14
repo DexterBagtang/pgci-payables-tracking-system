@@ -67,6 +67,8 @@ const EditCheckRequisition = ({ checkRequisition, currentInvoices, availableInvo
         account_charge: checkRequisition.account_charge || '2502',
         service_line_dist: checkRequisition.service_line_dist || 'test',
         php_amount: checkRequisition.php_amount,
+        usd_amount: checkRequisition.usd_amount || 0,
+        currency: checkRequisition.currency || 'PHP',
         amount_in_words: checkRequisition.amount_in_words,
         requested_by: checkRequisition.requested_by,
         reviewed_by: checkRequisition.reviewed_by || 'JS ORDONEZ / MR ULIT/ JB LABAY',
@@ -244,10 +246,16 @@ const EditCheckRequisition = ({ checkRequisition, currentInvoices, availableInvo
             if (!originalInvoiceIds.has(id)) return true;
         }
 
+        const originalAmount = checkRequisition.currency === 'USD'
+            ? checkRequisition.usd_amount
+            : checkRequisition.php_amount;
+        const currentAmount = data.currency === 'USD' ? data.usd_amount : data.php_amount;
+
         return (
             data.payee_name !== checkRequisition.payee_name ||
             data.purpose !== checkRequisition.purpose ||
-            data.php_amount !== checkRequisition.php_amount ||
+            currentAmount !== originalAmount ||
+            data.currency !== checkRequisition.currency ||
             data.request_date !== checkRequisition.request_date ||
             data.account_charge !== checkRequisition.account_charge ||
             data.service_line_dist !== checkRequisition.service_line_dist
@@ -266,14 +274,26 @@ const EditCheckRequisition = ({ checkRequisition, currentInvoices, availableInvo
 
         prevSelectionRef.current = new Set(selectedInvoices);
 
-        // Update invoice_ids in form data
-        setData('invoice_ids', Array.from(selectedInvoices));
-        setData('php_amount', selectedTotal);
-        setData('amount_in_words', numberToWords(selectedTotal) || '');
-
         const selectedInvs = accumulatedInvoices.filter((inv) =>
             selectedInvoices.has(inv.id)
         ) || [];
+
+        // Determine currency from selected invoices (all should be same currency due to backend validation)
+        const invoiceCurrency = selectedInvs.length > 0 ? (selectedInvs[0].currency || 'PHP') : 'PHP';
+
+        // Update invoice_ids in form data
+        setData('invoice_ids', Array.from(selectedInvoices));
+
+        // Set amounts based on currency
+        if (invoiceCurrency === 'USD') {
+            setData('php_amount', 0);
+            setData('usd_amount', selectedTotal);
+        } else {
+            setData('php_amount', selectedTotal);
+            setData('usd_amount', 0);
+        }
+        setData('currency', invoiceCurrency);
+        setData('amount_in_words', numberToWords(selectedTotal) || '');
 
         const siNumbersFormatted = formatSINumbers(selectedInvs);
         setData('si_number', siNumbersFormatted);
@@ -428,7 +448,12 @@ const EditCheckRequisition = ({ checkRequisition, currentInvoices, availableInvo
                                 </div>
                                 <div className="flex justify-between border-b pb-2">
                                     <span className="font-medium">Amount:</span>
-                                    <span className="font-semibold text-blue-600">{formatCurrency(data.php_amount)}</span>
+                                    <span className="font-semibold text-blue-600">
+                                        {formatCurrency(
+                                            data.currency === 'USD' ? data.usd_amount : data.php_amount,
+                                            data.currency
+                                        )}
+                                    </span>
                                 </div>
                                 <div className="flex justify-between border-b pb-2">
                                     <span className="font-medium">Invoices:</span>

@@ -11,6 +11,14 @@ class CheckRequisition extends Model
     use HasRemarks, LogsActivity;
     protected $guarded = [];
 
+    protected $casts = [
+        'request_date' => 'date',
+        'approved_at' => 'datetime',
+        'processed_at' => 'datetime',
+        'php_amount' => 'decimal:2',
+        'usd_amount' => 'decimal:2',
+    ];
+
     public function invoices()
     {
         return $this->belongsToMany(Invoice::class, 'check_requisition_invoices')
@@ -74,7 +82,8 @@ class CheckRequisition extends Model
      */
     protected function getCreationMessage(): string
     {
-        $amount = $this->formatCurrency($this->php_amount ?? 0);
+        $amountValue = $this->currency === 'USD' ? ($this->usd_amount ?? 0) : ($this->php_amount ?? 0);
+        $amount = $this->formatCurrency($amountValue);
         $invoiceCount = $this->invoices()->count();
 
         return "Check requisition {$this->requisition_number} created for {$this->payee_name} with {$invoiceCount} invoice(s) totaling {$amount}";

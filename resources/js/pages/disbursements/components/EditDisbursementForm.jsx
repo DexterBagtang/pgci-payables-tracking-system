@@ -126,10 +126,12 @@ export default function EditDisbursementForm({
         });
     };
 
-    const formatCurrency = (amount) => {
-        return new Intl.NumberFormat('en-PH', {
+    const formatCurrency = (amount, currency = 'PHP') => {
+        const currencyCode = currency || 'PHP';
+        const locale = currencyCode === 'USD' ? 'en-US' : 'en-PH';
+        return new Intl.NumberFormat(locale, {
             style: 'currency',
-            currency: 'PHP',
+            currency: currencyCode,
         }).format(amount);
     };
 
@@ -325,7 +327,7 @@ export default function EditDisbursementForm({
                                                                                     {invoice.purchase_order?.vendor?.name || '-'}
                                                                                 </TableCell>
                                                                                 <TableCell className="text-sm">
-                                                                                    {formatCurrency(invoice.net_amount)}
+                                                                                    {formatCurrency(invoice.net_amount, invoice.currency)}
                                                                                 </TableCell>
                                                                                 <TableCell>
                                                                                     <Badge variant="secondary" className="text-xs">

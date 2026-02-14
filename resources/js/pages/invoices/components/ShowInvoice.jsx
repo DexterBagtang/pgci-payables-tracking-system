@@ -127,7 +127,7 @@ const ShowInvoice = ({ invoice }) => {
                                 </div>
                                 <div className="font-semibold text-slate-900">{po?.po_number || 'No PO'}</div>
                                 <div className="text-sm text-slate-600">
-                                    {formatCurrency(po?.po_amount)} • <StatusBadge status={po?.po_status} size="xs" />
+                                    {formatCurrency(po?.po_amount, po?.currency)} • <StatusBadge status={po?.po_status} size="xs" />
                                 </div>
                                 {po && (
                                     <Link href={`/purchase-orders/${po.id}`} className="text-xs text-blue-600 hover:text-blue-800">

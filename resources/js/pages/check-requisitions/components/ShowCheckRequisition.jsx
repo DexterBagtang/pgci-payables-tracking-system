@@ -31,6 +31,13 @@ export default function ShowCheckRequisition({ checkRequisition, invoices, files
     const financialMetrics = useCRFinancials(checkRequisition, invoices);
     const { formatCurrency, formatDate, formatDateTime } = useCRFormatters();
 
+    // Helper to get correct amount based on currency
+    const requisitionAmount = parseFloat(
+        checkRequisition.currency === 'USD'
+            ? checkRequisition.usd_amount
+            : checkRequisition.php_amount
+    );
+
     // Get all check requisition versions sorted by version (latest first)
     const checkReqVersions = files?.filter(f => f.file_purpose === 'check_requisition')
         .sort((a, b) => (b.version || 0) - (a.version || 0)) || [];
@@ -83,16 +90,16 @@ export default function ShowCheckRequisition({ checkRequisition, invoices, files
                 {/* Amount Mismatch Alert */}
                 <CRAmountMismatchAlert
                     isMatching={financialMetrics.isBalanced}
-                    requisitionAmount={parseFloat(checkRequisition.php_amount)}
+                    requisitionAmount={requisitionAmount}
                     totalInvoicesAmount={financialMetrics.calculatedTotal}
-                    variance={financialMetrics.calculatedTotal - parseFloat(checkRequisition.php_amount)}
-                    variancePercentage={(financialMetrics.calculatedTotal - parseFloat(checkRequisition.php_amount)) / parseFloat(checkRequisition.php_amount) * 100}
+                    variance={financialMetrics.calculatedTotal - requisitionAmount}
+                    variancePercentage={(financialMetrics.calculatedTotal - requisitionAmount) / requisitionAmount * 100}
                     formatCurrency={formatCurrency}
                 />
 
                 {/* Financial Summary Cards */}
                 <CRFinancialCards
-                    requisitionAmount={parseFloat(checkRequisition.php_amount)}
+                    requisitionAmount={requisitionAmount}
                     totalInvoicesAmount={financialMetrics.calculatedTotal}
                     formatCurrency={formatCurrency}
                 />
