@@ -6,8 +6,13 @@ import { useDashboardWidget } from '@/hooks/useDashboardWidget';
 import type { APAgingSummary as APAgingSummaryData } from '@/types';
 import { Badge } from '@/components/ui/badge';
 
-const formatCurrency = (value: number) =>
-    new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(value);
+const formatCurrency = (value: number, currency: 'PHP' | 'USD' = 'PHP') =>
+    new Intl.NumberFormat(currency === 'USD' ? 'en-US' : 'en-PH', {
+        style: 'currency',
+        currency,
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+    }).format(value);
 
 export default function APAgingSummary() {
     const { data, loading, error, refetch, isRefetching } = useDashboardWidget<APAgingSummaryData>({
@@ -55,24 +60,49 @@ export default function APAgingSummary() {
                     </div>
                 </div>
 
-                {/* Aging Buckets */}
-                <div className="space-y-3">
-                    <h4 className="text-sm font-semibold text-muted-foreground">Aging Breakdown</h4>
-                    {buckets.map((bucket) => {
-                        const bucketData = data.aging_buckets[bucket.key as keyof typeof data.aging_buckets];
-                        return (
-                            <div key={bucket.key} className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                    <Badge className={bucket.color}>{bucket.label}</Badge>
-                                    <span className="text-sm text-muted-foreground">
-                                        {bucketData.count} invoice{bucketData.count !== 1 ? 's' : ''}
-                                    </span>
+                {/* Aging Buckets - PHP */}
+                {data.total_outstanding_php > 0 && (
+                    <div className="space-y-3">
+                        <h4 className="text-sm font-semibold text-muted-foreground">Aging Breakdown (PHP)</h4>
+                        {buckets.map((bucket) => {
+                            const bucketData = data.aging_buckets_php[bucket.key as keyof typeof data.aging_buckets_php];
+                            if (bucketData.count === 0) return null;
+                            return (
+                                <div key={bucket.key} className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <Badge className={bucket.color}>{bucket.label}</Badge>
+                                        <span className="text-sm text-muted-foreground">
+                                            {bucketData.count} invoice{bucketData.count !== 1 ? 's' : ''}
+                                        </span>
+                                    </div>
+                                    <span className="text-sm font-semibold">{formatCurrency(bucketData.amount, 'PHP')}</span>
                                 </div>
-                                <span className="text-sm font-semibold">{formatCurrency(bucketData.amount)}</span>
-                            </div>
-                        );
-                    })}
-                </div>
+                            );
+                        })}
+                    </div>
+                )}
+
+                {/* Aging Buckets - USD */}
+                {data.total_outstanding_usd > 0 && (
+                    <div className="space-y-3">
+                        <h4 className="text-sm font-semibold text-muted-foreground">Aging Breakdown (USD)</h4>
+                        {buckets.map((bucket) => {
+                            const bucketData = data.aging_buckets_usd[bucket.key as keyof typeof data.aging_buckets_usd];
+                            if (bucketData.count === 0) return null;
+                            return (
+                                <div key={bucket.key} className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <Badge className={bucket.color}>{bucket.label}</Badge>
+                                        <span className="text-sm text-muted-foreground">
+                                            {bucketData.count} invoice{bucketData.count !== 1 ? 's' : ''}
+                                        </span>
+                                    </div>
+                                    <span className="text-sm font-semibold">{formatCurrency(bucketData.amount, 'USD')}</span>
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
             </div>
         </DashboardCard>
     );

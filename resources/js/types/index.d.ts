@@ -368,7 +368,17 @@ export interface DashboardData {
 export interface APAgingSummary {
     total_outstanding: number;
     total_overdue: number;
-    aging_buckets: {
+    total_outstanding_php: number;
+    total_outstanding_usd: number;
+    total_overdue_php: number;
+    total_overdue_usd: number;
+    aging_buckets_php: {
+        '0_30': { count: number; amount: number };
+        '31_60': { count: number; amount: number };
+        '61_90': { count: number; amount: number };
+        'over_90': { count: number; amount: number };
+    };
+    aging_buckets_usd: {
         '0_30': { count: number; amount: number };
         '31_60': { count: number; amount: number };
         '61_90': { count: number; amount: number };
@@ -394,17 +404,27 @@ export interface POUtilizationSnapshot {
     invoiced_percentage: number;
     paid_percentage: number;
     remaining: number;
+    total_po_amount_php: number;
+    total_po_amount_usd: number;
+    total_invoiced_php: number;
+    total_invoiced_usd: number;
+    total_paid_php: number;
+    total_paid_usd: number;
+    remaining_php: number;
+    remaining_usd: number;
 }
 
 export interface UpcomingCashOut {
-    due_7_days: { count: number; amount: number };
-    due_15_days: { count: number; amount: number };
-    due_30_days: { count: number; amount: number };
+    due_7_days: { count: number; amount: number; amount_php: number; amount_usd: number };
+    due_15_days: { count: number; amount: number; amount_php: number; amount_usd: number };
+    due_30_days: { count: number; amount: number; amount_php: number; amount_usd: number };
 }
 
 export interface TopVendorByOutstanding {
     vendor_name: string;
     outstanding_amount: number;
+    outstanding_amount_php: number;
+    outstanding_amount_usd: number;
     invoice_count: number;
 }
 
@@ -421,6 +441,14 @@ export interface ProjectSpendItem {
     total_invoiced: number;
     total_paid: number;
     remaining: number;
+    total_po_php: number;
+    total_po_usd: number;
+    total_invoiced_php: number;
+    total_invoiced_usd: number;
+    total_paid_php: number;
+    total_paid_usd: number;
+    remaining_php: number;
+    remaining_usd: number;
 }
 
 export interface PendingApprovalsByRole {
