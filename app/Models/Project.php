@@ -81,19 +81,28 @@ class Project extends Model
 
     public function getBudgetUtilizationAttribute(): array
     {
-        $committed = $this->purchaseOrders()
+        // Separate PHP and USD commitments
+        $committedPHP = $this->purchaseOrders()
             ->whereIn('po_status', ['draft', 'open'])
+            ->where('currency', 'PHP')
             ->sum('po_amount');
 
-        $percentage = $this->total_project_cost > 0
-            ? ($committed / $this->total_project_cost) * 100
+        $committedUSD = $this->purchaseOrders()
+            ->whereIn('po_status', ['draft', 'open'])
+            ->where('currency', 'USD')
+            ->sum('po_amount');
+
+        $percentagePHP = $this->total_project_cost > 0
+            ? ($committedPHP / $this->total_project_cost) * 100
             : 0;
 
         return [
-            'committed' => (float) $committed,
-            'remaining' => (float) ($this->total_project_cost - $committed),
-            'percentage' => round($percentage, 2),
+            'committed_php' => (float) $committedPHP,
+            'committed_usd' => (float) $committedUSD,
+            'remaining_php' => (float) ($this->total_project_cost - $committedPHP),
+            'percentage_php' => round($percentagePHP, 2),
             'total_budget' => (float) $this->total_project_cost,
+            'has_usd' => $committedUSD > 0,
         ];
     }
 

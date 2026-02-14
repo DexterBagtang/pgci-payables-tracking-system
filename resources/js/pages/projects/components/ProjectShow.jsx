@@ -66,12 +66,16 @@ export default function ProjectShow({ project }) {
             sum + (po.currency === 'PHP' ? (parseFloat(po.po_amount) || 0) : 0), 0) || 0;
         const totalPOAmountUSD = purchase_orders?.reduce((sum, po) =>
             sum + (po.currency === 'USD' ? (parseFloat(po.po_amount) || 0) : 0), 0) || 0;
-        const totalPOAmount = totalPOAmountPHP + totalPOAmountUSD;
 
         const totalProjectCost = parseFloat(project.total_project_cost) || 0;
         const totalContractCost = parseFloat(project.total_contract_cost) || 0;
-        const remainingBudget = totalProjectCost - totalPOAmount;
-        const budgetUtilization = totalProjectCost > 0 ? (totalPOAmount / totalProjectCost) * 100 : 0;
+
+        // Budget calculations - PHP only (project budgets are PHP-only)
+        const remainingBudgetPHP = totalProjectCost - totalPOAmountPHP;
+        const budgetUtilizationPHP = totalProjectCost > 0 ? (totalPOAmountPHP / totalProjectCost) * 100 : 0;
+
+        // USD POs have no budget comparison (project budget is PHP-only)
+        const hasUSDPOs = totalPOAmountUSD > 0;
 
         // Invoice calculations by currency
         let totalInvoicedAmountPHP = 0;
@@ -128,12 +132,13 @@ export default function ProjectShow({ project }) {
             });
         });
 
-        const totalInvoicedAmount = totalInvoicedAmountPHP + totalInvoicedAmountUSD;
-        const totalPaidAmount = totalPaidAmountPHP + totalPaidAmountUSD;
-        const totalOutstanding = totalOutstandingPHP + totalOutstandingUSD;
+        // Invoice progress - separate by currency
+        const invoicedProgressPHP = totalPOAmountPHP > 0 ? (totalInvoicedAmountPHP / totalPOAmountPHP) * 100 : 0;
+        const invoicedProgressUSD = totalPOAmountUSD > 0 ? (totalInvoicedAmountUSD / totalPOAmountUSD) * 100 : 0;
 
-        const paymentProgress = totalInvoicedAmount > 0 ? (totalPaidAmount / totalInvoicedAmount) * 100 : 0;
-        const invoicedProgress = totalPOAmount > 0 ? (totalInvoicedAmount / totalPOAmount) * 100 : 0;
+        // Payment progress - separate by currency
+        const paymentProgressPHP = totalInvoicedAmountPHP > 0 ? (totalPaidAmountPHP / totalInvoicedAmountPHP) * 100 : 0;
+        const paymentProgressUSD = totalInvoicedAmountUSD > 0 ? (totalPaidAmountUSD / totalInvoicedAmountUSD) * 100 : 0;
 
         // PO Status breakdown
         const poStatusCounts = purchase_orders?.reduce((acc, po) => {
@@ -211,11 +216,6 @@ export default function ProjectShow({ project }) {
         }, {});
 
         return {
-            // Legacy combined totals
-            totalPOAmount,
-            totalInvoicedAmount,
-            totalPaidAmount,
-            totalOutstanding,
             // Currency-separated totals
             totalPOAmountPHP,
             totalPOAmountUSD,
@@ -225,13 +225,18 @@ export default function ProjectShow({ project }) {
             totalPaidAmountUSD,
             totalOutstandingPHP,
             totalOutstandingUSD,
-            // Other metrics
+            // Budget metrics - PHP only
             totalProjectCost,
             totalContractCost,
-            remainingBudget,
-            budgetUtilization,
-            paymentProgress,
-            invoicedProgress,
+            remainingBudgetPHP,
+            budgetUtilizationPHP,
+            hasUSDPOs,
+            // Progress metrics - currency-separated
+            invoicedProgressPHP,
+            invoicedProgressUSD,
+            paymentProgressPHP,
+            paymentProgressUSD,
+            // Invoice counts
             paidInvoices,
             pendingInvoices,
             overdueInvoices,
@@ -270,10 +275,10 @@ export default function ProjectShow({ project }) {
         if (financialData.overdueInvoices > 0) {
             return { status: 'critical', label: 'Overdue Invoices', color: 'red' };
         }
-        if (financialData.budgetUtilization > 100) {
+        if (financialData.budgetUtilizationPHP > 100) {
             return { status: 'warning', label: 'Over Budget', color: 'red' };
         }
-        if (financialData.budgetUtilization > 90) {
+        if (financialData.budgetUtilizationPHP > 90) {
             return { status: 'warning', label: 'Near Budget Limit', color: 'orange' };
         }
         if (financialData.pendingInvoices > 3) {
@@ -407,24 +412,24 @@ export default function ProjectShow({ project }) {
                                                 {formatCurrency(financialData.totalPOAmountUSD, 'USD')}
                                             </p>
                                         )}
-                                        {financialData.totalPOAmount === 0 && (
+                                        {financialData.totalPOAmountPHP === 0 && financialData.totalPOAmountUSD === 0 && (
                                             <p className="text-2xl font-bold text-gray-400">-</p>
                                         )}
                                     </div>
                                     <div className="space-y-1">
                                         <div className="flex items-center justify-between text-xs">
                                             <span className="text-gray-500">
-                                                {formatPercentage(financialData.budgetUtilization)} of budget
+                                                {formatPercentage(financialData.budgetUtilizationPHP)} of budget
                                             </span>
                                             <span className="text-gray-600">
                                                 {purchase_orders?.length || 0} POs
                                             </span>
                                         </div>
                                         <Progress
-                                            value={Math.min(financialData.budgetUtilization, 100)}
+                                            value={Math.min(financialData.budgetUtilizationPHP, 100)}
                                             className={`h-2 ${
-                                                financialData.budgetUtilization > 100 ? '[&>div]:bg-red-500' :
-                                                    financialData.budgetUtilization >= 90 ? '[&>div]:bg-orange-500' :
+                                                financialData.budgetUtilizationPHP > 100 ? '[&>div]:bg-red-500' :
+                                                    financialData.budgetUtilizationPHP >= 90 ? '[&>div]:bg-orange-500' :
                                                         '[&>div]:bg-purple-500'
                                             }`}
                                         />
@@ -452,20 +457,33 @@ export default function ProjectShow({ project }) {
                                                 {formatCurrency(financialData.totalInvoicedAmountUSD, 'USD')}
                                             </p>
                                         )}
-                                        {financialData.totalInvoicedAmount === 0 && (
+                                        {financialData.totalInvoicedAmountPHP === 0 && financialData.totalInvoicedAmountUSD === 0 && (
                                             <p className="text-2xl font-bold text-gray-400">-</p>
                                         )}
                                     </div>
                                     <div className="space-y-1">
-                                        <div className="flex items-center justify-between text-xs">
-                                            <span className="text-gray-500">
-                                                {formatPercentage(financialData.invoicedProgress)} of PO
-                                            </span>
-                                        </div>
-                                        <Progress
-                                            value={Math.min(financialData.invoicedProgress, 100)}
-                                            className="h-2 [&>div]:bg-orange-500"
-                                        />
+                                        {financialData.totalPOAmountPHP > 0 && (
+                                            <>
+                                                <div className="flex items-center justify-between text-xs">
+                                                    <span className="text-gray-500">PHP: {formatPercentage(financialData.invoicedProgressPHP)} of PO</span>
+                                                </div>
+                                                <Progress
+                                                    value={Math.min(financialData.invoicedProgressPHP, 100)}
+                                                    className="h-2 [&>div]:bg-orange-500"
+                                                />
+                                            </>
+                                        )}
+                                        {financialData.totalPOAmountUSD > 0 && (
+                                            <>
+                                                <div className="flex items-center justify-between text-xs mt-1">
+                                                    <span className="text-gray-500">USD: {formatPercentage(financialData.invoicedProgressUSD)} of PO</span>
+                                                </div>
+                                                <Progress
+                                                    value={Math.min(financialData.invoicedProgressUSD, 100)}
+                                                    className="h-2 [&>div]:bg-orange-500"
+                                                />
+                                            </>
+                                        )}
                                     </div>
                                 </div>
                             </CardContent>
@@ -490,30 +508,47 @@ export default function ProjectShow({ project }) {
                                                 {formatCurrency(financialData.totalPaidAmountUSD, 'USD')}
                                             </p>
                                         )}
-                                        {financialData.totalPaidAmount === 0 && (
+                                        {financialData.totalPaidAmountPHP === 0 && financialData.totalPaidAmountUSD === 0 && (
                                             <p className="text-2xl font-bold text-gray-400">-</p>
                                         )}
                                     </div>
                                     <div className="space-y-1">
-                                        <div className="flex items-center justify-between text-xs">
-                                            <span className="text-green-600 font-medium">
-                                                {formatPercentage(financialData.paymentProgress)} paid
-                                            </span>
-                                            <span className="text-gray-600">
-                                                {financialData.paidInvoices} invoices
-                                            </span>
+                                        <div className="flex items-center justify-between text-xs mb-1">
+                                            <span className="text-gray-600">{financialData.paidInvoices} invoices</span>
                                         </div>
-                                        <Progress
-                                            value={Math.min(financialData.paymentProgress, 100)}
-                                            className="h-2 bg-green-200 [&>div]:bg-green-600"
-                                        />
+                                        {financialData.totalInvoicedAmountPHP > 0 && (
+                                            <>
+                                                <div className="flex items-center justify-between text-xs">
+                                                    <span className="text-green-600 font-medium">
+                                                        PHP: {formatPercentage(financialData.paymentProgressPHP)} paid
+                                                    </span>
+                                                </div>
+                                                <Progress
+                                                    value={Math.min(financialData.paymentProgressPHP, 100)}
+                                                    className="h-2 bg-green-200 [&>div]:bg-green-600"
+                                                />
+                                            </>
+                                        )}
+                                        {financialData.totalInvoicedAmountUSD > 0 && (
+                                            <>
+                                                <div className="flex items-center justify-between text-xs mt-1">
+                                                    <span className="text-green-600 font-medium">
+                                                        USD: {formatPercentage(financialData.paymentProgressUSD)} paid
+                                                    </span>
+                                                </div>
+                                                <Progress
+                                                    value={Math.min(financialData.paymentProgressUSD, 100)}
+                                                    className="h-2 bg-green-200 [&>div]:bg-green-600"
+                                                />
+                                            </>
+                                        )}
                                     </div>
                                 </div>
                             </CardContent>
                         </Card>
 
                         {/* Outstanding */}
-                        <Card className={financialData.totalOutstanding > 0 ? "border-orange-200 bg-orange-50/50" : ""}>
+                        <Card className={(financialData.totalOutstandingPHP > 0 || financialData.totalOutstandingUSD > 0) ? "border-orange-200 bg-orange-50/50" : ""}>
                             <CardContent className="pt-6">
                                 <div className="space-y-2">
                                     <div className="flex items-center justify-between">
@@ -531,7 +566,7 @@ export default function ProjectShow({ project }) {
                                                 {formatCurrency(financialData.totalOutstandingUSD, 'USD')}
                                             </p>
                                         )}
-                                        {financialData.totalOutstanding === 0 && (
+                                        {financialData.totalOutstandingPHP === 0 && financialData.totalOutstandingUSD === 0 && (
                                             <p className="text-2xl font-bold text-gray-400">-</p>
                                         )}
                                     </div>
@@ -679,55 +714,70 @@ export default function ProjectShow({ project }) {
                                     </CardHeader>
                                     <CardContent>
                                         <div className="space-y-4">
-                                            {/* Budget Progress */}
+                                            {/* PHP Budget Section */}
                                             <div>
                                                 <div className="flex justify-between mb-2">
-                                                    <span className="text-sm font-medium">Budget Utilization</span>
+                                                    <span className="text-sm font-medium">PHP Budget Utilization</span>
                                                     <span className={`text-sm font-bold ${
-                                                        financialData.budgetUtilization > 100 ? 'text-red-600' :
-                                                            financialData.budgetUtilization > 90 ? 'text-orange-600' :
+                                                        financialData.budgetUtilizationPHP > 100 ? 'text-red-600' :
+                                                            financialData.budgetUtilizationPHP > 90 ? 'text-orange-600' :
                                                                 'text-green-600'
                                                     }`}>
-                                                        {formatPercentage(financialData.budgetUtilization)}
+                                                        {formatPercentage(financialData.budgetUtilizationPHP)}
                                                     </span>
                                                 </div>
                                                 <Progress
-                                                    value={Math.min(financialData.budgetUtilization, 100)}
+                                                    value={Math.min(financialData.budgetUtilizationPHP, 100)}
                                                     className={`h-3 ${
-                                                        financialData.budgetUtilization > 100 ? '[&>div]:bg-red-500' :
-                                                            financialData.budgetUtilization > 90 ? '[&>div]:bg-orange-500' :
+                                                        financialData.budgetUtilizationPHP > 100 ? '[&>div]:bg-red-500' :
+                                                            financialData.budgetUtilizationPHP > 90 ? '[&>div]:bg-orange-500' :
                                                                 '[&>div]:bg-green-500'
                                                     }`}
                                                 />
                                             </div>
 
-                                            {/* Financial Breakdown */}
+                                            {/* PHP Financial Breakdown */}
                                             <div className="space-y-3 pt-4 border-t">
                                                 <div className="flex justify-between items-center">
                                                     <span className="text-sm text-gray-600">Project Budget:</span>
                                                     <span className="font-semibold">
-                                                        {formatCurrency(financialData.totalProjectCost)}
+                                                        {formatCurrency(financialData.totalProjectCost, 'PHP')}
                                                     </span>
                                                 </div>
                                                 <div className="flex justify-between items-center">
-                                                    <span className="text-sm text-gray-600">PO Committed:</span>
+                                                    <span className="text-sm text-gray-600">PHP PO Committed:</span>
                                                     <span className="font-semibold text-purple-600">
-                                                        {formatCurrency(financialData.totalPOAmount)}
+                                                        {formatCurrency(financialData.totalPOAmountPHP, 'PHP')}
                                                     </span>
                                                 </div>
                                                 <div className="flex justify-between items-center pt-2 border-t">
                                                     <span className={`text-sm font-medium ${
-                                                        financialData.remainingBudget >= 0 ? 'text-green-600' : 'text-red-600'
+                                                        financialData.remainingBudgetPHP >= 0 ? 'text-green-600' : 'text-red-600'
                                                     }`}>
-                                                        {financialData.remainingBudget >= 0 ? 'Remaining:' : 'Over Budget:'}
+                                                        {financialData.remainingBudgetPHP >= 0 ? 'Remaining:' : 'Over Budget:'}
                                                     </span>
                                                     <span className={`font-bold ${
-                                                        financialData.remainingBudget >= 0 ? 'text-green-600' : 'text-red-600'
+                                                        financialData.remainingBudgetPHP >= 0 ? 'text-green-600' : 'text-red-600'
                                                     }`}>
-                                                        {formatCurrency(Math.abs(financialData.remainingBudget))}
+                                                        {formatCurrency(Math.abs(financialData.remainingBudgetPHP), 'PHP')}
                                                     </span>
                                                 </div>
                                             </div>
+
+                                            {/* USD Section - if exists */}
+                                            {financialData.hasUSDPOs && (
+                                                <div className="pt-4 border-t">
+                                                    <div className="flex justify-between items-center mb-2">
+                                                        <span className="text-sm font-medium">USD Purchase Orders</span>
+                                                        <span className="text-sm font-semibold text-purple-600">
+                                                            {formatCurrency(financialData.totalPOAmountUSD, 'USD')}
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-xs text-gray-500">
+                                                        Project budget is PHP-only. USD POs tracked separately.
+                                                    </p>
+                                                </div>
+                                            )}
                                         </div>
                                     </CardContent>
                                 </Card>
@@ -742,52 +792,90 @@ export default function ProjectShow({ project }) {
                                     </CardHeader>
                                     <CardContent>
                                         <div className="space-y-4">
-                                            {/* Payment Progress */}
-                                            <div>
-                                                <div className="flex justify-between mb-2">
-                                                    <span className="text-sm font-medium">Payment Progress</span>
-                                                    <span className="text-sm font-bold text-green-600">
-                                                        {formatPercentage(financialData.paymentProgress)}
-                                                    </span>
-                                                </div>
-                                                <Progress
-                                                    value={Math.min(financialData.paymentProgress, 100)}
-                                                    className="h-3 bg-green-200 [&>div]:bg-green-600"
-                                                />
-                                            </div>
-
-                                            {/* Invoice Stats */}
-                                            <div className="space-y-3 pt-4 border-t">
-                                                <div className="flex justify-between items-center">
-                                                    <span className="text-sm text-gray-600">Total Invoiced:</span>
-                                                    <span className="font-semibold">
-                                                        {formatCurrency(financialData.totalInvoicedAmount)}
-                                                    </span>
-                                                </div>
-                                                <div className="flex justify-between items-center">
-                                                    <span className="text-sm text-gray-600">Paid:</span>
-                                                    <span className="font-semibold text-green-600">
-                                                        {formatCurrency(financialData.totalPaidAmount)}
-                                                    </span>
-                                                </div>
-                                                <div className="flex justify-between items-center">
-                                                    <span className="text-sm text-gray-600">Outstanding:</span>
-                                                    <span className="font-semibold text-orange-600">
-                                                        {formatCurrency(financialData.totalOutstanding)}
-                                                    </span>
-                                                </div>
-                                                {financialData.overdueInvoices > 0 && (
-                                                    <div className="flex justify-between items-center bg-red-50 p-3 rounded-lg border border-red-200">
-                                                        <div className="flex items-center gap-2">
-                                                            <AlertTriangle className="h-4 w-4 text-red-600" />
-                                                            <span className="text-sm font-medium text-red-600">Overdue:</span>
-                                                        </div>
-                                                        <span className="font-bold text-red-600">
-                                                            {financialData.overdueInvoices} invoices
+                                            {/* PHP Payment Progress */}
+                                            {financialData.totalInvoicedAmountPHP > 0 && (
+                                                <div>
+                                                    <div className="flex justify-between mb-2">
+                                                        <span className="text-sm font-medium">PHP Payment Progress</span>
+                                                        <span className="text-sm font-bold text-green-600">
+                                                            {formatPercentage(financialData.paymentProgressPHP)}
                                                         </span>
                                                     </div>
-                                                )}
-                                            </div>
+                                                    <Progress
+                                                        value={Math.min(financialData.paymentProgressPHP, 100)}
+                                                        className="h-3 bg-green-200 [&>div]:bg-green-600"
+                                                    />
+                                                    <div className="space-y-2 mt-3">
+                                                        <div className="flex justify-between items-center text-sm">
+                                                            <span className="text-gray-600">Invoiced:</span>
+                                                            <span className="font-semibold">
+                                                                {formatCurrency(financialData.totalInvoicedAmountPHP, 'PHP')}
+                                                            </span>
+                                                        </div>
+                                                        <div className="flex justify-between items-center text-sm">
+                                                            <span className="text-gray-600">Paid:</span>
+                                                            <span className="font-semibold text-green-600">
+                                                                {formatCurrency(financialData.totalPaidAmountPHP, 'PHP')}
+                                                            </span>
+                                                        </div>
+                                                        <div className="flex justify-between items-center text-sm">
+                                                            <span className="text-gray-600">Outstanding:</span>
+                                                            <span className="font-semibold text-orange-600">
+                                                                {formatCurrency(financialData.totalOutstandingPHP, 'PHP')}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* USD Payment Progress */}
+                                            {financialData.totalInvoicedAmountUSD > 0 && (
+                                                <div className={financialData.totalInvoicedAmountPHP > 0 ? "pt-4 border-t" : ""}>
+                                                    <div className="flex justify-between mb-2">
+                                                        <span className="text-sm font-medium">USD Payment Progress</span>
+                                                        <span className="text-sm font-bold text-green-600">
+                                                            {formatPercentage(financialData.paymentProgressUSD)}
+                                                        </span>
+                                                    </div>
+                                                    <Progress
+                                                        value={Math.min(financialData.paymentProgressUSD, 100)}
+                                                        className="h-3 bg-green-200 [&>div]:bg-green-600"
+                                                    />
+                                                    <div className="space-y-2 mt-3">
+                                                        <div className="flex justify-between items-center text-sm">
+                                                            <span className="text-gray-600">Invoiced:</span>
+                                                            <span className="font-semibold">
+                                                                {formatCurrency(financialData.totalInvoicedAmountUSD, 'USD')}
+                                                            </span>
+                                                        </div>
+                                                        <div className="flex justify-between items-center text-sm">
+                                                            <span className="text-gray-600">Paid:</span>
+                                                            <span className="font-semibold text-green-600">
+                                                                {formatCurrency(financialData.totalPaidAmountUSD, 'USD')}
+                                                            </span>
+                                                        </div>
+                                                        <div className="flex justify-between items-center text-sm">
+                                                            <span className="text-gray-600">Outstanding:</span>
+                                                            <span className="font-semibold text-orange-600">
+                                                                {formatCurrency(financialData.totalOutstandingUSD, 'USD')}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Overdue Warning */}
+                                            {financialData.overdueInvoices > 0 && (
+                                                <div className="flex justify-between items-center bg-red-50 p-3 rounded-lg border border-red-200 mt-4">
+                                                    <div className="flex items-center gap-2">
+                                                        <AlertTriangle className="h-4 w-4 text-red-600" />
+                                                        <span className="text-sm font-medium text-red-600">Overdue:</span>
+                                                    </div>
+                                                    <span className="font-bold text-red-600">
+                                                        {financialData.overdueInvoices} invoices
+                                                    </span>
+                                                </div>
+                                            )}
                                         </div>
                                     </CardContent>
                                 </Card>
@@ -1091,46 +1179,103 @@ export default function ProjectShow({ project }) {
                                                             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                                                                 <div>
                                                                     <p className="text-sm text-gray-600 mb-1">PO Amount</p>
-                                                                    <p className="text-xl font-bold text-purple-600">
-                                                                        {formatCurrency(vendor.totalPOAmount)}
-                                                                    </p>
-                                                                    <p className="text-xs text-gray-500 mt-1">
-                                                                        {formatPercentage((vendor.totalPOAmount / financialData.totalPOAmount) * 100)} of total
-                                                                    </p>
+                                                                    <div className="space-y-1">
+                                                                        {vendor.totalPOAmountPHP > 0 && (
+                                                                            <p className="text-xl font-bold text-purple-600">
+                                                                                {formatCurrency(vendor.totalPOAmountPHP, 'PHP')}
+                                                                            </p>
+                                                                        )}
+                                                                        {vendor.totalPOAmountUSD > 0 && (
+                                                                            <p className="text-xl font-bold text-purple-600">
+                                                                                {formatCurrency(vendor.totalPOAmountUSD, 'USD')}
+                                                                            </p>
+                                                                        )}
+                                                                    </div>
                                                                 </div>
 
                                                                 <div>
                                                                     <p className="text-sm text-gray-600 mb-1">Invoiced</p>
-                                                                    <p className="text-xl font-bold text-orange-600">
-                                                                        {formatCurrency(vendor.totalInvoiced)}
-                                                                    </p>
-                                                                    <Progress
-                                                                        value={Math.min((vendor.totalInvoiced / vendor.totalPOAmount) * 100, 100)}
-                                                                        className="h-2 mt-2"
-                                                                    />
+                                                                    <div className="space-y-1">
+                                                                        {vendor.totalInvoicedPHP > 0 && (
+                                                                            <>
+                                                                                <p className="text-xl font-bold text-orange-600">
+                                                                                    {formatCurrency(vendor.totalInvoicedPHP, 'PHP')}
+                                                                                </p>
+                                                                                {vendor.totalPOAmountPHP > 0 && (
+                                                                                    <Progress
+                                                                                        value={Math.min((vendor.totalInvoicedPHP / vendor.totalPOAmountPHP) * 100, 100)}
+                                                                                        className="h-2"
+                                                                                    />
+                                                                                )}
+                                                                            </>
+                                                                        )}
+                                                                        {vendor.totalInvoicedUSD > 0 && (
+                                                                            <>
+                                                                                <p className="text-xl font-bold text-orange-600">
+                                                                                    {formatCurrency(vendor.totalInvoicedUSD, 'USD')}
+                                                                                </p>
+                                                                                {vendor.totalPOAmountUSD > 0 && (
+                                                                                    <Progress
+                                                                                        value={Math.min((vendor.totalInvoicedUSD / vendor.totalPOAmountUSD) * 100, 100)}
+                                                                                        className="h-2"
+                                                                                    />
+                                                                                )}
+                                                                            </>
+                                                                        )}
+                                                                    </div>
                                                                 </div>
 
                                                                 <div>
                                                                     <p className="text-sm text-gray-600 mb-1">Paid</p>
-                                                                    <p className="text-xl font-bold text-green-600">
-                                                                        {formatCurrency(vendor.totalPaid)}
-                                                                    </p>
-                                                                    <Progress
-                                                                        value={Math.min((vendor.totalPaid / vendor.totalInvoiced) * 100, 100)}
-                                                                        className="h-2 mt-2 bg-green-200 [&>div]:bg-green-600"
-                                                                    />
+                                                                    <div className="space-y-1">
+                                                                        {vendor.totalPaidPHP > 0 && (
+                                                                            <>
+                                                                                <p className="text-xl font-bold text-green-600">
+                                                                                    {formatCurrency(vendor.totalPaidPHP, 'PHP')}
+                                                                                </p>
+                                                                                {vendor.totalInvoicedPHP > 0 && (
+                                                                                    <Progress
+                                                                                        value={Math.min((vendor.totalPaidPHP / vendor.totalInvoicedPHP) * 100, 100)}
+                                                                                        className="h-2 bg-green-200 [&>div]:bg-green-600"
+                                                                                    />
+                                                                                )}
+                                                                            </>
+                                                                        )}
+                                                                        {vendor.totalPaidUSD > 0 && (
+                                                                            <>
+                                                                                <p className="text-xl font-bold text-green-600">
+                                                                                    {formatCurrency(vendor.totalPaidUSD, 'USD')}
+                                                                                </p>
+                                                                                {vendor.totalInvoicedUSD > 0 && (
+                                                                                    <Progress
+                                                                                        value={Math.min((vendor.totalPaidUSD / vendor.totalInvoicedUSD) * 100, 100)}
+                                                                                        className="h-2 bg-green-200 [&>div]:bg-green-600"
+                                                                                    />
+                                                                                )}
+                                                                            </>
+                                                                        )}
+                                                                    </div>
                                                                 </div>
 
                                                                 <div>
                                                                     <p className="text-sm text-gray-600 mb-1">Outstanding</p>
-                                                                    <p className="text-xl font-bold text-orange-600">
-                                                                        {formatCurrency(vendor.outstanding)}
-                                                                    </p>
-                                                                    {vendor.outstanding > 0 && (
-                                                                        <Badge variant="secondary" className="mt-2">
-                                                                            Payment Due
-                                                                        </Badge>
-                                                                    )}
+                                                                    <div className="space-y-1">
+                                                                        {vendor.outstandingPHP > 0 && (
+                                                                            <p className="text-xl font-bold text-orange-600">
+                                                                                {formatCurrency(vendor.outstandingPHP, 'PHP')}
+                                                                            </p>
+                                                                        )}
+                                                                        {vendor.outstandingUSD > 0 && (
+                                                                            <p className="text-xl font-bold text-orange-600">
+                                                                                {formatCurrency(vendor.outstandingUSD, 'USD')}
+                                                                            </p>
+                                                                        )}
+                                                                        {(vendor.outstandingPHP > 0 || vendor.outstandingUSD > 0) && (
+                                                                            <Badge variant="secondary" className="mt-2">
+                                                                                Payment Due
+                                                                            </Badge>
+                                                                        )}
+                                                                    </div>
                                                                 </div>
                                                             </div>
                                                         </CardContent>
